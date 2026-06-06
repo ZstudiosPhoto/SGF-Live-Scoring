@@ -395,17 +395,26 @@ function buildLB(){
   }).join('');
 }
 
-const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbyI_mgFi9T6LgGAZaFqiKemw6J_VvUqNVHio_qKDjgkqkR40_AX4UFUOFLkfDfypseU/exec';
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbzlPahD7xE2ICkb_CuxVidnpv3CMyaRSTeuRu9-HgYawMWCaOJXuFHQB8TMbNWWnNbE/exec';
 
 async function pushToSheets(){
   showSync('Pushing scores to Google Sheets…',null);
   try{
-    const payload={players:players.map(p=>({
-      name:p.name||`Player ${p.id}`,
-      out:FRONT.map(h=>scores[p.id][h]!==null?scores[p.id][h]:'').join(','),
-      in:BACK.map(h=>scores[p.id][h]!==null?scores[p.id][h]:'').join(',')
-    }))};
-    const res=await fetch(APPS_SCRIPT_URL,{
+    const payload={players:players.map(p=>{
+      const frontFilled=FRONT.every(h=>scores[p.id][h]!==null);
+      const backFilled=BACK.every(h=>scores[p.id][h]!==null);
+      const outTotal=frontFilled?FRONT.reduce((s,h)=>s+scores[p.id][h],0):'';
+      const inTotal=backFilled?BACK.reduce((s,h)=>s+scores[p.id][h],0):'';
+      return{
+        name:p.name||`Player ${p.id}`,
+        out:FRONT.map(h=>scores[p.id][h]!==null?scores[p.id][h]:'').join(','),
+        in:BACK.map(h=>scores[p.id][h]!==null?scores[p.id][h]:'').join(','),
+        outTotal:outTotal,
+        inTotal:inTotal,
+        holes:HOLES.map(h=>scores[p.id][h]!==null?scores[p.id][h]:'')
+      };
+    })};
+    await fetch(APPS_SCRIPT_URL,{
       method:'POST',
       mode:'no-cors',
       headers:{'Content-Type':'application/json'},
