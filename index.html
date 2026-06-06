@@ -505,12 +505,17 @@ function buildTable(){
   document.getElementById('score-thead').innerHTML=`
     <tr class="th-header">
       <th class="th-name">Player</th>
-      ${holes.map((h,i)=>`<th><div style="font-size:0.63rem;opacity:0.9;">${h}</div><div style="font-size:0.6rem;opacity:0.7;">P${ps[i]}</div></th>`).join('')}
+      ${holes.map(h=>`<th>${h}</th>`).join('')}
       <th>${lbl}</th><th>+/-</th>
+    </tr>
+    <tr class="th-par">
+      <th class="th-name">Par</th>
+      ${ps.map(p=>`<th>${p}</th>`).join('')}
+      <th>${tot}</th><th>E</th>
     </tr>`;
   const tbody=document.getElementById('score-tbody');
   tbody.innerHTML='';
-  players.forEach(p=>{
+  players.filter(p=>p.name&&p.name.trim()!=='').forEach(p=>{
     const tr=document.createElement('tr');
     tr.className='score-row';
     const filled=holes.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
