@@ -485,7 +485,7 @@ async function loadPlayersFromSheet(){
     const url=`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tab+'!A:A')}?key=${apiKey}`;
     const data=await(await fetch(url)).json();
     if(data.error){showStatus(st,`Error: ${data.error.message}`,'err');document.getElementById('btn-load').disabled=false;return;}
-    const names=(data.values||[]).flat().filter(v=>v&&v.trim()&&!['player','name','golfer'].includes(v.trim().toLowerCase())).slice(0,30);
+    const names=(data.values||[]).flat().filter(v=>v&&v.trim()&&!['player','name','golfer','player name','player name'].includes(v.trim().toLowerCase())).slice(0,30);
     if(!names.length){showStatus(st,'No player names found in Column A.','err');document.getElementById('btn-load').disabled=false;return;}
     players=names.map((n,i)=>({id:i+1,name:n.trim()}));nextId=players.length+1;
     renderPlayerList();showStatus(st,`✅ Loaded ${names.length} players!`,'ok');
@@ -515,7 +515,7 @@ function buildTable(){
     </tr>`;
   const tbody=document.getElementById('score-tbody');
   tbody.innerHTML='';
-  players.filter(p=>p.name&&p.name.trim()!=='').forEach(p=>{
+  players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name').forEach(p=>{
     const tr=document.createElement('tr');
     tr.className='score-row';
     const filled=holes.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
