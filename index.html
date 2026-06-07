@@ -697,32 +697,12 @@ async function pushToSheets(silent=false){
         holes:HOLES.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:'')
       };
     })};
-    // Use a form-based POST to bypass CORS restrictions
-    const form=document.createElement('form');
-    form.method='POST';
-    form.action=APPS_SCRIPT_URL;
-    form.target='hidden-iframe';
-    form.style.display='none';
-    const input=document.createElement('input');
-    input.type='hidden';
-    input.name='payload';
-    input.value=JSON.stringify(payload);
-    form.appendChild(input);
-    
-    // Create hidden iframe to receive response
-    let iframe=document.getElementById('hidden-iframe');
-    if(!iframe){
-      iframe=document.createElement('iframe');
-      iframe.name='hidden-iframe';
-      iframe.id='hidden-iframe';
-      iframe.style.display='none';
-      document.body.appendChild(iframe);
-    }
-    
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
-    
+    await fetch(APPS_SCRIPT_URL,{
+      method:'POST',
+      mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
     if(!silent) showSync('✅ Scores pushed to your gross.scores sheet!',true);
     else console.log('Auto-push successful');
   }catch(e){
