@@ -603,7 +603,7 @@ function buildTable(){
     tr.innerHTML=`<td class="td-name"><div class="td-name-text">${esc(p.name||'Player '+p.id)}</div></td>`+
       holes.map((h,i)=>{
         const sv=scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined?scores[p.id][h]:'';
-        return`<td class="td-score"><input class="score-inp ${sCls(sv||null,ps[i])}" type="tel" value="${sv}" placeholder="-" onclick="cellClick(event,${p.id},${h},this)" oninput="upd(${p.id},${h},this)"></td>`;
+        return`<td class="td-score"><input class="score-inp ${sCls(sv||null,ps[i])}" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="20" value="${sv}" placeholder="-" onclick="cellClick(event,${p.id},${h},this)" onchange="upd(${p.id},${h},this)" oninput="upd(${p.id},${h},this)"></td>`;
       }).join('')+
       `<td class="td-sub" id="sub-${p.id}">${tot2!==null?tot2:'—'}</td><td class="td-total ${vCls}" id="vp-${p.id}">${vpStr}</td>`;
     tbody.appendChild(tr);
@@ -613,24 +613,22 @@ function buildTable(){
 function cellClick(e,pid,hole,inp){
   const existing=scores[pid]&&scores[pid][hole]!==null&&scores[pid][hole]!==undefined?scores[pid][hole]:null;
   if(existing!==null){
-    const confirmed=confirm(`Hole ${hole} already has a score of ${existing}.\nDo you want to change it?`);
-    if(!confirmed){inp.value=existing;inp.blur();e.preventDefault();return;}
-    // User confirmed - select text so they can type over it
-    inp.select();
+    const confirmed=confirm(`Hole ${hole} score is ${existing}. Change it?`);
+    if(!confirmed){e.preventDefault();inp.blur();return;}
+    inp.value='';
   }
-  // Don't clear the value here - let upd() handle it as user types
 }
 
 function upd(pid,hole,inp){
-  const raw=inp.value.replace(/[^0-9]/g,'');
-  inp.value=raw;
+  const raw=inp.value===''?'':inp.value;
   const val=raw===''?null:parseInt(raw,10);
-  // Allow typing multi-digit - only validate when > 20
-  if(val!==null&&val>20){inp.value='';if(!scores[pid])scores[pid]={};scores[pid][hole]=null;pushScoreToFirebase(pid,hole,null);return;}
+  if(val!==null&&(isNaN(val)||val<1||val>20)){
+    inp.value=scores[pid]&&scores[pid][hole]?scores[pid][hole]:'';
+    return;
+  }
   if(!scores[pid])scores[pid]={};
   scores[pid][hole]=val;
   inp.className=`score-inp ${sCls(val,pars[HOLES.indexOf(hole)])}`;
-  // Push to Firebase - null when deleted
   pushScoreToFirebase(pid,hole,val);
   // Update subtotal locally
   const nine=activeNine==='front'?FRONT:BACK;
@@ -678,8 +676,10 @@ function buildLB(){
 // ── PUSH TO SHEETS ────────────────────────────────────────────────────
 async function pushToSheets(silent=false){
   if(!silent) showSync('Pushing scores to Google Sheets…',null);
+  console.log('Push: players count=',players.length,'scores=',JSON.stringify(scores));
   if(!players||players.length===0){
-    if(!silent) showSync('⚠️ No players loaded. Please start or join a round first.',false);
+    if(!silent) showSync('⚠️ No players loaded. Start a round first.',false);
+    console.log('Push aborted: no players');
     return;
   }
   try{
