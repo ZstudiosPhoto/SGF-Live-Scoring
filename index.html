@@ -509,18 +509,65 @@ async function loadPlayersFromSheet(){
 function showStatus(el,msg,type){el.style.display='block';el.className=`status-msg status-${type}`;el.textContent=msg;}
 
 async function endRound(){
-  const confirmed=confirm('End the current round?\nThis will clear the live scorecard for all players.');
-  if(!confirmed)return;
+  // Show custom popup with two options
+  const choice = await showEndRoundDialog();
+  if(!choice) return;
+
   try{
-    await firebase.database().ref('sgf/activeRound').remove();
-    alert('✅ Round ended! The app will now show the Setup screen for all players.');
-    // Reset local state
-    players=[];scores={};
-    renderPlayerList();
-    showScreen('screen-setup');
+    if(choice === 'end'){
+      // End round completely - clears Firebase
+      await firebase.database().ref('sgf/activeRound').remove();
+      players=[];scores={};
+      renderPlayerList();
+      showScreen('screen-setup');
+      alert('✅ Round ended! App reset for all players.');
+    } else if(choice === 'reset'){
+      // Reset sheet scores only - keeps round active
+      const payload={players:players.map(p=>({
+        name:p.name||`Player ${p.id}`,
+        out:'',in:'',outTotal:'',inTotal:'',
+        holes:Array(18).fill('')
+      }))};
+      await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      alert('✅ Sheet scores cleared! Round is still active.');
+    }
   }catch(e){
-    alert('Error ending round: '+e.message);
+    alert('Error: '+e.message);
   }
+}
+
+function showEndRoundDialog(){
+  return new Promise(resolve=>{
+    // Remove existing dialog if any
+    const existing=document.getElementById('end-round-dialog');
+    if(existing) existing.remove();
+
+    const overlay=document.createElement('div');
+    overlay.id='end-round-dialog';
+    overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+    overlay.innerHTML=`
+      <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:#1a5518;letter-spacing:1px;margin-bottom:8px;">Round Options</div>
+        <div style="font-size:0.85rem;color:#4a7044;margin-bottom:20px;font-weight:600;">What would you like to do?</div>
+        <button id="btn-end-round" style="width:100%;padding:13px;background:#c0392b;color:white;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.95rem;cursor:pointer;margin-bottom:10px;">
+          🔴 End Round<br><span style="font-size:0.75rem;font-weight:600;opacity:0.85;">Clears scorecard for all players</span>
+        </button>
+        <button id="btn-reset-sheet" style="width:100%;padding:13px;background:#e67e22;color:white;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.95rem;cursor:pointer;margin-bottom:10px;">
+          📊 Reset Sheet Scores<br><span style="font-size:0.75rem;font-weight:600;opacity:0.85;">Clears scores in Google Sheet only</span>
+        </button>
+        <button id="btn-cancel-dialog" style="width:100%;padding:11px;background:transparent;color:#4a7044;border:2px solid #b8ddb5;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">
+          Cancel
+        </button>
+      </div>`;
+
+    document.body.appendChild(overlay);
+
+    document.getElementById('btn-end-round').onclick=()=>{overlay.remove();resolve('end');};
+    document.getElementById('btn-reset-sheet').onclick=()=>{overlay.remove();resolve('reset');};
+    document.getElementById('btn-cancel-dialog').onclick=()=>{overlay.remove();resolve(null);};
+    overlay.onclick=(e)=>{if(e.target===overlay){overlay.remove();resolve(null);}};
+  });
 }
 
 // ── SCORECARD ─────────────────────────────────────────────────────────
@@ -582,13 +629,15 @@ function upd(pid,hole,inp){
   const raw=inp.value.replace(/[^0-9]/g,'');
   inp.value=raw;
   const val=raw===''?null:parseInt(raw,10);
-  if(val!==null&&val>20){inp.value='';scores[pid][hole]=null;pushScoreToFirebase(pid,hole,null);return;}
+  if(val!==null&&val>20){inp.value='';if(!scores[pid])scores[pid]={};scores[pid][hole]=null;pushScoreToFirebase(pid,hole,null);return;}
   if(val!==null&&val<1){return;}
   if(!scores[pid])scores[pid]={};
   scores[pid][hole]=val;
+  // When val is null (deleted), show empty and save null to Firebase
   inp.className=`score-inp ${sCls(val,pars[HOLES.indexOf(hole)])}`;
-  // Push to Firebase immediately
-  pushScoreToFirebase(pid,hole,val);
+  inp.value=val===null?'':val;
+  // Push to Firebase immediately — including null for deleted scores
+  pushScoreToFirebase(pid,hole,val===null?null:val);
   // Update subtotal locally
   const nine=activeNine==='front'?FRONT:BACK;
   const filled=nine.every(h=>scores[pid]&&scores[pid][h]!==null&&scores[pid][h]!==undefined);
