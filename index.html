@@ -676,7 +676,8 @@ function buildLB(){
 // ── PUSH TO SHEETS ────────────────────────────────────────────────────
 async function pushToSheets(silent=false){
   if(!silent) showSync('Pushing scores to Google Sheets…',null);
-  console.log('Push: players count=',players.length,'scores=',JSON.stringify(scores));
+  console.log('Push: players count=',players.length);
+  console.log('Push: player names=',players.map(p=>p.name).join(', '));
   if(!players||players.length===0){
     if(!silent) showSync('⚠️ No players loaded. Start a round first.',false);
     console.log('Push aborted: no players');
@@ -696,7 +697,32 @@ async function pushToSheets(silent=false){
         holes:HOLES.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:'')
       };
     })};
-    await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    // Use a form-based POST to bypass CORS restrictions
+    const form=document.createElement('form');
+    form.method='POST';
+    form.action=APPS_SCRIPT_URL;
+    form.target='hidden-iframe';
+    form.style.display='none';
+    const input=document.createElement('input');
+    input.type='hidden';
+    input.name='payload';
+    input.value=JSON.stringify(payload);
+    form.appendChild(input);
+    
+    // Create hidden iframe to receive response
+    let iframe=document.getElementById('hidden-iframe');
+    if(!iframe){
+      iframe=document.createElement('iframe');
+      iframe.name='hidden-iframe';
+      iframe.id='hidden-iframe';
+      iframe.style.display='none';
+      document.body.appendChild(iframe);
+    }
+    
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+    
     if(!silent) showSync('✅ Scores pushed to your gross.scores sheet!',true);
     else console.log('Auto-push successful');
   }catch(e){
