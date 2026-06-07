@@ -613,32 +613,25 @@ function buildTable(){
 function cellClick(e,pid,hole,inp){
   const existing=scores[pid]&&scores[pid][hole]!==null&&scores[pid][hole]!==undefined?scores[pid][hole]:null;
   if(existing!==null){
-    // Cell already has a score - ask for confirmation
     const confirmed=confirm(`Hole ${hole} already has a score of ${existing}.\nDo you want to change it?`);
-    if(!confirmed){
-      inp.value=existing;
-      inp.blur();
-      e.preventDefault();
-      return;
-    }
+    if(!confirmed){inp.value=existing;inp.blur();e.preventDefault();return;}
+    // User confirmed - select text so they can type over it
+    inp.select();
   }
-  inp.value='';
-  inp.focus();
+  // Don't clear the value here - let upd() handle it as user types
 }
 
 function upd(pid,hole,inp){
   const raw=inp.value.replace(/[^0-9]/g,'');
   inp.value=raw;
   const val=raw===''?null:parseInt(raw,10);
+  // Allow typing multi-digit - only validate when > 20
   if(val!==null&&val>20){inp.value='';if(!scores[pid])scores[pid]={};scores[pid][hole]=null;pushScoreToFirebase(pid,hole,null);return;}
-  if(val!==null&&val<1){return;}
   if(!scores[pid])scores[pid]={};
   scores[pid][hole]=val;
-  // When val is null (deleted), show empty and save null to Firebase
   inp.className=`score-inp ${sCls(val,pars[HOLES.indexOf(hole)])}`;
-  inp.value=val===null?'':val;
-  // Push to Firebase immediately — including null for deleted scores
-  pushScoreToFirebase(pid,hole,val===null?null:val);
+  // Push to Firebase - null when deleted
+  pushScoreToFirebase(pid,hole,val);
   // Update subtotal locally
   const nine=activeNine==='front'?FRONT:BACK;
   const filled=nine.every(h=>scores[pid]&&scores[pid][h]!==null&&scores[pid][h]!==undefined);
@@ -685,6 +678,10 @@ function buildLB(){
 // ── PUSH TO SHEETS ────────────────────────────────────────────────────
 async function pushToSheets(silent=false){
   if(!silent) showSync('Pushing scores to Google Sheets…',null);
+  if(!players||players.length===0){
+    if(!silent) showSync('⚠️ No players loaded. Please start or join a round first.',false);
+    return;
+  }
   try{
     const payload={players:players.map(p=>{
       const frontFilled=FRONT.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
