@@ -460,13 +460,14 @@ async function loadPlayersFromSheet(){
   const sheetId=document.getElementById('inp-sheetid').value.trim();
   const tab=document.getElementById('inp-tabname').value.trim()||'gross.scores';
   const st=document.getElementById('load-status');
-  if(!apiKey||!sheetId){showStatus(st,'Please enter API Key and Sheet ID first.','err');return;}
+  if(!sheetId){showStatus(st,'Please enter Sheet ID first.','err');return;}
   showStatus(st,'Loading players...','info');
   document.getElementById('btn-load').disabled=true;
   try{
-    const url=`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/SETUP.PLAYERS!B:I?key=${apiKey}`;
-    const data=await(await fetch(url)).json();
-    if(data.error){showStatus(st,`Error: ${data.error.message}`,'err');document.getElementById('btn-load').disabled=false;return;}
+    const gvizUrl=`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=SETUP.PLAYERS&range=B13:I30`;
+    const gvizText=await(await fetch(gvizUrl)).text();
+    const data={values:JSON.parse(gvizText.replace(/^[\s\S]*?({[\s\S]*})[\s\S]*$/,'$1')).table.rows.filter(r=>r.c&&r.c[0]&&r.c[0].v).map(r=>r.c.map(c=>c&&c.v!=null?String(c.v):null))};
+
     const rows=(data.values||[]).filter(r=>r[0]&&r[0].trim()&&!['player name','name','player'].includes(r[0].trim().toLowerCase()));
     if(!rows.length){showStatus(st,'No player names found in SETUP.PLAYERS.','err');document.getElementById('btn-load').disabled=false;return;}
     players=rows.slice(0,30).map((r,i)=>({id:i+1,name:r[0].trim(),hcp:r[7]?parseInt(r[7])||0:0}));nextId=players.length+1;
