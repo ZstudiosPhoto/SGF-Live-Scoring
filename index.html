@@ -640,7 +640,7 @@ async function pushToSheets(silent=false){
     return;
   }
   try{
-    const payload={players:players.map(p=>{
+    const payload={spreadsheetId:window.activeSheetId||'',players:players.map(p=>{
       const frontFilled=FRONT.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
       const backFilled=BACK.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
       const outTotal=frontFilled?FRONT.reduce((s,h)=>s+scores[p.id][h],0):'';
