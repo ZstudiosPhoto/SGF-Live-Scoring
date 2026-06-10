@@ -182,11 +182,6 @@ try {
     <div class="setup-card">
       <div class="section-title">Google Sheets</div>
       <div class="field">
-        <label>Google API Key</label>
-        <input type="password" id="inp-apikey" placeholder="Paste your Google API Key" autocomplete="off">
-        <div class="field-hint">Used to load player names from your sheet</div>
-      </div>
-      <div class="field">
         <label>Sheet ID</label>
         <input type="text" id="inp-sheetid" placeholder="Paste your Google Sheet ID" maxlength="120">
       </div>
@@ -456,8 +451,7 @@ function addPlayer(){if(players.length>=30)return;players.push({id:nextId++,name
 function removePlayer(id){if(players.length<=1)return;players=players.filter(p=>p.id!==id);renderPlayerList();}
 
 async function loadPlayersFromSheet(){
-  const apiKey=document.getElementById('inp-apikey').value.trim();
-  const sheetId=document.getElementById('inp-sheetid').value.trim();
+    const sheetId=document.getElementById('inp-sheetid').value.trim();
   const tab=document.getElementById('inp-tabname').value.trim()||'gross.scores';
   const st=document.getElementById('load-status');
   if(!sheetId){showStatus(st,'Please enter Sheet ID first.','err');return;}
