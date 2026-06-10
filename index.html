@@ -535,12 +535,12 @@ function buildTable(){
     <tr class="th-header">
       <th class="th-name">Player</th>
       ${holes.map(h=>`<th>${h}</th>`).join('')}
-      <th>${lbl}</th><th>+/-</th>
+      <th>${lbl}</th>${activeNine==='back'?'<th>Tot</th>':''}<th>+/-</th>
     </tr>
     <tr class="th-par">
       <th class="th-name">Par</th>
       ${ps.map(p=>`<th>${p}</th>`).join('')}
-      <th>${tot}</th><th>E</th>
+      <th>${tot}</th>${activeNine==='back'?'<th>'+pars.reduce((a,b)=>a+b,0)+'</th>':''}<th>E</th>
     </tr>`;
   const tbody=document.getElementById('score-tbody');
   tbody.innerHTML='';
@@ -557,7 +557,7 @@ function buildTable(){
         const sv=scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined?scores[p.id][h]:'';
         return`<td class="td-score"><input class="score-inp ${sCls(sv||null,ps[i])}" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="20" value="${sv}" placeholder="-" onclick="cellClick(event,${p.id},${h},this)" onchange="upd(${p.id},${h},this)"></td>`;
       }).join('')+
-      `<td class="td-sub" id="sub-${p.id}">${tot2!==null?tot2:'—'}</td><td class="td-total ${vCls}" id="vp-${p.id}">${vpStr}</td>`;
+      `<td class="td-sub" id="sub-${p.id}">${tot2!==null?tot2:'—'}</td>${activeNine==='back'?(()=>{const frontFilled=FRONT.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);const ft=frontFilled?FRONT.reduce((s,h)=>s+scores[p.id][h],0):null;const grossTot=(ft!==null&&tot2!==null)?ft+tot2:null;return`<td class="td-sub" id="gtot-${p.id}">${grossTot!==null?grossTot:'—'}</td>`;})():''}<td class="td-total ${vCls}" id="vp-${p.id}">${vpStr}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -592,6 +592,7 @@ function upd(pid,hole,inp){
   const se=document.getElementById(`sub-${pid}`),ve=document.getElementById(`vp-${pid}`);
   if(se)se.textContent=tot!==null?tot:'—';
   if(ve){ve.textContent=vp===null?'—':(vp===0?'E':vp>0?`+${vp}`:vp);ve.className=`td-total ${vp===null?'':(vp<0?'under':vp===0?'even':'over')}`;}
+  if(activeNine==='back'){const ge=document.getElementById(`gtot-${pid}`);if(ge){const frontFilled=FRONT.every(h=>scores[pid]&&scores[pid][h]!==null&&scores[pid][h]!==undefined);const backFilled=BACK.every(h=>scores[pid]&&scores[pid][h]!==null&&scores[pid][h]!==undefined);const ft=frontFilled?FRONT.reduce((s,h)=>s+scores[pid][h],0):null;const bt=backFilled?BACK.reduce((s,h)=>s+scores[pid][h],0):null;ge.textContent=(ft!==null&&bt!==null)?ft+bt:'—';}}
 }
 
 function sCls(val,par){
