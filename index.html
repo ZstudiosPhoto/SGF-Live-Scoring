@@ -141,7 +141,7 @@
 <body>
 <script>
 const SGF_LOGO="sgf-logo.jpg";
-const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbwtbNH7eltwpLQ7FIDG6acIPSXp4TlDloqlEbf_VXCxr84xYFScBT6KYSw4gwx6r5o/exec';
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbzQF0sf--CkPm7MhtCIuE_7vQJuK8W0zVwSB5CYx1GO2uf7R3RZb0Cb-GEJwBYX6Tvc/exec';
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyAA0EGLpcVvEIDwDtfyPIJttvQT_lfLlNM",
   authDomain: "sgf-scoring.firebaseapp.com",
@@ -357,6 +357,7 @@ function joinRound(){
     const data=snap.val();
     if(!data) return showScreen('screen-setup');
     players=data.players||[];
+window.activeSheetId=data.sheetId||'';
     pars=data.pars||pars;
     scores=data.scores||{};
     players.forEach(p=>{ if(!scores[p.id]) scores[p.id]={}; HOLES.forEach(h=>{ if(scores[p.id][h]===undefined) scores[p.id][h]=null; }); });
@@ -419,7 +420,8 @@ async function startRound(){
     const roundData={
       active:true, course, date:date?fmtDate(date):'Live Round',
       players, pars, scores,
-      startedAt:Date.now()
+      sheetId:document.getElementById('inp-sheetid').value.trim(),
+startedAt:Date.now()
     };
     await firebase.database().ref('sgf/activeRound').set(roundData);
     listenForScoreUpdates();
@@ -485,7 +487,7 @@ async function endRound(){
       showScreen('screen-setup');
       alert('✅ Round ended! App reset for all players.');
     } else if(choice === 'reset'){
-      const payload={players:players.map(p=>({
+      const payload={spreadsheetId:window.activeSheetId||'',players:players.map(p=>({
         name:p.name||`Player ${p.id}`,
         out:'',in:'',outTotal:'',inTotal:'',
         holes:Array(18).fill('')
