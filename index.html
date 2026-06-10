@@ -322,7 +322,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     const el=document.getElementById(id); if(el) el.src=SGF_LOGO;
   });
   document.getElementById('inp-date').value=new Date().toISOString().slice(0,10);
-  document.getElementById('inp-sheetid').value='1UyS3Fgl-9T9ghH0j7hZn-FcritiSqfNaB3lcD5VCcBA';
+  document.getElementById('inp-sheetid').value=localStorage.getItem('sgf_sheetId')||'';
   buildParInputs();
   renderPlayerList();
   try{
@@ -420,7 +420,7 @@ async function startRound(){
     const roundData={
       active:true, course, date:date?fmtDate(date):'Live Round',
       players, pars, scores,
-      sheetId:document.getElementById('inp-sheetid').value.trim(),
+      sheetId:(()=>{const s=document.getElementById('inp-sheetid').value.trim();localStorage.setItem('sgf_sheetId',s);return s;})(),
 startedAt:Date.now()
     };
     await firebase.database().ref('sgf/activeRound').set(roundData);
@@ -559,7 +559,7 @@ function buildTable(){
     tr.innerHTML=`<td class="td-name"><div class="td-name-text">${esc(p.name||'Player '+p.id)}</div></td>`+
       holes.map((h,i)=>{
         const sv=scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined?scores[p.id][h]:'';
-        return`<td class="td-score"><input class="score-inp ${sCls(sv||null,ps[i])}" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="20" value="${sv}" placeholder="-" onclick="cellClick(event,${p.id},${h},this)" onchange="upd(${p.id},${h},this)" oninput="upd(${p.id},${h},this)"></td>`;
+        return`<td class="td-score"><input class="score-inp ${sCls(sv||null,ps[i])}" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="20" value="${sv}" placeholder="-" onclick="cellClick(event,${p.id},${h},this)" onchange="upd(${p.id},${h},this)"></td>`;
       }).join('')+
       `<td class="td-sub" id="sub-${p.id}">${tot2!==null?tot2:'—'}</td><td class="td-total ${vCls}" id="vp-${p.id}">${vpStr}</td>`;
     tbody.appendChild(tr);
