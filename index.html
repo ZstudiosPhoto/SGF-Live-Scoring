@@ -23,7 +23,6 @@
   body{font-family:'Nunito',sans-serif;background:var(--sgf-green-darker);color:var(--text);font-size:15px;display:flex;flex-direction:column;}
   .screen{display:none;height:100vh;flex-direction:column;overflow:hidden;}
   .screen.active{display:flex;}
-  /* HEADER */
   .app-header{background:linear-gradient(150deg,var(--sgf-black) 0%,var(--sgf-green-darker) 45%,var(--sgf-green-dark) 100%);padding:10px 14px;border-bottom:3px solid var(--sgf-green);display:flex;align-items:center;gap:10px;flex-shrink:0;}
   .sgf-logo{width:52px;height:52px;flex-shrink:0;border-radius:6px;overflow:hidden;border:2px solid rgba(255,255,255,0.15);background:#fff;}
   .sgf-logo img{width:100%;height:100%;object-fit:contain;padding:2px;}
@@ -33,11 +32,9 @@
   .header-actions{display:flex;gap:5px;flex-shrink:0;}
   .hdr-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:6px 11px;border-radius:20px;font-size:0.72rem;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:800;transition:all 0.2s;white-space:nowrap;}
   .hdr-btn:hover,.hdr-btn.active{background:var(--sgf-green);border-color:var(--sgf-green);}
-  /* LIVE BADGE */
   .live-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(58,170,53,0.2);border:1px solid var(--sgf-green);border-radius:12px;padding:2px 8px;font-size:0.65rem;font-weight:800;color:var(--sgf-green-light);text-transform:uppercase;letter-spacing:1px;}
   .live-dot{width:6px;height:6px;border-radius:50%;background:var(--sgf-green-light);animation:pulse 1.5s infinite;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
-  /* SETUP */
   .setup-body{flex:1;padding:14px 13px 24px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
   .setup-card{background:var(--card-bg);border-radius:14px;padding:16px 15px;box-shadow:0 8px 32px rgba(0,0,0,0.22);border:1px solid rgba(58,170,53,0.2);margin-bottom:12px;}
   .section-title{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--sgf-green-dark);letter-spacing:1.5px;margin-bottom:12px;border-bottom:2px solid var(--sgf-green-pale);padding-bottom:7px;display:flex;align-items:center;gap:7px;}
@@ -71,7 +68,6 @@
   .status-ok{background:#e6f7e5;color:#1e6b1e;}
   .status-err{background:#fde8e8;color:#c0392b;}
   .status-info{background:#e8f0fe;color:#1a3a8a;}
-  /* JOIN SCREEN */
   .join-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 20px;}
   .join-card{background:var(--card-bg);border-radius:16px;padding:24px 20px;width:100%;max-width:380px;box-shadow:0 12px 40px rgba(0,0,0,0.3);border:1px solid rgba(58,170,53,0.25);}
   .join-title{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--sgf-green-dark);letter-spacing:1px;margin-bottom:4px;}
@@ -80,10 +76,7 @@
   .round-info-course{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:var(--sgf-green-dark);letter-spacing:1px;}
   .round-info-date{font-size:0.78rem;color:var(--muted);font-weight:700;}
   .round-info-players{font-size:0.78rem;color:var(--sgf-green-dark);font-weight:800;margin-top:4px;}
-  /* SCORING */
   .scoring-meta-bar{background:var(--cream);border-bottom:1px solid var(--border);padding:8px 13px;flex-shrink:0;}
-  .meta-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
-  .meta-course{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--sgf-green-dark);letter-spacing:1px;}
   .nine-tabs{display:flex;background:#d0eacf;border-radius:9px;padding:3px;}
   .nine-tab{flex:1;padding:7px;border:none;background:transparent;border-radius:6px;cursor:pointer;font-size:0.78rem;font-family:'Nunito',sans-serif;color:var(--muted);font-weight:800;transition:all 0.2s;}
   .nine-tab.active{background:white;color:var(--sgf-green-dark);box-shadow:0 1px 5px rgba(0,0,0,0.12);}
@@ -117,7 +110,6 @@
   .td-sub{text-align:center;font-weight:800;font-size:0.78rem;color:var(--muted);padding:0 4px;white-space:nowrap;}
   .td-total{text-align:center;font-weight:900;font-size:0.82rem;padding:0 4px;white-space:nowrap;}
   .td-total.under{color:#1e6b1e;}.td-total.even{color:#2a5028;}.td-total.over{color:#c0392b;}
-  /* SYNC BAR */
   .sync-bar{background:var(--sgf-black);padding:9px 11px;border-top:3px solid var(--sgf-green);display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;flex-shrink:0;}
   .sync-btn{padding:9px 13px;border:none;border-radius:8px;cursor:pointer;font-family:'Nunito',sans-serif;font-size:0.77rem;font-weight:800;transition:all 0.2s;}
   .btn-sheets{background:var(--sgf-green);color:#fff;}.btn-sheets:hover{background:var(--sgf-green-dark);}
@@ -125,7 +117,6 @@
   .btn-link{background:transparent;border:1px solid #3a5a38;color:#8acc87;}
   .btn-link:hover{border-color:#8acc87;color:#fff;}
   .sync-result{color:#7dcea0;font-size:0.72rem;width:100%;text-align:center;font-weight:700;}
-  /* LEADERBOARD */
   .lb-body{flex:1;padding:14px 13px 20px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
   .lb-card{background:var(--card-bg);border-radius:13px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,0.2);border:1px solid rgba(58,170,53,0.25);}
   .lb-row{display:flex;align-items:center;padding:11px 13px;border-bottom:1px solid var(--border);gap:9px;}
@@ -140,7 +131,6 @@
   .lb-vp.under{background:#e6f7e5;color:#1e6b1e;}.lb-vp.even{background:#eef5ed;color:#2a5028;}.lb-vp.over{background:#fde8e8;color:#c0392b;}
   .lb-inc{color:#bbb;font-size:0.73rem;font-style:italic;}
   .back-btn{display:block;width:calc(100% - 26px);margin:13px auto 0;padding:13px;background:var(--sgf-green);color:white;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.93rem;cursor:pointer;}
-  /* LOADING */
   .loading-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
   .spinner{width:40px;height:40px;border:4px solid rgba(58,170,53,0.2);border-top-color:var(--sgf-green);border-radius:50%;animation:spin 0.8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
@@ -162,11 +152,9 @@ const FIREBASE_CONFIG = {
   appId: "1:107939154928:web:1d9a05916f0d5fb6a66b35"
 };
 </script>
-<!-- Firebase SDK — must load before any firebase.* calls -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-// Initialize Firebase immediately after SDK loads
 try {
   firebase.initializeApp(FIREBASE_CONFIG);
   db = firebase.database();
@@ -175,7 +163,7 @@ try {
   console.log('Firebase init error:', e);
 }
 </script>
-<!-- ===== SETUP SCREEN (Admin only) ===== -->
+<!-- ===== SETUP SCREEN ===== -->
 <div id="screen-setup" class="screen active">
   <div class="app-header">
     <div class="sgf-logo"><img id="logo1" alt="SGF"></div>
@@ -210,3 +198,514 @@ try {
     </div>
     <div class="setup-card">
       <div class="section-title">Players (<span id="player-count">1</span>/30)</div>
+      <div class="player-list" id="player-list"></div>
+      <button class="add-player-row" onclick="addPlayer()">+ Add Player</button>
+    </div>
+    <div class="setup-card">
+      <div class="section-title">Par Settings</div>
+      <div style="font-size:0.68rem;color:var(--muted);font-weight:800;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">Front 9 — Holes 1–9</div>
+      <div class="par-grid" id="par-front"></div>
+      <div style="font-size:0.68rem;color:var(--muted);font-weight:800;margin:10px 0 4px;text-transform:uppercase;letter-spacing:1px;">Back 9 — Holes 10–18</div>
+      <div class="par-grid" id="par-back"></div>
+    </div>
+    <button class="start-btn" onclick="startRound()">⛳ Start Live Round</button>
+    <div style="height:12px;"></div>
+    <button class="end-round-btn" onclick="endRound()">🔴 End Current Round</button>
+    <div style="height:20px;"></div>
+  </div>
+</div>
+
+<!-- ===== JOIN SCREEN ===== -->
+<div id="screen-join" class="screen">
+  <div class="app-header">
+    <div class="sgf-logo"><img id="logo4" alt="SGF"></div>
+    <div class="header-text">
+      <div class="header-brand">Saturday Golf Friends</div>
+      <div class="header-sub">Live Scoring</div>
+    </div>
+  </div>
+  <div class="join-body">
+    <div class="join-card">
+      <div class="join-title">Round In Progress</div>
+      <div class="join-sub">A round has been set up. Tap below to join the live scorecard.</div>
+      <div class="round-info-box" id="join-info">
+        <div class="round-info-course" id="join-course">Loading...</div>
+        <div class="round-info-date" id="join-date"></div>
+        <div class="round-info-players" id="join-players"></div>
+      </div>
+      <button class="start-btn" onclick="joinRound()">Join Scorecard →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== LOADING SCREEN ===== -->
+<div id="screen-loading" class="screen">
+  <div class="app-header">
+    <div class="sgf-logo"><img id="logo5" alt="SGF"></div>
+    <div class="header-text"><div class="header-brand">Saturday Golf Friends</div><div class="header-sub">Live Scoring</div></div>
+  </div>
+  <div class="loading-screen">
+    <div class="spinner"></div>
+    <div class="loading-text">Connecting to live round...</div>
+  </div>
+</div>
+
+<!-- ===== SCORING SCREEN ===== -->
+<div id="screen-scoring" class="screen">
+  <div class="app-header">
+    <div class="sgf-logo"><img id="logo2" alt="SGF"></div>
+    <div class="header-text">
+      <div class="header-brand" id="hdr-course">SGF Live Scoring</div>
+      <div class="header-sub" id="hdr-date">Live Round</div>
+    </div>
+    <div class="header-actions">
+      <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+      <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
+      <button class="hdr-btn" style="background:rgba(192,57,43,0.3);border-color:rgba(192,57,43,0.5);" onclick="endRound()">⚙️</button>
+    </div>
+  </div>
+  <div class="scoring-meta-bar">
+    <div class="nine-tabs">
+      <button class="nine-tab active" id="tab-front" onclick="switchNine('front')">Out (1–9)</button>
+      <button class="nine-tab" id="tab-back" onclick="switchNine('back')">In (10–18)</button>
+    </div>
+  </div>
+  <div class="legend-bar">
+    <div class="legend-item"><div class="legend-dot" style="background:#1a3a7a"></div>Eagle</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2a8026"></div>Birdie</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#eef5ed;border:1px solid #b8ddb5"></div>Par</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fde8e8;border:1px solid #f5b7b7"></div>Bogey</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#c0392b"></div>Double</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#6b0f0f"></div>Triple+</div>
+  </div>
+  <div class="score-table-wrap">
+    <table class="score-table">
+      <thead id="score-thead"></thead>
+      <tbody id="score-tbody"></tbody>
+    </table>
+  </div>
+  <div class="sync-bar">
+    <button class="sync-btn btn-sheets" onclick="pushToSheets()">📊 Push to Sheets</button>
+    <button class="sync-btn btn-link" onclick="copyLiveLink()">🔗 Copy Live Link</button>
+    <button class="sync-btn btn-lb" onclick="showScreen('screen-lb')">🏆 Leaderboard</button>
+    <div id="sync-result" class="sync-result" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- ===== LEADERBOARD SCREEN ===== -->
+<div id="screen-lb" class="screen">
+  <div class="app-header">
+    <div class="sgf-logo"><img id="logo3" alt="SGF"></div>
+    <div class="header-text">
+      <div class="header-brand">Leaderboard</div>
+      <div class="header-sub" id="lb-sub">Live Standings</div>
+    </div>
+    <div class="header-actions">
+      <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+      <button class="hdr-btn" onclick="showScreen('screen-scoring')">Scores</button>
+    </div>
+  </div>
+  <div class="lb-body">
+    <div class="lb-card" id="lb-card"></div>
+    <button class="back-btn" onclick="showScreen('screen-scoring')">← Back to Scorecard</button>
+  </div>
+</div>
+<script>
+const HOLES=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18];
+const FRONT=[1,2,3,4,5,6,7,8,9];
+const BACK=[10,11,12,13,14,15,16,17,18];
+let players=[], pars=[4,4,3,4,5,3,4,4,5,4,3,4,5,4,3,4,4,5];
+let scores={}, activeNine='front', nextId=2, db=null, roundRef=null, isAdmin=false;
+
+window.addEventListener('DOMContentLoaded',()=>{
+  ['logo1','logo2','logo3','logo4','logo5'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.src=SGF_LOGO;
+  });
+  document.getElementById('inp-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('inp-sheetid').value='1UyS3Fgl-9T9ghH0j7hZn-FcritiSqfNaB3lcD5VCcBA';
+  buildParInputs();
+  renderPlayerList();
+  try{
+    if(!db) db=firebase.database();
+    checkForActiveRound();
+  }catch(e){
+    console.log('Firebase error:',e);
+    showScreen('screen-setup');
+  }
+});
+
+function checkForActiveRound(){
+  showScreen('screen-loading');
+  const ref=firebase.database().ref('sgf/activeRound');
+  ref.once('value').then(snap=>{
+    const data=snap.val();
+    if(data && data.active){
+      document.getElementById('join-course').textContent=data.course||'SGF Round';
+      document.getElementById('join-date').textContent=data.date||'';
+      document.getElementById('join-players').textContent=`${(data.players||[]).length} players`;
+      showScreen('screen-join');
+    } else {
+      showScreen('screen-setup');
+    }
+  }).catch(()=>showScreen('screen-setup'));
+}
+
+function joinRound(){
+  showScreen('screen-loading');
+  roundRef=firebase.database().ref('sgf/activeRound');
+  roundRef.once('value').then(snap=>{
+    const data=snap.val();
+    if(!data) return showScreen('screen-setup');
+    players=data.players||[];
+    pars=data.pars||pars;
+    scores=data.scores||{};
+    players.forEach(p=>{ if(!scores[p.id]) scores[p.id]={}; HOLES.forEach(h=>{ if(scores[p.id][h]===undefined) scores[p.id][h]=null; }); });
+    document.getElementById('hdr-course').textContent=data.course||'SGF Live Scoring';
+    document.getElementById('hdr-date').textContent=data.date||'Live Round';
+    document.getElementById('lb-sub').textContent=data.course||'SGF Live Scoring';
+    buildTable();
+    showScreen('screen-scoring');
+    listenForScoreUpdates();
+    startAutoPush();
+  });
+}
+
+// ── FIREBASE: Listen for real-time score updates ──────────────────────
+// FIX 3: Reset all scores to null first so deleted nodes (cleared scores)
+// are reflected for all viewers, not just the person who cleared them.
+function listenForScoreUpdates(){
+  if(!db) return;
+  firebase.database().ref('sgf/activeRound/scores').on('value', snap=>{
+    const data=snap.val();
+    players.forEach(p=>{
+      if(!scores[p.id]) scores[p.id]={};
+      HOLES.forEach(h=>{ scores[p.id][h]=null; });
+    });
+    if(data){
+      Object.keys(data).forEach(pid=>{
+        const pidNum=parseInt(pid);
+        if(!scores[pidNum]) scores[pidNum]={};
+        Object.keys(data[pid]).forEach(hole=>{
+          scores[pidNum][parseInt(hole)]=data[pid][hole];
+        });
+      });
+    }
+    buildTable();
+    if(document.getElementById('screen-lb').classList.contains('active')) buildLB();
+  });
+}
+
+// ── FIREBASE: Push a single score update ─────────────────────────────
+// FIX 2: Use .remove() for null values so Firebase properly deletes
+// the node instead of leaving a null, which doesn't propagate to viewers.
+function pushScoreToFirebase(pid, hole, val){
+  if(!db) return;
+  const ref=firebase.database().ref(`sgf/activeRound/scores/${pid}/${hole}`);
+  if(val===null||val===undefined){ ref.remove(); } else { ref.set(val); }
+}
+
+async function startRound(){
+  document.querySelectorAll('#par-front input').forEach((inp,i)=>{pars[i]=parseInt(inp.value)||4;});
+  document.querySelectorAll('#par-back input').forEach((inp,i)=>{pars[i+9]=parseInt(inp.value)||4;});
+  scores={};
+  players.forEach(p=>{scores[p.id]={};HOLES.forEach(h=>scores[p.id][h]=null);});
+  const course=document.getElementById('inp-course').value.trim()||'SGF Live Scoring';
+  const date=document.getElementById('inp-date').value;
+  document.getElementById('hdr-course').textContent=course;
+  document.getElementById('hdr-date').textContent=date?fmtDate(date):'Live Round';
+  document.getElementById('lb-sub').textContent=course;
+  isAdmin=true;
+  if(db){
+    const roundData={
+      active:true, course, date:date?fmtDate(date):'Live Round',
+      players, pars, scores,
+      startedAt:Date.now()
+    };
+    await firebase.database().ref('sgf/activeRound').set(roundData);
+    listenForScoreUpdates();
+  }
+  buildTable();
+  showScreen('screen-scoring');
+  startAutoPush();
+}
+
+function buildParInputs(){
+  const f=document.getElementById('par-front'),b=document.getElementById('par-back');
+  f.innerHTML='';b.innerHTML='';
+  for(let i=0;i<9;i++) f.innerHTML+=`<div class="par-hole-label">${i+1}</div>`;
+  for(let i=9;i<18;i++) b.innerHTML+=`<div class="par-hole-label">${i+1}</div>`;
+  for(let i=0;i<9;i++) f.innerHTML+=`<input class="par-input" type="number" min="3" max="6" value="${pars[i]}" onchange="pars[${i}]=parseInt(this.value)||4">`;
+  for(let i=9;i<18;i++) b.innerHTML+=`<input class="par-input" type="number" min="3" max="6" value="${pars[i]}" onchange="pars[${i}]=parseInt(this.value)||4">`;
+}
+
+function renderPlayerList(){
+  const el=document.getElementById('player-list');
+  el.innerHTML=players.map((p,i)=>`
+    <div class="player-item">
+      <span class="player-num">${i+1}</span>
+      <input type="text" value="${esc(p.name||'')}" placeholder="Player ${i+1}" maxlength="20" oninput="players[${i}].name=this.value">
+      ${players.length>1?`<button class="rm-btn" onclick="removePlayer(${p.id})">×</button>`:''}
+    </div>`).join('');
+  document.getElementById('player-count').textContent=players.length;
+}
+
+function addPlayer(){if(players.length>=30)return;players.push({id:nextId++,name:''});renderPlayerList();}
+function removePlayer(id){if(players.length<=1)return;players=players.filter(p=>p.id!==id);renderPlayerList();}
+
+async function loadPlayersFromSheet(){
+  const apiKey=document.getElementById('inp-apikey').value.trim();
+  const sheetId=document.getElementById('inp-sheetid').value.trim();
+  const tab=document.getElementById('inp-tabname').value.trim()||'gross.scores';
+  const st=document.getElementById('load-status');
+  if(!apiKey||!sheetId){showStatus(st,'Please enter API Key and Sheet ID first.','err');return;}
+  showStatus(st,'Loading players...','info');
+  document.getElementById('btn-load').disabled=true;
+  try{
+    const url=`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tab+'!A:A')}?key=${apiKey}`;
+    const data=await(await fetch(url)).json();
+    if(data.error){showStatus(st,`Error: ${data.error.message}`,'err');document.getElementById('btn-load').disabled=false;return;}
+    const names=(data.values||[]).flat().filter(v=>v&&v.trim()&&!['player','name','golfer','player name','player name'].includes(v.trim().toLowerCase())).slice(0,30);
+    if(!names.length){showStatus(st,'No player names found in Column A.','err');document.getElementById('btn-load').disabled=false;return;}
+    players=names.map((n,i)=>({id:i+1,name:n.trim()}));nextId=players.length+1;
+    renderPlayerList();showStatus(st,`✅ Loaded ${names.length} players!`,'ok');
+  }catch(e){showStatus(st,`Network error: ${e.message}`,'err');}
+  document.getElementById('btn-load').disabled=false;
+}
+
+function showStatus(el,msg,type){el.style.display='block';el.className=`status-msg status-${type}`;el.textContent=msg;}
+
+async function endRound(){
+  const choice = await showEndRoundDialog();
+  if(!choice) return;
+  try{
+    if(choice === 'end'){
+      await firebase.database().ref('sgf/activeRound').remove();
+      players=[];scores={};
+      renderPlayerList();
+      showScreen('screen-setup');
+      alert('✅ Round ended! App reset for all players.');
+    } else if(choice === 'reset'){
+      const payload={players:players.map(p=>({
+        name:p.name||`Player ${p.id}`,
+        out:'',in:'',outTotal:'',inTotal:'',
+        holes:Array(18).fill('')
+      }))};
+      await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      alert('✅ Sheet scores cleared! Round is still active.');
+    }
+  }catch(e){
+    alert('Error: '+e.message);
+  }
+}
+
+function showEndRoundDialog(){
+  return new Promise(resolve=>{
+    const existing=document.getElementById('end-round-dialog');
+    if(existing) existing.remove();
+    const overlay=document.createElement('div');
+    overlay.id='end-round-dialog';
+    overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;';
+    overlay.innerHTML=`
+      <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:#1a5518;letter-spacing:1px;margin-bottom:8px;">Round Options</div>
+        <div style="font-size:0.85rem;color:#4a7044;margin-bottom:20px;font-weight:600;">What would you like to do?</div>
+        <button id="btn-end-round" style="width:100%;padding:13px;background:#c0392b;color:white;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.95rem;cursor:pointer;margin-bottom:10px;">
+          🔴 End Round<br><span style="font-size:0.75rem;font-weight:600;opacity:0.85;">Clears scorecard for all players</span>
+        </button>
+        <button id="btn-reset-sheet" style="width:100%;padding:13px;background:#e67e22;color:white;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.95rem;cursor:pointer;margin-bottom:10px;">
+          📊 Reset Sheet Scores<br><span style="font-size:0.75rem;font-weight:600;opacity:0.85;">Clears scores in Google Sheet only</span>
+        </button>
+        <button id="btn-cancel-dialog" style="width:100%;padding:11px;background:transparent;color:#4a7044;border:2px solid #b8ddb5;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">
+          Cancel
+        </button>
+      </div>`;
+    document.body.appendChild(overlay);
+    document.getElementById('btn-end-round').onclick=()=>{overlay.remove();resolve('end');};
+    document.getElementById('btn-reset-sheet').onclick=()=>{overlay.remove();resolve('reset');};
+    document.getElementById('btn-cancel-dialog').onclick=()=>{overlay.remove();resolve(null);};
+    overlay.onclick=(e)=>{if(e.target===overlay){overlay.remove();resolve(null);}};
+  });
+}
+
+function hSet(){return activeNine==='front'?FRONT:BACK;}
+function pSet(){return activeNine==='front'?pars.slice(0,9):pars.slice(9);}
+function pTot(n){return(n==='front'?pars.slice(0,9):pars.slice(9)).reduce((a,b)=>a+b,0);}
+
+function buildTable(){
+  const holes=hSet(),ps=pSet(),tot=pTot(activeNine),lbl=activeNine==='front'?'Out':'In';
+  document.getElementById('score-thead').innerHTML=`
+    <tr class="th-header">
+      <th class="th-name">Player</th>
+      ${holes.map(h=>`<th>${h}</th>`).join('')}
+      <th>${lbl}</th><th>+/-</th>
+    </tr>
+    <tr class="th-par">
+      <th class="th-name">Par</th>
+      ${ps.map(p=>`<th>${p}</th>`).join('')}
+      <th>${tot}</th><th>E</th>
+    </tr>`;
+  const tbody=document.getElementById('score-tbody');
+  tbody.innerHTML='';
+  players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name').forEach(p=>{
+    const tr=document.createElement('tr');
+    tr.className='score-row';
+    const filled=holes.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
+    const tot2=filled?holes.reduce((s,h)=>s+scores[p.id][h],0):null;
+    const vp=tot2!==null?tot2-pTot(activeNine):null;
+    const vpStr=vp===null?'—':(vp===0?'E':vp>0?`+${vp}`:vp);
+    const vCls=vp===null?'':(vp<0?'under':vp===0?'even':'over');
+    tr.innerHTML=`<td class="td-name"><div class="td-name-text">${esc(p.name||'Player '+p.id)}</div></td>`+
+      holes.map((h,i)=>{
+        const sv=scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined?scores[p.id][h]:'';
+        return`<td class="td-score"><input class="score-inp ${sCls(sv||null,ps[i])}" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="20" value="${sv}" placeholder="-" onclick="cellClick(event,${p.id},${h},this)" onchange="upd(${p.id},${h},this)" oninput="upd(${p.id},${h},this)"></td>`;
+      }).join('')+
+      `<td class="td-sub" id="sub-${p.id}">${tot2!==null?tot2:'—'}</td><td class="td-total ${vCls}" id="vp-${p.id}">${vpStr}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// FIX 1: After user confirms the change dialog, immediately call upd() to
+// register the clear — previously inp.value='' never triggered oninput/onchange.
+function cellClick(e,pid,hole,inp){
+  const existing=scores[pid]&&scores[pid][hole]!==null&&scores[pid][hole]!==undefined?scores[pid][hole]:null;
+  if(existing!==null){
+    const confirmed=confirm(`Hole ${hole} score is ${existing}. Change it?`);
+    if(!confirmed){e.preventDefault();inp.blur();return;}
+    inp.value='';
+    upd(pid,hole,inp);
+  }
+}
+
+function upd(pid,hole,inp){
+  const raw=inp.value===''?'':inp.value;
+  const val=raw===''?null:parseInt(raw,10);
+  if(val!==null&&(isNaN(val)||val<1||val>20)){
+    inp.value=scores[pid]&&scores[pid][hole]?scores[pid][hole]:'';
+    return;
+  }
+  if(!scores[pid])scores[pid]={};
+  scores[pid][hole]=val;
+  inp.className=`score-inp ${sCls(val,pars[HOLES.indexOf(hole)])}`;
+  pushScoreToFirebase(pid,hole,val);
+  const nine=activeNine==='front'?FRONT:BACK;
+  const filled=nine.every(h=>scores[pid]&&scores[pid][h]!==null&&scores[pid][h]!==undefined);
+  const tot=filled?nine.reduce((s,h)=>s+scores[pid][h],0):null;
+  const vp=tot!==null?tot-pTot(activeNine):null;
+  const se=document.getElementById(`sub-${pid}`),ve=document.getElementById(`vp-${pid}`);
+  if(se)se.textContent=tot!==null?tot:'—';
+  if(ve){ve.textContent=vp===null?'—':(vp===0?'E':vp>0?`+${vp}`:vp);ve.className=`td-total ${vp===null?'':(vp<0?'under':vp===0?'even':'over')}`;}
+}
+
+function sCls(val,par){
+  if(val===null||val===undefined||val==='')return'';
+  const d=val-par;if(d<=-2)return'eagle';if(d===-1)return'birdie';if(d===0)return'par-s';if(d===1)return'bogey';if(d===2)return'double';return'triple';
+}
+
+function switchNine(n){activeNine=n;document.getElementById('tab-front').classList.toggle('active',n==='front');document.getElementById('tab-back').classList.toggle('active',n==='back');buildTable();}
+
+function buildLB(){
+  const tp=pars.reduce((a,b)=>a+b,0);
+  const ranked=players.map(p=>{
+    const ff=FRONT.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
+    const bf=BACK.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
+    const ft=ff?FRONT.reduce((s,h)=>s+scores[p.id][h],0):null;
+    const bt=bf?BACK.reduce((s,h)=>s+scores[p.id][h],0):null;
+    const gross=(ff&&bf)?ft+bt:null,vp=gross!==null?gross-tp:null;
+    const hp=HOLES.filter(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined).length;
+    return{...p,gross,vp,hp};
+  }).sort((a,b)=>{
+    if(a.gross===null&&b.gross===null)return b.hp-a.hp;
+    if(a.gross===null)return 1;if(b.gross===null)return -1;return a.gross-b.gross;
+  });
+  const m=['🥇','🥈','🥉'];
+  document.getElementById('lb-card').innerHTML=ranked.map((p,i)=>{
+    const pos=i<3?m[i]:`${i+1}`;
+    if(p.gross!==null){
+      const vs=p.vp===0?'E':p.vp>0?`+${p.vp}`:p.vp,vc=p.vp<0?'under':p.vp===0?'even':'over';
+      return`<div class="lb-row ${i===0?'top1':''}"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">18 holes complete</div></div><div class="lb-gross">${p.gross}</div><div class="lb-vp ${vc}">${vs}</div></div>`;
+    }
+    return`<div class="lb-row"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">${p.hp}/18 holes</div></div><div class="lb-inc">In progress</div></div>`;
+  }).join('');
+}
+
+async function pushToSheets(silent=false){
+  if(!silent) showSync('Pushing scores to Google Sheets…',null);
+  console.log('Push: players count=',players.length);
+  console.log('Push: player names=',players.map(p=>p.name).join(', '));
+  if(!players||players.length===0){
+    if(!silent) showSync('⚠️ No players loaded. Start a round first.',false);
+    console.log('Push aborted: no players');
+    return;
+  }
+  try{
+    const payload={players:players.map(p=>{
+      const frontFilled=FRONT.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
+      const backFilled=BACK.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
+      const outTotal=frontFilled?FRONT.reduce((s,h)=>s+scores[p.id][h],0):'';
+      const inTotal=backFilled?BACK.reduce((s,h)=>s+scores[p.id][h],0):'';
+      return{
+        name:p.name||`Player ${p.id}`,
+        out:FRONT.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:'').join(','),
+        in:BACK.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:'').join(','),
+        outTotal,inTotal,
+        holes:HOLES.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:'')
+      };
+    })};
+    await fetch(APPS_SCRIPT_URL, {
+      method:'POST',
+      mode:'no-cors',
+      headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify(payload)
+    });
+    if(!silent) showSync('✅ Scores pushed to your sheet!',true);
+    else console.log('Auto-push successful');
+  }catch(e){
+    if(!silent) showSync(`Network error: ${e.message}`,false);
+    else console.log('Auto-push error:',e.message);
+  }
+}
+
+let autoPushInterval = null;
+function startAutoPush(){
+  if(autoPushInterval) clearInterval(autoPushInterval);
+  autoPushInterval = setInterval(()=>{
+    console.log('Auto-pushing scores to Google Sheets...');
+    pushToSheets(true);
+  }, 2 * 60 * 1000);
+  console.log('Auto-push started — every 2 minutes');
+}
+function stopAutoPush(){
+  if(autoPushInterval){ clearInterval(autoPushInterval); autoPushInterval=null; }
+}
+
+function copyLiveLink(){
+  const url = window.location.href;
+  navigator.clipboard.writeText(url).then(()=>{
+    showSync('✅ Live link copied! Paste it in any browser to join the round.',true);
+  }).catch(()=>{
+    const el = document.createElement('textarea');
+    el.value = url;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    showSync('✅ Live link copied! Paste it in any browser to join the round.',true);
+  });
+}
+
+function showSync(msg,ok){
+  const el=document.getElementById('sync-result');
+  el.style.display='block';el.style.color=ok===true?'#7dcea0':ok===false?'#f08080':'#aac8e0';el.textContent=msg;
+  if(ok!==null)setTimeout(()=>{el.style.display='none';},6000);
+}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id==='screen-lb')buildLB();
+  window.scrollTo(0,0);
+}
+function fmtDate(d){const dt=new Date(d+'T12:00:00');return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+</script>
+</body>
+</html>
