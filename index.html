@@ -482,15 +482,6 @@ async function endRound(){
       renderPlayerList();
       showScreen('screen-setup');
       alert('✅ Round ended! App reset for all players.');
-    } else if(choice === 'reset'){
-      const payload={spreadsheetId:window.activeSheetId||'',players:players.map(p=>({
-        name:p.name||`Player ${p.id}`,
-        out:'',in:'',outTotal:'',inTotal:'',
-        holes:Array(18).fill('')
-      }))};
-      await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-      alert('✅ Sheet scores cleared! Round is still active.');
-    }
   }catch(e){
     alert('Error: '+e.message);
   }
@@ -510,16 +501,12 @@ function showEndRoundDialog(){
         <button id="btn-end-round" style="width:100%;padding:13px;background:#c0392b;color:white;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.95rem;cursor:pointer;margin-bottom:10px;">
           🔴 End Round<br><span style="font-size:0.75rem;font-weight:600;opacity:0.85;">Clears scorecard for all players</span>
         </button>
-        <button id="btn-reset-sheet" style="width:100%;padding:13px;background:#e67e22;color:white;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.95rem;cursor:pointer;margin-bottom:10px;">
-          📊 Reset Sheet Scores<br><span style="font-size:0.75rem;font-weight:600;opacity:0.85;">Clears scores in Google Sheet only</span>
-        </button>
         <button id="btn-cancel-dialog" style="width:100%;padding:11px;background:transparent;color:#4a7044;border:2px solid #b8ddb5;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">
           Cancel
         </button>
       </div>`;
     document.body.appendChild(overlay);
     document.getElementById('btn-end-round').onclick=()=>{overlay.remove();resolve('end');};
-    document.getElementById('btn-reset-sheet').onclick=()=>{overlay.remove();resolve('reset');};
     document.getElementById('btn-cancel-dialog').onclick=()=>{overlay.remove();resolve(null);};
     overlay.onclick=(e)=>{if(e.target===overlay){overlay.remove();resolve(null);}};
   });
