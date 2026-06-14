@@ -483,35 +483,35 @@ async function loadPlayersFromSheet(){
   showStatus(st,'Loading players and course pars…','info');
   document.getElementById('btn-load').disabled=true;
   try{
-    // 1. Load players from SETUP.PLAYERS
-    const gvizUrl=`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=SETUP.PLAYERS&range=B13:I30`;
-    const gvizText=await(await fetch(gvizUrl)).text();
-    const data={values:JSON.parse(gvizText.replace(/^[\s\S]*?({[\s\S]*})[\s\S]*$/,'$1')).table.rows.filter(r=>r.c&&r.c[0]&&r.c[0].v).map(r=>r.c.map(c=>c&&c.v!=null?String(c.v):null))};
-    const rows=(data.values||[]).filter(r=>r[0]&&r[0].trim()&&!['player name','name','player'].includes(r[0].trim().toLowerCase()));
-    if(!rows.length){showStatus(st,'No player names found in SETUP.PLAYERS.','err');document.getElementById('btn-load').disabled=false;return;}
-    players=rows.slice(0,30).map((r,i)=>({id:i+1,name:r[0].trim(),hcp:r[7]?parseInt(r[7])||0:0}));nextId=players.length+1;
+    // Single call to Apps Script loadSetup — returns both players and full SETUP.COURSE data
+    const url=`${APPS_SCRIPT_URL}?action=loadSetup&token=${SGF_TOKEN}&sheetId=${encodeURIComponent(sheetId)}`;
+    const resp=await fetch(url);
+    const json=await resp.json();
+    if(json.status!=='ok') throw new Error(json.message||'Setup load failed');
+
+    // Parse players from SETUP.PLAYERS B13:I30
+    const playerRows=(json.players||[]).filter(r=>r[0]&&String(r[0]).trim()&&
+      !['player name','name','player'].includes(String(r[0]).trim().toLowerCase()));
+    if(!playerRows.length){showStatus(st,'No player names found in SETUP.PLAYERS.','err');document.getElementById('btn-load').disabled=false;return;}
+    players=playerRows.slice(0,30).map((r,i)=>({id:i+1,name:String(r[0]).trim(),hcp:r[7]?parseInt(r[7])||0:0}));
+    nextId=players.length+1;
     renderPlayerList();
 
-    // 2. Load pars from SETUP.COURSE (finds the row labelled "Par")
-    try{
-      const courseUrl=`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=SETUP.COURSE`;
-      const courseText=await(await fetch(courseUrl)).text();
-      const courseJson=JSON.parse(courseText.replace(/^[\s\S]*?({[\s\S]*})[\s\S]*$/,'$1'));
-      const courseRows=courseJson.table.rows.map(r=>(r.c||[]).map(c=>c&&c.v!=null?String(c.v).trim():''));
-      const parRow=courseRows.find(r=>r[0]&&r[0].toLowerCase()==='par');
-      if(parRow){
-        const newPars=parRow.slice(1,19).map(v=>parseInt(v)||4);
-        if(newPars.length===18){
-          pars=newPars;
-          buildParInputs();
-          showStatus(st,`✅ Loaded ${players.length} players + course pars from sheet!`,'ok');
-        } else { showStatus(st,`✅ Loaded ${players.length} players with handicaps!`,'ok'); }
+    // Parse pars from SETUP.COURSE — find the row where any of the first 3 cells says "Par"
+    const courseData=json.course||[];
+    const parRow=courseData.find(r=>r.some((cell,i)=>i<3&&cell&&String(cell).trim().toLowerCase()==='par'));
+    if(parRow){
+      // Find the first column with a par-range number (3–6) to handle any label offsets
+      let startIdx=1;
+      for(let i=0;i<parRow.length;i++){const v=parseInt(parRow[i]);if(!isNaN(v)&&v>=3&&v<=6){startIdx=i;break;}}
+      const newPars=parRow.slice(startIdx,startIdx+18).map(v=>parseInt(v)||4);
+      if(newPars.length===18){
+        pars=newPars;
+        buildParInputs();
+        showStatus(st,`✅ Loaded ${players.length} players + course pars!`,'ok');
       } else { showStatus(st,`✅ Loaded ${players.length} players with handicaps!`,'ok'); }
-    }catch(ce){
-      showStatus(st,`✅ Loaded ${players.length} players with handicaps!`,'ok');
-      console.log('Par load error:',ce.message);
-    }
-  }catch(e){showStatus(st,`Network error: ${e.message}`,'err');}
+    } else { showStatus(st,`✅ Loaded ${players.length} players with handicaps!`,'ok'); }
+  }catch(e){showStatus(st,`Error: ${e.message}`,'err');}
   document.getElementById('btn-load').disabled=false;
 }
 
