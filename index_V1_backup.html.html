@@ -137,27 +137,6 @@
   @keyframes spin{to{transform:rotate(360deg);}}
   .loading-text{color:#8acc87;font-weight:700;font-size:0.9rem;}
   @media(max-width:370px){.score-inp{width:26px;height:25px;font-size:0.72rem;}.header-brand{font-size:1.25rem;}}
-  /* ===== NET SKINS ===== */
-  .skins-summary{display:flex;gap:8px;overflow-x:auto;padding:4px 0 12px;-webkit-overflow-scrolling:touch;}
-  .skin-card{flex-shrink:0;background:var(--card-bg);border-radius:12px;padding:10px 12px;text-align:center;border:1.5px solid var(--border);min-width:80px;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
-  .skin-card-win{background:var(--sgf-green-pale);border-color:var(--sgf-green);}
-  .skin-card-name{font-size:0.68rem;font-weight:800;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:72px;}
-  .skin-card-count{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;color:var(--sgf-green-dark);line-height:1;margin:2px 0;}
-  .skin-card-label{font-size:0.58rem;color:var(--muted);font-weight:700;text-transform:uppercase;}
-  .skins-tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  .skins-tbl{width:100%;border-collapse:collapse;}
-  .skins-tbl thead th{background:var(--sgf-green);color:#fff;padding:7px 6px;font-size:0.63rem;font-weight:800;text-align:center;position:sticky;top:0;z-index:5;}
-  .skins-tbl td{padding:8px 6px;border-bottom:1px solid var(--border);text-align:center;vertical-align:middle;font-size:0.82rem;}
-  .skins-tbl tbody tr:nth-child(even){background:var(--cream);}
-  .sk-won td{background:#e6f7e5!important;}
-  .sk-tied td{background:#fff9e0!important;}
-  .sk-result-win{color:var(--sgf-green-dark);font-weight:800;font-size:0.8rem;text-align:left!important;padding-left:10px!important;}
-  .sk-result-carry{color:#b57d0a;font-weight:900;font-size:0.8rem;text-align:left!important;padding-left:10px!important;}
-  .sk-result-pending{color:#bbb;font-size:0.75rem;text-align:left!important;padding-left:10px!important;}
-  .sk-badge{display:inline-block;background:var(--sgf-green);color:#fff;border-radius:10px;padding:1px 5px;font-size:0.6rem;font-weight:800;margin-left:3px;}
-  .st-hole-cell{font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--sgf-green-dark);}
-  .st-si-cell{color:var(--muted);font-size:0.72rem;}
-  .skins-empty{text-align:center;padding:40px 20px;color:var(--muted);font-weight:600;font-size:0.88rem;}
 </style>
 </head>
 <body>
@@ -292,7 +271,6 @@ try {
     <div class="header-actions">
       <div class="live-badge"><div class="live-dot"></div>LIVE</div>
       <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
-      <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
       <button class="hdr-btn" style="background:rgba(192,57,43,0.3);border-color:rgba(192,57,43,0.5);" onclick="endRound()">⚙️</button>
     </div>
   </div>
@@ -335,7 +313,6 @@ try {
     <div class="header-actions">
       <div class="live-badge"><div class="live-dot"></div>LIVE</div>
       <button class="hdr-btn" onclick="showScreen('screen-scoring')">Scores</button>
-      <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
     </div>
   </div>
   <div class="lb-body">
@@ -343,35 +320,16 @@ try {
     <button class="back-btn" onclick="showScreen('screen-scoring')">← Back to Scorecard</button>
   </div>
 </div>
-<!-- ===== NET SKINS SCREEN ===== -->
-<div id="screen-skins" class="screen">
-  <div class="app-header">
-    <div class="sgf-logo"><img id="logo-skins" alt="SGF"></div>
-    <div class="header-text">
-      <div class="header-brand">Net Skins</div>
-      <div class="header-sub" id="skins-sub">Live Round</div>
-    </div>
-    <div class="header-actions">
-      <div class="live-badge"><div class="live-dot"></div>LIVE</div>
-      <button class="hdr-btn" onclick="showScreen('screen-scoring')">Scores</button>
-      <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
-    </div>
-  </div>
-  <div class="lb-body" id="skins-content">
-    <div class="skins-empty">Start a round to see Net Skins.</div>
-  </div>
-</div>
 <script>
 const HOLES=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18];
 const FRONT=[1,2,3,4,5,6,7,8,9];
 const BACK=[10,11,12,13,14,15,16,17,18];
 let players=[], pars=[4,4,3,4,4,4,4,3,5,4,3,5,4,3,5,3,4,4]; // Ojai Valley Inn defaults
-let strokeIndex=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]; // Handicap Stroke Index per hole (1=hardest)
 let scores={}, activeNine='front', nextId=2, db=null, roundRef=null, isAdmin=false;
 let activeEventCode=null; // set when checkForActiveRound reads the round
 
 window.addEventListener('DOMContentLoaded',()=>{
-  ['logo1','logo2','logo3','logo4','logo5','logo-skins'].forEach(id=>{
+  ['logo1','logo2','logo3','logo4','logo5'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.src=SGF_LOGO;
   });
   document.getElementById('inp-date').value=new Date().toISOString().slice(0,10);
@@ -428,13 +386,11 @@ function joinRound(){
     players=data.players||[];
     window.activeSheetId=data.sheetId||'';
     pars=data.pars||pars;
-    strokeIndex=data.strokeIndex||strokeIndex;
     scores=data.scores||{};
     players.forEach(p=>{ if(!scores[p.id]) scores[p.id]={}; HOLES.forEach(h=>{ if(scores[p.id][h]===undefined) scores[p.id][h]=null; }); });
     document.getElementById('hdr-course').textContent=data.course||'SGF Live Scoring';
     document.getElementById('hdr-date').textContent=data.date||'Live Round';
     document.getElementById('lb-sub').textContent=data.course||'SGF Live Scoring';
-    document.getElementById('skins-sub').textContent=data.course||'SGF Live Scoring';
     buildTable();
     showScreen('screen-scoring');
     listenForScoreUpdates();
@@ -461,7 +417,6 @@ function listenForScoreUpdates(){
     }
     buildTable();
     if(document.getElementById('screen-lb').classList.contains('active')) buildLB();
-    if(document.getElementById('screen-skins').classList.contains('active')) buildSkinsView();
   });
 }
 
@@ -482,11 +437,10 @@ async function startRound(){
   document.getElementById('hdr-date').textContent=date?fmtDate(date):'Live Round';
   document.getElementById('lb-sub').textContent=course;
   isAdmin=true;
-  document.getElementById('skins-sub').textContent=course;
   if(db){
     const roundData={
       active:true, course, date:date?fmtDate(date):'Live Round',
-      players, pars, strokeIndex, scores,
+      players, pars, scores,
       code:(document.getElementById('inp-eventcode').value.trim()||''),
       sheetId:(()=>{const s=document.getElementById('inp-sheetid').value.trim();localStorage.setItem('sgf_sheetId',s);return s;})(),
       startedAt:Date.now()
@@ -554,15 +508,7 @@ async function loadPlayersFromSheet(){
       if(newPars.length===18){
         pars=newPars;
         buildParInputs();
-        // Also look for Stroke Index row (labels: Handicap, HCP, Stroke Index, SI, HDCP)
-        const siRow=courseData.find(r=>r.some((cell,ci)=>ci<3&&cell&&/^(handicap|hcp|stroke\s*index|si|hdcp)$/i.test(String(cell).trim())));
-        if(siRow){
-          let siStart=0;
-          for(let i=0;i<siRow.length;i++){const v=parseInt(siRow[i]);if(!isNaN(v)&&v>=1&&v<=18){siStart=i;break;}}
-          const newSI=siRow.slice(siStart,siStart+18).map(v=>parseInt(v)||0);
-          if(newSI.length===18&&newSI.every(v=>v>=1&&v<=18)){strokeIndex=newSI;showStatus(st,`✅ Loaded ${players.length} players + pars + stroke index!`,'ok');}
-          else showStatus(st,`✅ Loaded ${players.length} players + course pars!`,'ok');
-        } else { showStatus(st,`✅ Loaded ${players.length} players + course pars! (No stroke index row found — add a "Handicap" row to SETUP.COURSE for net skins)`, 'ok'); }
+        showStatus(st,`✅ Loaded ${players.length} players + course pars!`,'ok');
       } else { showStatus(st,`✅ Loaded ${players.length} players with handicaps!`,'ok'); }
     } else { showStatus(st,`✅ Loaded ${players.length} players with handicaps!`,'ok'); }
   }catch(e){showStatus(st,`Error: ${e.message}`,'err');}
@@ -788,76 +734,7 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   if(id==='screen-lb')buildLB();
-  if(id==='screen-skins')buildSkinsView();
   window.scrollTo(0,0);
-}
-
-function buildSkinsView(){
-  const ap=players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name');
-  if(!ap.length){
-    document.getElementById('skins-content').innerHTML='<div class="skins-empty">No players loaded. Start a round first.</div>';
-    return;
-  }
-
-  function strokesToGive(hcp,hsi){
-    if(!hcp||hcp<=0)return 0;
-    let s=hcp>=hsi?1:0;
-    if(hcp>18&&(hcp-18)>=hsi)s++;
-    return s;
-  }
-
-  let carryVal=1,processing=true;
-  const results=[],skinTotals={};
-  ap.forEach(p=>skinTotals[p.id]=0);
-
-  for(let i=0;i<18;i++){
-    const hole=i+1;
-    const hsi=strokeIndex[i]||hole;
-    const par=pars[i]||4;
-    const val=carryVal;
-
-    if(!processing){results.push({hole,par,hsi,val,status:'pending',winner:null});continue;}
-
-    const hd=ap.map(p=>{
-      const gross=(scores[p.id]&&scores[p.id][hole]!=null)?scores[p.id][hole]:null;
-      const str=strokesToGive(p.hcp||0,hsi);
-      return{p,gross,net:gross!==null?gross-str:null};
-    });
-
-    const allScored=hd.every(h=>h.gross!==null);
-    let status='pending',winner=null;
-
-    if(allScored){
-      const minNet=Math.min(...hd.map(h=>h.net));
-      const tied=hd.filter(h=>h.net===minNet);
-      if(tied.length===1){winner=tied[0].p;skinTotals[winner.id]+=val;status='won';carryVal=1;}
-      else{status='tied';carryVal++;}
-    }else{processing=false;}
-
-    results.push({hole,par,hsi,val,status,winner});
-  }
-
-  const cardsHTML=`<div class="skins-summary">${ap.map(p=>`
-    <div class="skin-card${skinTotals[p.id]>0?' skin-card-win':''}">
-      <div class="skin-card-name">${esc(p.name)}</div>
-      <div class="skin-card-count">${skinTotals[p.id]}</div>
-      <div class="skin-card-label">skin${skinTotals[p.id]!==1?'s':''}</div>
-    </div>`).join('')}</div>`;
-
-  const rowsHTML=results.map(r=>{
-    let resTD,trCls='';
-    if(r.status==='won'){trCls='sk-won';resTD=`<td class="sk-result-win">${esc(r.winner.name)}<span class="sk-badge">×${r.val}</span></td>`;}
-    else if(r.status==='tied'){trCls='sk-tied';resTD=`<td class="sk-result-carry">CARRY</td>`;}
-    else{resTD=`<td class="sk-result-pending">—</td>`;}
-    return`<tr class="${trCls}"><td class="st-hole-cell">${r.hole}</td><td>${r.par}</td><td class="st-si-cell">${r.hsi}</td><td><strong>${r.val}</strong></td>${resTD}</tr>`;
-  }).join('');
-
-  document.getElementById('skins-content').innerHTML=cardsHTML+
-    `<div class="lb-card" style="overflow:hidden;margin-bottom:20px;">
-      <div class="skins-tbl-wrap"><table class="skins-tbl">
-        <thead><tr><th>H</th><th>Par</th><th>SI</th><th>⚑</th><th style="text-align:left;padding-left:10px;">Result</th></tr></thead>
-        <tbody>${rowsHTML}</tbody>
-      </table></div></div>`;
 }
 function fmtDate(d){const dt=new Date(d+'T12:00:00');return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
