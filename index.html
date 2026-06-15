@@ -771,9 +771,7 @@ function buildSkinsView(){
 
   function strokesToGive(hcp,hsi){
     if(!hcp||hcp<=0)return 0;
-    let s=hcp>=hsi?1:0;
-    if(hcp>18&&(hcp-18)>=hsi)s++;
-    return s;
+    return Math.min(hcp,18)>=hsi?1:0; // skins: no double pops, cap at 18 strokes
   }
 
   let carryVal=1,processing=true;
