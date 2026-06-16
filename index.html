@@ -695,68 +695,38 @@ function sCls(val,par){
 function switchNine(n){activeNine=n;document.getElementById('tab-front').classList.toggle('active',n==='front');document.getElementById('tab-back').classList.toggle('active',n==='back');buildTable();}
 
 function buildLB(){
-  const tp=pars.reduce((a,b)=>a+b,0);
   const ranked=players.map(p=>{
-    const ff=FRONT.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
-    const bf=BACK.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
-    const ft=ff?FRONT.reduce((s,h)=>s+scores[p.id][h],0):null;
-    const bt=bf?BACK.reduce((s,h)=>s+scores[p.id][h],0):null;
-    const gross=(ff&&bf)?ft+bt:null;
     const hcp=p.hcp||0;
-    const net=gross!==null?gross-hcp:null;
-    const vp=net!==null?net-tp:null;
-    const hp=HOLES.filter(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined).length;
-    return{...p,gross,net,hcp,vp,hp};
+    const done=HOLES.filter(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
+    const hp=done.length;
+    if(hp===0)return{...p,gross:null,net:null,hcp,vp:null,hp};
+    const gross=done.reduce((s,h)=>s+scores[p.id][h],0);
+    // Handicap strokes earned on completed holes via stroke index (handles hcp>18 double strokes)
+    const strokes=done.reduce((s,h)=>{
+      const si=strokeIndex[h-1];
+      return s+(si<=hcp?1:0)+(hcp>18&&si<=(hcp-18)?1:0);
+    },0);
+    const net=gross-strokes;
+    const completedPar=done.reduce((s,h)=>s+pars[HOLES.indexOf(h)],0);
+    const vp=net-completedPar;
+    return{...p,gross,net,hcp,vp,hp,strokes};
   }).sort((a,b)=>{
-    if(a.net===null&&b.net===null)return b.hp-a.hp;
-    if(a.net===null)return 1;if(b.net===null)return -1;return a.net-b.net;
+    if(a.hp===0&&b.hp===0)return 0;
+    if(a.hp===0)return 1;if(b.hp===0)return -1;
+    return a.vp-b.vp;
   });
   const m=['🥇','🥈','🥉'];
   document.getElementById('lb-card').innerHTML=ranked.map((p,i)=>{
     const pos=i<3?m[i]:`${i+1}`;
-    if(p.gross!==null){
+    if(p.hp>0){
+      const thru=p.hp===18?'F':`Thru ${p.hp}`;
       const vs=p.vp===0?'E':p.vp>0?`+${p.vp}`:p.vp,vc=p.vp<0?'under':p.vp===0?'even':'over';
-      return`<div class="lb-row ${i===0?'top1':''}"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">Net ${p.net} · Gross ${p.gross} · Hcp ${p.hcp}</div></div><div class="lb-net">${p.net}</div><div class="lb-vp ${vc}">${vs}</div></div>`;
+      return`<div class="lb-row ${i===0?'top1':''}"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">Net ${p.net} · Gross ${p.gross} · Hcp ${p.hcp} · ${thru}</div></div><div class="lb-net">${p.net}</div><div class="lb-vp ${vc}">${vs}</div></div>`;
     }
-    return`<div class="lb-row"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">${p.hp}/18 holes · Hcp ${p.hcp||0}</div></div><div class="lb-inc">In progress</div></div>`;
+    return`<div class="lb-row"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">No scores · Hcp ${p.hcp||0}</div></div><div class="lb-inc">—</div></div>`;
   }).join('');
 }
 
-async function pushToSheets(silent=false){
-  if(!silent) showSync('Pushing scores to Google Sheets…',null);
-  if(!players||players.length===0){
-    if(!silent) showSync('⚠️ No players loaded. Start a round first.',false);
-    return;
-  }
-  try{
-    const payload={spreadsheetId:window.activeSheetId||'',players:players.map(p=>{
-      const frontFilled=FRONT.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
-      const backFilled=BACK.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
-      const outTotal=frontFilled?FRONT.reduce((s,h)=>s+scores[p.id][h],0):'';
-      const inTotal=backFilled?BACK.reduce((s,h)=>s+scores[p.id][h],0):'';
-      return{
-        name:p.name||`Player ${p.id}`,
-        out:FRONT.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:'').join(','),
-        in:BACK.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:'').join(','),
-        outTotal,inTotal,
-        holes:HOLES.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:'')
-      };
-    })};
-    await fetch(APPS_SCRIPT_URL, {
-      method:'POST',
-      mode:'no-cors',
-      headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify(payload)
-    });
-    if(!silent) showSync('✅ Scores pushed to your sheet!',true);
-    else console.log('Auto-push successful');
-  }catch(e){
-    if(!silent) showSync(`Network error: ${e.message}`,false);
-    else console.log('Auto-push error:',e.message);
-  }
-}
-
-let autoPushInterval = null;
 function startAutoPush(){
   if(autoPushInterval) clearInterval(autoPushInterval);
   autoPushInterval = setInterval(()=>{
@@ -806,9 +776,7 @@ function buildSkinsView(){
 
   function strokesToGive(hcp,hsi){
     if(!hcp||hcp<=0)return 0;
-    let s=hcp>=hsi?1:0;
-    if(hcp>18&&(hcp-18)>=hsi)s++;
-    return s;
+    return Math.min(hcp,18)>=hsi?1:0; // skins: no double pops, cap at 18 strokes
   }
 
   let carryVal=1,processing=true;
