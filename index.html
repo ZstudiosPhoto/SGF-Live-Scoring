@@ -728,6 +728,40 @@ function buildLB(){
   }).join('');
 }
 
+async function pushToSheets(silent=false){
+  if(!silent) showSync('Pushing scores to Google Sheets…',null);
+  if(!players||players.length===0){
+    if(!silent) showSync('⚠️ No players loaded. Start a round first.',false);
+    return;
+  }
+  try{
+    const payload={spreadsheetId:window.activeSheetId||'',players:players.map(p=>{
+      const frontFilled=FRONT.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
+      const backFilled=BACK.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
+      const outTotal=frontFilled?FRONT.reduce((s,h)=>s+scores[p.id][h],0):'';
+      const inTotal=backFilled?BACK.reduce((s,h)=>s+scores[p.id][h],0):'';
+      return{
+        name:p.name||`Player ${p.id}`,
+        out:FRONT.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:'').join(','),
+        in:BACK.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:'').join(','),
+        outTotal,inTotal,
+        holes:HOLES.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:'')
+      };
+    })};
+    await fetch(APPS_SCRIPT_URL, {
+      method:'POST',
+      mode:'no-cors',
+      headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify(payload)
+    });
+    if(!silent) showSync('✅ Scores pushed to your sheet!',true);
+    else console.log('Auto-push successful');
+  }catch(e){
+    if(!silent) showSync(`Network error: ${e.message}`,false);
+    else console.log('Auto-push error:',e.message);
+  }
+}
+
 function startAutoPush(){
   if(autoPushInterval) clearInterval(autoPushInterval);
   autoPushInterval = setInterval(()=>{
