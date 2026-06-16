@@ -163,7 +163,7 @@
 <body>
 <script>
 const SGF_LOGO="sgf-logo.jpg";
-const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbzYMPm8cDS1YwGeFMJ4HZPAPmodeMN8WknHMs9Pl9qR3ieGM4szO6-mv0Qd36zolnkSvg/exec';
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbxznwpjvFfEliSttPB5SGc9WnJQYKsbLB3qo35RbUw_MTphh2faut3S_qfkBi-7VfMEFQ/exec';
 const SGF_TOKEN='SGF-LIVE-2026';
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyAA0EGLpcVvEIDwDtfyPIJttvQT_lfLlNM",
@@ -442,9 +442,12 @@ function joinRound(){
   });
 }
 
+let scoresRef = null;
 function listenForScoreUpdates(){
   if(!db) return;
-  firebase.database().ref('sgf/activeRound/scores').on('value', snap=>{
+  if(scoresRef) scoresRef.off('value');
+  scoresRef = firebase.database().ref('sgf/activeRound/scores');
+  scoresRef.on('value', snap=>{
     const data=snap.val();
     players.forEach(p=>{
       if(!scores[p.id]) scores[p.id]={};
@@ -555,7 +558,7 @@ async function loadPlayersFromSheet(){
         pars=newPars;
         buildParInputs();
         // Also look for Stroke Index row (labels: Handicap, HCP, Stroke Index, SI, HDCP)
-        const siRow=courseData.find(r=>r.some((cell,ci)=>ci<3&&cell&&/^(handicap|hcp|stroke\s*index|si|hdcp)$/i.test(String(cell).trim())));
+        const siRow=courseData.find(r=>r.some((cell,ci)=>ci<3&&cell&&/^(handicap(\s+hole)?|hcp|stroke\s*index|si|hdcp)$/i.test(String(cell).trim())));
         if(siRow){
           let siStart=0;
           for(let i=0;i<siRow.length;i++){const v=parseInt(siRow[i]);if(!isNaN(v)&&v>=1&&v<=18){siStart=i;break;}}
@@ -576,6 +579,8 @@ async function endRound(){
   if(!choice) return;
   try{
     if(choice === 'end'){
+      stopAutoPush();
+      if(scoresRef){ scoresRef.off('value'); scoresRef=null; }
       await firebase.database().ref('sgf/activeRound').remove();
       players=[];scores={};
       renderPlayerList();
