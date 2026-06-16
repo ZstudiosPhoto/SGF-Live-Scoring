@@ -443,6 +443,7 @@ function joinRound(){
 }
 
 let scoresRef = null;
+let autoPushInterval = null;
 function listenForScoreUpdates(){
   if(!db) return;
   if(scoresRef) scoresRef.off('value');
