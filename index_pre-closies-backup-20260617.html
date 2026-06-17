@@ -154,16 +154,6 @@
   .sk-result-win{color:var(--sgf-green-dark);font-weight:800;font-size:0.8rem;text-align:left!important;padding-left:10px!important;}
   .sk-result-carry{color:#b57d0a;font-weight:900;font-size:0.8rem;text-align:left!important;padding-left:10px!important;}
   .sk-result-pending{color:#bbb;font-size:0.75rem;text-align:left!important;padding-left:10px!important;}
-  .closie-hole-card{margin-bottom:14px;padding:13px 15px;}
-  .closie-hole-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:var(--sgf-green-dark);letter-spacing:0.5px;margin-bottom:9px;}
-  .closie-par-tag{font-family:'Nunito',sans-serif;font-size:0.62rem;font-weight:800;color:var(--muted);background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:2px 8px;letter-spacing:0;}
-  .closie-winner-tag{margin-left:auto;font-family:'Nunito',sans-serif;font-size:0.72rem;font-weight:800;color:var(--sgf-green-dark);}
-  .closie-chip-row{display:flex;flex-direction:column;gap:6px;}
-  .closie-row{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1.5px solid var(--border);border-radius:9px;cursor:pointer;transition:all 0.15s;background:var(--cream);}
-  .closie-row input[type=checkbox]{width:19px;height:19px;accent-color:var(--sgf-green);flex-shrink:0;cursor:pointer;}
-  .closie-row span{font-size:0.85rem;font-weight:700;color:var(--text);}
-  .closie-row-win{background:var(--sgf-green-pale);border-color:var(--sgf-green);}
-  .closie-row-win span{color:var(--sgf-green-dark);font-weight:800;}
   .sk-badge{display:inline-block;background:var(--sgf-green);color:#fff;border-radius:10px;padding:1px 5px;font-size:0.6rem;font-weight:800;margin-left:3px;}
   .st-hole-cell{font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--sgf-green-dark);}
   .st-si-cell{color:var(--muted);font-size:0.72rem;}
@@ -227,8 +217,6 @@ try {
       </div>
       <button class="green-btn" id="btn-load" onclick="loadPlayersFromSheet()">Load Players from Sheet</button>
       <div id="load-status" style="display:none;" class="status-msg"></div>
-      <button type="button" class="add-player-row" style="margin-top:8px;" onclick="toggleRecoverList()">↩️ Recover a Recent Sheet ID</button>
-      <div id="recover-list" style="display:none;margin-top:8px;"></div>
     </div>
     <div class="setup-card">
       <div class="section-title">Players (<span id="player-count">1</span>/30)</div>
@@ -244,7 +232,7 @@ try {
     </div>
     <button class="start-btn" onclick="startRound()">⛳ Start Live Round</button>
     <div style="height:12px;"></div>
-    <button class="end-round-btn" id="btn-end-round-setup" onclick="endRound()">🔴 End Current Round</button>
+    <button class="end-round-btn" onclick="endRound()">🔴 End Current Round</button>
     <div style="height:20px;"></div>
   </div>
 </div>
@@ -305,8 +293,7 @@ try {
       <div class="live-badge"><div class="live-dot"></div>LIVE</div>
       <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
       <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
-      <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
-      <button class="hdr-btn" id="btn-end-round-gear" style="background:rgba(192,57,43,0.3);border-color:rgba(192,57,43,0.5);" onclick="endRound()">⚙️</button>
+      <button class="hdr-btn" style="background:rgba(192,57,43,0.3);border-color:rgba(192,57,43,0.5);" onclick="endRound()">⚙️</button>
     </div>
   </div>
   <div class="scoring-meta-bar">
@@ -349,7 +336,6 @@ try {
       <div class="live-badge"><div class="live-dot"></div>LIVE</div>
       <button class="hdr-btn" onclick="showScreen('screen-scoring')">Scores</button>
       <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
-      <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
     </div>
   </div>
   <div class="lb-body">
@@ -369,34 +355,10 @@ try {
       <div class="live-badge"><div class="live-dot"></div>LIVE</div>
       <button class="hdr-btn" onclick="showScreen('screen-scoring')">Scores</button>
       <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
-      <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
     </div>
   </div>
   <div class="lb-body" id="skins-content">
     <div class="skins-empty">Start a round to see Net Skins.</div>
-  </div>
-</div>
-<!-- ===== CLOSIES SCREEN ===== -->
-<div id="screen-closies" class="screen">
-  <div class="app-header">
-    <div class="sgf-logo"><img id="logo-closies" alt="SGF"></div>
-    <div class="header-text">
-      <div class="header-brand">Closies</div>
-      <div class="header-sub" id="closies-sub">Live Round</div>
-    </div>
-    <div class="header-actions">
-      <div class="live-badge"><div class="live-dot"></div>LIVE</div>
-      <button class="hdr-btn" onclick="showScreen('screen-scoring')">Scores</button>
-      <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
-      <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
-    </div>
-  </div>
-  <div class="lb-body" id="closies-content">
-    <div class="skins-empty">Start a round to enter Closies.</div>
-  </div>
-  <div class="sync-bar">
-    <button class="sync-btn btn-sheets" onclick="pushClosiesToSheet()">📊 Push Closies to Sheet</button>
-    <div id="closies-sync-result" class="sync-result" style="display:none;"></div>
   </div>
 </div>
 <script>
@@ -405,26 +367,17 @@ const FRONT=[1,2,3,4,5,6,7,8,9];
 const BACK=[10,11,12,13,14,15,16,17,18];
 let players=[], pars=[4,4,3,4,4,4,4,3,5,4,3,5,4,3,5,3,4,4]; // Ojai Valley Inn defaults
 let strokeIndex=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]; // Handicap Stroke Index per hole (1=hardest)
-let scores={}, closies={}, activeNine='front', nextId=2, db=null, roundRef=null, isAdmin=(localStorage.getItem('sgf_isAdminDevice')==='true');
+let scores={}, activeNine='front', nextId=2, db=null, roundRef=null, isAdmin=false;
 let activeEventCode=null; // set when checkForActiveRound reads the round
 
-function applyAdminUI(){
-  // Only the device that started the round (or has previously started one) can end it.
-  const gear=document.getElementById('btn-end-round-gear');
-  const setupBtn=document.getElementById('btn-end-round-setup');
-  if(gear) gear.style.display=isAdmin?'':'none';
-  if(setupBtn) setupBtn.style.display=isAdmin?'':'none';
-}
-
 window.addEventListener('DOMContentLoaded',()=>{
-  ['logo1','logo2','logo3','logo4','logo5','logo-skins','logo-closies'].forEach(id=>{
+  ['logo1','logo2','logo3','logo4','logo5','logo-skins'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.src=SGF_LOGO;
   });
   document.getElementById('inp-date').value=new Date().toISOString().slice(0,10);
   document.getElementById('inp-sheetid').value=localStorage.getItem('sgf_sheetId')||'';
   buildParInputs();
   renderPlayerList();
-  applyAdminUI();
   try{
     if(!db) db=firebase.database();
     checkForActiveRound();
@@ -450,9 +403,8 @@ function checkForActiveRound(){
       showScreen('screen-join');
     } else {
       showScreen('screen-setup');
-      applyAdminUI();
     }
-  }).catch(()=>{showScreen('screen-setup');applyAdminUI();});
+  }).catch(()=>showScreen('screen-setup'));
 }
 
 function verifyAndJoin(){
@@ -478,26 +430,22 @@ function joinRound(){
     pars=data.pars||pars;
     strokeIndex=data.strokeIndex||strokeIndex;
     scores=data.scores||{};
-    closies=data.closies||{};
     players.forEach(p=>{ if(!scores[p.id]) scores[p.id]={}; HOLES.forEach(h=>{ if(scores[p.id][h]===undefined) scores[p.id][h]=null; }); });
     document.getElementById('hdr-course').textContent=data.course||'SGF Live Scoring';
     document.getElementById('hdr-date').textContent=data.date||'Live Round';
     document.getElementById('lb-sub').textContent=data.course||'SGF Live Scoring';
     document.getElementById('skins-sub').textContent=data.course||'SGF Live Scoring';
-    document.getElementById('closies-sub').textContent=data.course||'SGF Live Scoring';
     buildTable();
     showScreen('screen-scoring');
-    applyAdminUI();
     listenForScoreUpdates();
-    listenForClosieUpdates();
     startAutoPush();
   });
 }
 
 let scoresRef = null;
+let autoPushInterval = null;
 function listenForScoreUpdates(){
   if(!db) return;
-  // Detach any previous listener before attaching a new one
   if(scoresRef) scoresRef.off('value');
   scoresRef = firebase.database().ref('sgf/activeRound/scores');
   scoresRef.on('value', snap=>{
@@ -521,42 +469,16 @@ function listenForScoreUpdates(){
   });
 }
 
-let closiesRef=null;
-function listenForClosieUpdates(){
-  if(!db) return;
-  if(closiesRef) closiesRef.off('value');
-  closiesRef=firebase.database().ref('sgf/activeRound/closies');
-  closiesRef.on('value', snap=>{
-    const data=snap.val()||{};
-    closies={};
-    Object.keys(data).forEach(h=>{ closies[parseInt(h)]=data[h]; });
-    if(document.getElementById('screen-closies').classList.contains('active')) buildClosiesView();
-  });
-}
-
 function pushScoreToFirebase(pid, hole, val){
   if(!db) return;
   const ref=firebase.database().ref(`sgf/activeRound/scores/${pid}/${hole}`);
   if(val===null||val===undefined){ ref.remove(); } else { ref.set(val); }
 }
 
-function toggleClosie(hole,pid){
-  if(closies[hole]===pid){ delete closies[hole]; pushClosieToFirebase(hole,null); }
-  else { closies[hole]=pid; pushClosieToFirebase(hole,pid); }
-  buildClosiesView();
-}
-
-function pushClosieToFirebase(hole,pid){
-  if(!db) return;
-  const ref=firebase.database().ref(`sgf/activeRound/closies/${hole}`);
-  if(pid===null||pid===undefined){ ref.remove(); } else { ref.set(pid); }
-}
-
 async function startRound(){
   document.querySelectorAll('#par-front input').forEach((inp,i)=>{pars[i]=parseInt(inp.value)||4;});
   document.querySelectorAll('#par-back input').forEach((inp,i)=>{pars[i+9]=parseInt(inp.value)||4;});
   scores={};
-  closies={};
   players.forEach(p=>{scores[p.id]={};HOLES.forEach(h=>scores[p.id][h]=null);});
   const course=document.getElementById('inp-course').value.trim()||'SGF Live Scoring';
   const date=document.getElementById('inp-date').value;
@@ -564,24 +486,20 @@ async function startRound(){
   document.getElementById('hdr-date').textContent=date?fmtDate(date):'Live Round';
   document.getElementById('lb-sub').textContent=course;
   isAdmin=true;
-  localStorage.setItem('sgf_isAdminDevice','true');
   document.getElementById('skins-sub').textContent=course;
-  document.getElementById('closies-sub').textContent=course;
   if(db){
     const roundData={
       active:true, course, date:date?fmtDate(date):'Live Round',
-      players, pars, strokeIndex, scores, closies,
+      players, pars, strokeIndex, scores,
       code:(document.getElementById('inp-eventcode').value.trim()||''),
       sheetId:(()=>{const s=document.getElementById('inp-sheetid').value.trim();localStorage.setItem('sgf_sheetId',s);return s;})(),
       startedAt:Date.now()
     };
     await firebase.database().ref('sgf/activeRound').set(roundData);
     listenForScoreUpdates();
-    listenForClosieUpdates();
   }
   buildTable();
   showScreen('screen-scoring');
-  applyAdminUI();
   startAutoPush();
 }
 
@@ -657,66 +575,17 @@ async function loadPlayersFromSheet(){
 
 function showStatus(el,msg,type){el.style.display='block';el.className=`status-msg status-${type}`;el.textContent=msg;}
 
-async function toggleRecoverList(){
-  const box=document.getElementById('recover-list');
-  if(box.style.display==='block'){ box.style.display='none'; return; }
-  box.style.display='block';
-  box.innerHTML='<div style="font-size:0.8rem;color:var(--muted);font-weight:700;">Loading…</div>';
-  try{
-    const snap=await firebase.database().ref('sgf/endedRounds').limitToLast(5).once('value');
-    const data=snap.val()||{};
-    const rows=Object.values(data).sort((a,b)=>(b.endedAt||0)-(a.endedAt||0));
-    window._recoveredRounds=rows;
-    if(!rows.length){ box.innerHTML='<div style="font-size:0.8rem;color:var(--muted);font-weight:700;">No recent ended rounds found.</div>'; return; }
-    box.innerHTML=rows.map((r,i)=>`
-      <div style="padding:10px;border:1.5px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;" onclick="applyRecovered(${i})">
-        <div style="font-weight:800;font-size:0.85rem;">${esc(r.course||'(no course)')}</div>
-        <div style="font-size:0.72rem;color:var(--muted);">${esc(r.date||'')} — Sheet ID: ${esc((r.sheetId||'').slice(0,14))}${(r.sheetId||'').length>14?'…':''}</div>
-      </div>`).join('');
-  }catch(e){ box.innerHTML='<div style="font-size:0.8rem;color:#c0392b;font-weight:700;">Error loading: '+e.message+'</div>'; }
-}
-function applyRecovered(i){
-  const r=(window._recoveredRounds||[])[i];
-  if(!r) return;
-  document.getElementById('inp-sheetid').value=r.sheetId||'';
-  if(r.course) document.getElementById('inp-course').value=r.course;
-  document.getElementById('recover-list').style.display='none';
-  showStatus(document.getElementById('load-status'),'✅ Sheet ID recovered from a previously ended round.','ok');
-}
-
 async function endRound(){
-  if(!isAdmin){
-    alert('Only the device that started this round can end it. Ask the round admin (whoever clicked "Start Live Round") to end it from their device.');
-    return;
-  }
   const choice = await showEndRoundDialog();
   if(!choice) return;
   try{
     if(choice === 'end'){
       stopAutoPush();
       if(scoresRef){ scoresRef.off('value'); scoresRef=null; }
-      // Back up course/date/Sheet ID before wiping the round, so it's recoverable later.
-      try{
-        const snap=await firebase.database().ref('sgf/activeRound').once('value');
-        const data=snap.val();
-        if(data){
-          await firebase.database().ref('sgf/endedRounds').push({
-            course:data.course||'', date:data.date||'', sheetId:data.sheetId||'', code:data.code||'', endedAt:Date.now()
-          });
-          const histSnap=await firebase.database().ref('sgf/endedRounds').once('value');
-          const hist=histSnap.val()||{};
-          const keys=Object.keys(hist).sort();
-          if(keys.length>10){
-            const toRemove=keys.slice(0,keys.length-10);
-            await Promise.all(toRemove.map(k=>firebase.database().ref('sgf/endedRounds/'+k).remove()));
-          }
-        }
-      }catch(e){ console.log('Backup before end round failed:',e); }
       await firebase.database().ref('sgf/activeRound').remove();
       players=[];scores={};
       renderPlayerList();
       showScreen('screen-setup');
-      applyAdminUI();
       alert('✅ Round ended! App reset for all players.');
     }
   }catch(e){
@@ -893,7 +762,6 @@ async function pushToSheets(silent=false){
   }
 }
 
-let autoPushInterval = null;
 function startAutoPush(){
   if(autoPushInterval) clearInterval(autoPushInterval);
   autoPushInterval = setInterval(()=>{
@@ -931,64 +799,7 @@ function showScreen(id){
   document.getElementById(id).classList.add('active');
   if(id==='screen-lb')buildLB();
   if(id==='screen-skins')buildSkinsView();
-  if(id==='screen-closies')buildClosiesView();
   window.scrollTo(0,0);
-}
-
-function buildClosiesView(){
-  const ap=players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name');
-  if(!ap.length){
-    document.getElementById('closies-content').innerHTML='<div class="skins-empty">No players loaded. Start a round first.</div>';
-    return;
-  }
-  const par3Holes=HOLES.filter(h=>(pars[h-1]||0)===3);
-  if(!par3Holes.length){
-    document.getElementById('closies-content').innerHTML='<div class="skins-empty">No Par 3 holes found for this course.</div>';
-    return;
-  }
-  const cardsHTML=par3Holes.map(hole=>{
-    const winnerId=closies[hole];
-    const winner=ap.find(p=>p.id===winnerId);
-    const rowsHTML=ap.map(p=>{
-      const sel=winnerId===p.id;
-      return `<label class="closie-row${sel?' closie-row-win':''}">
-        <input type="checkbox" ${sel?'checked':''} onclick="toggleClosie(${hole},${p.id});return false;">
-        <span>${esc(p.name)}</span>
-      </label>`;
-    }).join('');
-    return `<div class="lb-card closie-hole-card">
-      <div class="closie-hole-title">Hole ${hole} <span class="closie-par-tag">Par 3</span><span class="closie-winner-tag">${winner?'🏆 '+esc(winner.name):'No winner yet'}</span></div>
-      <div class="closie-chip-row">${rowsHTML}</div>
-    </div>`;
-  }).join('');
-  document.getElementById('closies-content').innerHTML=cardsHTML;
-}
-
-async function pushClosiesToSheet(){
-  const el=document.getElementById('closies-sync-result');
-  const show=(msg,ok)=>{el.style.display='block';el.style.color=ok===true?'#7dcea0':ok===false?'#f08080':'#aac8e0';el.textContent=msg;if(ok!==null)setTimeout(()=>{el.style.display='none';},6000);};
-  if(!players||players.length===0){ show('⚠️ No players loaded. Start a round first.',false); return; }
-  show('Pushing Closies to Google Sheets…',null);
-  try{
-    const par3Holes=HOLES.filter(h=>(pars[h-1]||0)===3);
-    const payload={
-      type:'closies',
-      spreadsheetId:window.activeSheetId||'',
-      closies:par3Holes.map(hole=>{
-        const p=players.find(pp=>pp.id===closies[hole]);
-        return{hole, name:p?p.name:''};
-      })
-    };
-    await fetch(APPS_SCRIPT_URL, {
-      method:'POST',
-      mode:'no-cors',
-      headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify(payload)
-    });
-    show('✅ Closies pushed to your sheet!',true);
-  }catch(e){
-    show(`Network error: ${e.message}`,false);
-  }
 }
 
 function buildSkinsView(){
