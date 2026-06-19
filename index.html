@@ -72,6 +72,12 @@
   .join-card{background:var(--card-bg);border-radius:16px;padding:24px 20px;width:100%;max-width:380px;box-shadow:0 12px 40px rgba(0,0,0,0.3);border:1px solid rgba(58,170,53,0.25);}
   .join-title{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--sgf-green-dark);letter-spacing:1px;margin-bottom:4px;}
   .join-sub{font-size:0.82rem;color:var(--muted);margin-bottom:20px;font-weight:600;}
+  .group-status-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fffbef;border-bottom:1px solid var(--gold-light);padding:6px 13px;flex-shrink:0;font-size:0.74rem;font-weight:800;color:#8a6d1f;}
+  .group-btn{background:rgba(255,255,255,0.6);border:1.5px solid var(--gold);color:#8a6d1f;padding:5px 10px;border-radius:14px;font-size:0.68rem;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap;}
+  .group-pick-btn{width:100%;text-align:left;background:var(--sgf-green-pale);border:1.5px solid rgba(58,170,53,0.3);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;font-family:'Nunito',sans-serif;transition:background 0.15s;}
+  .group-pick-btn:hover,.group-pick-btn:active{background:#d9efd6;}
+  .group-pick-name{font-family:'Bebas Neue',sans-serif;font-size:1.05rem;color:var(--sgf-green-dark);letter-spacing:1px;}
+  .group-pick-players{font-size:0.76rem;color:var(--muted);font-weight:700;margin-top:2px;}
   .round-info-box{background:var(--sgf-green-pale);border-radius:10px;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(58,170,53,0.2);}
   .round-info-course{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:var(--sgf-green-dark);letter-spacing:1px;}
   .round-info-date{font-size:0.78rem;color:var(--muted);font-weight:700;}
@@ -281,6 +287,24 @@ try {
   </div>
 </div>
 
+<!-- ===== GROUP PICKER SCREEN ===== -->
+<div id="screen-group-picker" class="screen">
+  <div class="app-header">
+    <div class="sgf-logo"><img id="logo-grouppick" alt="SGF"></div>
+    <div class="header-text">
+      <div class="header-brand">Saturday Golf Friends</div>
+      <div class="header-sub">Choose Your Foursome</div>
+    </div>
+  </div>
+  <div class="join-body">
+    <div class="join-card">
+      <div class="join-title">What Group Are You In?</div>
+      <div class="join-sub">Tap your foursome below. You'll score for your group, and can still view everyone else read-only.</div>
+      <div id="group-pick-list"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ===== LOADING SCREEN ===== -->
 <div id="screen-loading" class="screen">
   <div class="app-header">
@@ -306,6 +330,7 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
       <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
       <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
+      <button class="hdr-btn" id="btn-manage-groups" onclick="openManageGroups()">👥 Groups</button>
       <button class="hdr-btn" id="btn-end-round-gear" style="background:rgba(192,57,43,0.3);border-color:rgba(192,57,43,0.5);" onclick="endRound()">⚙️</button>
     </div>
   </div>
@@ -315,6 +340,7 @@ try {
       <button class="nine-tab" id="tab-back" onclick="switchNine('back')">In (10–18)</button>
     </div>
   </div>
+  <div class="group-status-bar" id="group-status-bar" style="display:none;"></div>
   <div class="legend-bar">
     <div class="legend-item"><div class="legend-dot" style="background:#e87722"></div>🦅 Eagle</div>
     <div class="legend-item"><div class="legend-dot" style="background:#c0392b"></div>Birdie</div>
@@ -407,17 +433,20 @@ let players=[], pars=[4,4,3,4,4,4,4,3,5,4,3,5,4,3,5,3,4,4]; // Ojai Valley Inn d
 let strokeIndex=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]; // Handicap Stroke Index per hole (1=hardest)
 let scores={}, closies={}, activeNine='front', nextId=2, db=null, roundRef=null, isAdmin=(localStorage.getItem('sgf_isAdminDevice')==='true');
 let activeEventCode=null; // set when checkForActiveRound reads the round
+let myGroup=null, viewMode='myFoursome', groupsRef=null; // foursome isolation state
 
 function applyAdminUI(){
   // Only the device that started the round (or has previously started one) can end it.
   const gear=document.getElementById('btn-end-round-gear');
   const setupBtn=document.getElementById('btn-end-round-setup');
+  const manageBtn=document.getElementById('btn-manage-groups');
   if(gear) gear.style.display=isAdmin?'':'none';
   if(setupBtn) setupBtn.style.display=isAdmin?'':'none';
+  if(manageBtn) manageBtn.style.display=isAdmin?'':'none';
 }
 
 window.addEventListener('DOMContentLoaded',()=>{
-  ['logo1','logo2','logo3','logo4','logo5','logo-skins','logo-closies'].forEach(id=>{
+  ['logo1','logo2','logo3','logo4','logo5','logo-skins','logo-closies','logo-grouppick'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.src=SGF_LOGO;
   });
   document.getElementById('inp-date').value=new Date().toISOString().slice(0,10);
@@ -479,18 +508,21 @@ function joinRound(){
     strokeIndex=data.strokeIndex||strokeIndex;
     scores=data.scores||{};
     closies=data.closies||{};
+    // Firebase live groups are authoritative (admin can reassign without resetting the round);
+    // fall back to whatever group was already seeded on the player object.
+    const groupsData=data.groups||{};
+    players.forEach(p=>{ p.group=groupsData[p.id]!==undefined?(parseInt(groupsData[p.id])||1):(p.group||1); });
     players.forEach(p=>{ if(!scores[p.id]) scores[p.id]={}; HOLES.forEach(h=>{ if(scores[p.id][h]===undefined) scores[p.id][h]=null; }); });
     document.getElementById('hdr-course').textContent=data.course||'SGF Live Scoring';
     document.getElementById('hdr-date').textContent=data.date||'Live Round';
     document.getElementById('lb-sub').textContent=data.course||'SGF Live Scoring';
     document.getElementById('skins-sub').textContent=data.course||'SGF Live Scoring';
     document.getElementById('closies-sub').textContent=data.course||'SGF Live Scoring';
-    buildTable();
-    showScreen('screen-scoring');
-    applyAdminUI();
     listenForScoreUpdates();
     listenForClosieUpdates();
+    listenForGroupUpdates();
     startAutoPush();
+    afterRoundLoaded();
   });
 }
 
@@ -570,10 +602,13 @@ async function startRound(){
   const sheetIdVal=document.getElementById('inp-sheetid').value.trim();
   localStorage.setItem('sgf_sheetId',sheetIdVal);
   window.activeSheetId=sheetIdVal;
+  const groupsMap={};
+  players.forEach(p=>{groupsMap[p.id]=parseInt(p.group)||1;});
   if(db){
     const roundData={
       active:true, course, date:date?fmtDate(date):'Live Round',
       players, pars, strokeIndex, scores, closies,
+      groups: groupsMap,
       code:(document.getElementById('inp-eventcode').value.trim()||''),
       sheetId:sheetIdVal,
       startedAt:Date.now()
@@ -581,11 +616,10 @@ async function startRound(){
     await firebase.database().ref('sgf/activeRound').set(roundData);
     listenForScoreUpdates();
     listenForClosieUpdates();
+    listenForGroupUpdates();
   }
-  buildTable();
-  showScreen('screen-scoring');
-  applyAdminUI();
   startAutoPush();
+  afterRoundLoaded();
 }
 
 function buildParInputs(){
@@ -624,11 +658,13 @@ async function loadPlayersFromSheet(){
     const json=await resp.json();
     if(json.status!=='ok') throw new Error(json.message||'Setup load failed');
 
-    // Parse players from SETUP.PLAYERS B13:I30
-    const playerRows=(json.players||[]).filter(r=>r[0]&&String(r[0]).trim()&&
-      !['player name','name','player'].includes(String(r[0]).trim().toLowerCase()));
-    if(!playerRows.length){showStatus(st,'No player names found in SETUP.PLAYERS.','err');document.getElementById('btn-load').disabled=false;return;}
-    players=playerRows.slice(0,30).map((r,i)=>({id:i+1,name:String(r[0]).trim(),hcp:r[7]?parseInt(r[7])||0:0}));
+    // Parse players from SETUP.PLAYERS B13:I30, keeping the Group column (N13:N30) aligned by row index
+    const rawPlayers=json.players||[];
+    const rawGroups=json.groups||[];
+    const playerEntries=rawPlayers.map((r,i)=>({row:r,group:rawGroups[i]})).filter(e=>e.row[0]&&String(e.row[0]).trim()&&
+      !['player name','name','player'].includes(String(e.row[0]).trim().toLowerCase()));
+    if(!playerEntries.length){showStatus(st,'No player names found in SETUP.PLAYERS.','err');document.getElementById('btn-load').disabled=false;return;}
+    players=playerEntries.slice(0,30).map((e,i)=>({id:i+1,name:String(e.row[0]).trim(),hcp:e.row[7]?parseInt(e.row[7])||0:0,group:parseInt(e.group)||1}));
     nextId=players.length+1;
     renderPlayerList();
 
@@ -773,7 +809,10 @@ function buildTable(){
     </tr>`;
   const tbody=document.getElementById('score-tbody');
   tbody.innerHTML='';
-  players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name').forEach(p=>{
+  const readOnly=viewMode==='wholeField';
+  const visiblePlayers=players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name')
+    .filter(p=> readOnly ? true : (myGroup===null || (parseInt(p.group)||1)===myGroup) );
+  visiblePlayers.forEach(p=>{
     const tr=document.createElement('tr');
     tr.className='score-row';
     const filled=holes.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
@@ -784,11 +823,121 @@ function buildTable(){
     tr.innerHTML=`<td class="td-name"><div class="td-name-text">${esc(p.name||'Player '+p.id)}</div></td>`+
       holes.map((h,i)=>{
         const sv=scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined?scores[p.id][h]:'';
-        return`<td class="td-score"><input class="score-inp ${sCls(sv||null,ps[i])}" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="20" value="${sv}" placeholder="-" onclick="cellClick(event,${p.id},${h},this)" onchange="upd(${p.id},${h},this)"></td>`;
+        return`<td class="td-score"><input class="score-inp ${sCls(sv||null,ps[i])}" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="20" value="${sv}" placeholder="-" ${readOnly?'disabled':`onclick="cellClick(event,${p.id},${h},this)" onchange="upd(${p.id},${h},this)"`}></td>`;
       }).join('')+
       `<td class="td-sub" id="sub-${p.id}">${tot2!==null?tot2:'—'}</td>${activeNine==='back'?(()=>{const frontFilled=FRONT.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);const ft=frontFilled?FRONT.reduce((s,h)=>s+scores[p.id][h],0):null;const grossTot=(ft!==null&&tot2!==null)?ft+tot2:null;return`<td class="td-sub" id="gtot-${p.id}">${grossTot!==null?grossTot:'—'}</td>`;})():''}<td class="td-total ${vCls}" id="vp-${p.id}">${vpStr}</td>`;
     tbody.appendChild(tr);
   });
+  updateGroupStatusBar();
+}
+
+function afterRoundLoaded(){
+  const distinctGroups=[...new Set(players.map(p=>parseInt(p.group)||1))].sort((a,b)=>a-b);
+  if(distinctGroups.length<=1){
+    myGroup=distinctGroups[0]||1;
+    viewMode='myFoursome';
+    buildTable();
+    showScreen('screen-scoring');
+    applyAdminUI();
+    return;
+  }
+  const saved=parseInt(localStorage.getItem('sgf_myGroup'));
+  if(saved && distinctGroups.includes(saved)){
+    myGroup=saved;
+    viewMode='myFoursome';
+    buildTable();
+    showScreen('screen-scoring');
+    applyAdminUI();
+  } else {
+    showGroupPicker(distinctGroups);
+  }
+}
+
+function showGroupPicker(distinctGroups){
+  const groups=distinctGroups||[...new Set(players.map(p=>parseInt(p.group)||1))].sort((a,b)=>a-b);
+  const list=document.getElementById('group-pick-list');
+  list.innerHTML=groups.map(g=>{
+    const names=players.filter(p=>(parseInt(p.group)||1)===g&&p.name&&p.name.trim()!=='').map(p=>p.name.trim()).join(', ');
+    return `<button type="button" class="group-pick-btn" onclick="pickGroup(${g})">
+      <div class="group-pick-name">Group ${g}</div>
+      <div class="group-pick-players">${esc(names||'No players assigned')}</div>
+    </button>`;
+  }).join('');
+  showScreen('screen-group-picker');
+}
+
+function pickGroup(g){
+  myGroup=g;
+  viewMode='myFoursome';
+  localStorage.setItem('sgf_myGroup',g);
+  buildTable();
+  showScreen('screen-scoring');
+  applyAdminUI();
+}
+
+function toggleViewMode(){
+  viewMode = viewMode==='wholeField' ? 'myFoursome' : 'wholeField';
+  buildTable();
+}
+
+function updateGroupStatusBar(){
+  const bar=document.getElementById('group-status-bar');
+  if(!bar) return;
+  const distinctGroups=[...new Set(players.map(p=>parseInt(p.group)||1))];
+  if(distinctGroups.length<=1){ bar.style.display='none'; return; }
+  bar.style.display='flex';
+  const modeLabel = viewMode==='wholeField' ? 'Viewing: Whole Field (read-only)' : `Your Group: ${myGroup||1}`;
+  bar.innerHTML=`<span>${modeLabel}</span>
+    <span style="display:flex;gap:6px;">
+      <button type="button" class="group-btn" onclick="toggleViewMode()">${viewMode==='wholeField'?'My Group':'Whole Field'}</button>
+      <button type="button" class="group-btn" onclick="showGroupPicker()">Switch Group</button>
+    </span>`;
+}
+
+function listenForGroupUpdates(){
+  if(!db) return;
+  if(groupsRef) groupsRef.off('value');
+  groupsRef=firebase.database().ref('sgf/activeRound/groups');
+  groupsRef.on('value', snap=>{
+    const data=snap.val()||{};
+    players.forEach(p=>{ if(data[p.id]!==undefined) p.group=parseInt(data[p.id])||1; });
+    if(document.getElementById('screen-scoring').classList.contains('active')) buildTable();
+  });
+}
+
+function openManageGroups(){
+  if(!isAdmin) return;
+  const existing=document.getElementById('manage-groups-dialog');
+  if(existing) existing.remove();
+  const overlay=document.createElement('div');
+  overlay.id='manage-groups-dialog';
+  overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  const rows=players.filter(p=>p.name&&p.name.trim()!=='').map(p=>{
+    const g=parseInt(p.group)||1;
+    const opts=[1,2,3,4].map(n=>`<option value="${n}" ${n===g?'selected':''}>${n}</option>`).join('');
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #eee;">
+      <span style="font-weight:700;font-size:0.88rem;color:#142010;">${esc(p.name.trim())}</span>
+      <select onchange="reassignGroup(${p.id},this.value)" style="padding:5px 8px;border-radius:6px;border:1.5px solid #b8ddb5;font-weight:800;">${opts}</select>
+    </div>`;
+  }).join('');
+  overlay.innerHTML=`
+    <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:380px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:#1a5518;letter-spacing:1px;margin-bottom:8px;">Manage Foursomes</div>
+      <div style="font-size:0.82rem;color:#4a7044;margin-bottom:16px;font-weight:600;">Reassign a player's group — changes apply live to all devices.</div>
+      <div>${rows}</div>
+      <button id="btn-close-manage-groups" style="width:100%;padding:11px;margin-top:16px;background:transparent;color:#4a7044;border:2px solid #b8ddb5;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">Done</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('btn-close-manage-groups').onclick=()=>overlay.remove();
+  overlay.onclick=(e)=>{if(e.target===overlay) overlay.remove();};
+}
+
+function reassignGroup(pid, newGroup){
+  pid=parseInt(pid); newGroup=parseInt(newGroup)||1;
+  const p=players.find(p=>p.id===pid);
+  if(p) p.group=newGroup;
+  if(db) firebase.database().ref('sgf/activeRound/groups/'+pid).set(newGroup);
+  buildTable();
 }
 
 function cellClick(e,pid,hole,inp){
