@@ -985,19 +985,15 @@ function buildLB(){
     const hp=done.length;
     if(hp===0)return{...p,gross:null,net:null,hcp,vp:null,hp};
     const gross=done.reduce((s,h)=>s+scores[p.id][h],0);
-    // Handicap strokes earned on completed holes via stroke index (handles hcp>18 double strokes)
-    const strokes=done.reduce((s,h)=>{
-      const si=strokeIndex[h-1];
-      return s+(si<=hcp?1:0)+(hcp>18&&si<=(hcp-18)?1:0);
-    },0);
-    const net=gross-strokes;
+    // Match LOW.NET sheet: Net = Gross minus FULL course handicap (all strokes applied immediately)
+    const net=gross-hcp;
     const completedPar=done.reduce((s,h)=>s+pars[HOLES.indexOf(h)],0);
-    const vp=net-completedPar;
-    return{...p,gross,net,hcp,vp,hp,strokes};
+    const vp=gross-completedPar; // gross vs par over holes played (scoring pace pill)
+    return{...p,gross,net,hcp,vp,hp};
   }).sort((a,b)=>{
     if(a.hp===0&&b.hp===0)return 0;
     if(a.hp===0)return 1;if(b.hp===0)return -1;
-    return a.vp-b.vp;
+    return a.net-b.net;
   });
   const m=['🥇','🥈','🥉'];
   document.getElementById('lb-card').innerHTML=ranked.map((p,i)=>{
