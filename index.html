@@ -793,6 +793,8 @@ function showEndRoundDialog(){
 function hSet(){return activeNine==='front'?FRONT:BACK;}
 function pSet(){return activeNine==='front'?pars.slice(0,9):pars.slice(9);}
 function pTot(n){return(n==='front'?pars.slice(0,9):pars.slice(9)).reduce((a,b)=>a+b,0);}
+function runSum(pid,nineHoles){let s=0,any=false;nineHoles.forEach(h=>{const v=scores[pid]&&scores[pid][h];if(v!==null&&v!==undefined){s+=v;any=true;}});return any?s:null;}
+function runPar(pid,nineHoles){let s=0;nineHoles.forEach(h=>{const v=scores[pid]&&scores[pid][h];if(v!==null&&v!==undefined){s+=pars[HOLES.indexOf(h)];}});return s;}
 
 function buildTable(){
   const holes=hSet(),ps=pSet(),tot=pTot(activeNine),lbl=activeNine==='front'?'Out':'In';
@@ -815,9 +817,8 @@ function buildTable(){
   visiblePlayers.forEach(p=>{
     const tr=document.createElement('tr');
     tr.className='score-row';
-    const filled=holes.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
-    const tot2=filled?holes.reduce((s,h)=>s+scores[p.id][h],0):null;
-    const vp=tot2!==null?tot2-pTot(activeNine):null;
+    const tot2=runSum(p.id,holes);
+    const vp=tot2!==null?tot2-runPar(p.id,holes):null;
     const vpStr=vp===null?'—':(vp===0?'E':vp>0?`+${vp}`:vp);
     const vCls=vp===null?'':(vp<0?'under':vp===0?'even':'over');
     tr.innerHTML=`<td class="td-name"><div class="td-name-text">${esc(p.name||'Player '+p.id)}</div></td>`+
@@ -825,7 +826,7 @@ function buildTable(){
         const sv=scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined?scores[p.id][h]:'';
         return`<td class="td-score"><input class="score-inp ${sCls(sv||null,ps[i])}" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="20" value="${sv}" placeholder="-" ${readOnly?'disabled':`onclick="cellClick(event,${p.id},${h},this)" onchange="upd(${p.id},${h},this)"`}></td>`;
       }).join('')+
-      `<td class="td-sub" id="sub-${p.id}">${tot2!==null?tot2:'—'}</td>${activeNine==='back'?(()=>{const frontFilled=FRONT.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);const ft=frontFilled?FRONT.reduce((s,h)=>s+scores[p.id][h],0):null;const grossTot=(ft!==null&&tot2!==null)?ft+tot2:null;return`<td class="td-sub" id="gtot-${p.id}">${grossTot!==null?grossTot:'—'}</td>`;})():''}<td class="td-total ${vCls}" id="vp-${p.id}">${vpStr}</td>`;
+      `<td class="td-sub" id="sub-${p.id}">${tot2!==null?tot2:'—'}</td>${activeNine==='back'?(()=>{const ft=runSum(p.id,FRONT);const bt=runSum(p.id,BACK);const grossTot=(ft!==null||bt!==null)?((ft||0)+(bt||0)):null;return`<td class="td-sub" id="gtot-${p.id}">${grossTot!==null?grossTot:'—'}</td>`;})():''}<td class="td-total ${vCls}" id="vp-${p.id}">${vpStr}</td>`;
     tbody.appendChild(tr);
   });
   updateGroupStatusBar();
@@ -962,13 +963,12 @@ function upd(pid,hole,inp){
   inp.className=`score-inp ${sCls(val,pars[HOLES.indexOf(hole)])}`;
   pushScoreToFirebase(pid,hole,val);
   const nine=activeNine==='front'?FRONT:BACK;
-  const filled=nine.every(h=>scores[pid]&&scores[pid][h]!==null&&scores[pid][h]!==undefined);
-  const tot=filled?nine.reduce((s,h)=>s+scores[pid][h],0):null;
-  const vp=tot!==null?tot-pTot(activeNine):null;
+  const tot=runSum(pid,nine);
+  const vp=tot!==null?tot-runPar(pid,nine):null;
   const se=document.getElementById(`sub-${pid}`),ve=document.getElementById(`vp-${pid}`);
   if(se)se.textContent=tot!==null?tot:'—';
   if(ve){ve.textContent=vp===null?'—':(vp===0?'E':vp>0?`+${vp}`:vp);ve.className=`td-total ${vp===null?'':(vp<0?'under':vp===0?'even':'over')}`;}
-  if(activeNine==='back'){const ge=document.getElementById(`gtot-${pid}`);if(ge){const frontFilled=FRONT.every(h=>scores[pid]&&scores[pid][h]!==null&&scores[pid][h]!==undefined);const backFilled=BACK.every(h=>scores[pid]&&scores[pid][h]!==null&&scores[pid][h]!==undefined);const ft=frontFilled?FRONT.reduce((s,h)=>s+scores[pid][h],0):null;const bt=backFilled?BACK.reduce((s,h)=>s+scores[pid][h],0):null;ge.textContent=(ft!==null&&bt!==null)?ft+bt:'—';}}
+  if(activeNine==='back'){const ge=document.getElementById(`gtot-${pid}`);if(ge){const ft=runSum(pid,FRONT);const bt=runSum(pid,BACK);ge.textContent=(ft!==null||bt!==null)?((ft||0)+(bt||0)):'—';}}
 }
 
 function sCls(val,par){
