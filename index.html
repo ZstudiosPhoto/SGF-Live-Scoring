@@ -567,15 +567,15 @@ async function startRound(){
   localStorage.setItem('sgf_isAdminDevice','true');
   document.getElementById('skins-sub').textContent=course;
   document.getElementById('closies-sub').textContent=course;
-        const sheetIdVal=document.getElementById('inp-sheetid').value.trim();
-        localStorage.setItem('sgf_sheetId',sheetIdVal);
-        window.activeSheetId=sheetIdVal;
+  const sheetIdVal=document.getElementById('inp-sheetid').value.trim();
+  localStorage.setItem('sgf_sheetId',sheetIdVal);
+  window.activeSheetId=sheetIdVal;
   if(db){
     const roundData={
       active:true, course, date:date?fmtDate(date):'Live Round',
       players, pars, strokeIndex, scores, closies,
       code:(document.getElementById('inp-eventcode').value.trim()||''),
-            sheetId:sheetIdVal,
+      sheetId:sheetIdVal,
       startedAt:Date.now()
     };
     await firebase.database().ref('sgf/activeRound').set(roundData);
