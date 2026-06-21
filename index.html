@@ -475,6 +475,15 @@ function checkForActiveRound(){
   ref.once('value').then(snap=>{
     const data=snap.val();
     if(data && data.active){
+      // If this is a different round than the last one this device joined, clear stale
+      // local state and force a fresh network load so cached HTML/JS is never an issue.
+      const lastStart=localStorage.getItem('sgf_lastRoundStart');
+      if(lastStart && lastStart!==String(data.startedAt)){
+        localStorage.removeItem('sgf_myGroup');
+        localStorage.setItem('sgf_lastRoundStart',String(data.startedAt));
+        window.location.href=window.location.pathname+'?v='+Date.now();
+        return;
+      }
       document.getElementById('join-course').textContent=data.course||'SGF Round';
       document.getElementById('join-date').textContent=data.date||'';
       document.getElementById('join-players').textContent=`${(data.players||[]).length} players`;
@@ -524,6 +533,8 @@ function joinRound(){
     document.getElementById('lb-sub').textContent=data.course||'SGF Live Scoring';
     document.getElementById('skins-sub').textContent=data.course||'SGF Live Scoring';
     document.getElementById('closies-sub').textContent=data.course||'SGF Live Scoring';
+    // Remember this round so we can detect a new one next visit
+    localStorage.setItem('sgf_lastRoundStart',String(data.startedAt||''));
     listenForScoreUpdates();
     listenForClosieUpdates();
     listenForGroupUpdates();
