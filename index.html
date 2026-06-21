@@ -128,6 +128,8 @@
   .lb-row{display:flex;align-items:center;padding:11px 13px;border-bottom:1px solid var(--border);gap:9px;}
   .lb-row:last-child{border-bottom:none;}
   .lb-row.top1{background:linear-gradient(90deg,#f0fced 0%,white 100%);}
+  .lb-row.tb-winner{background:linear-gradient(90deg,#fff0ef 0%,white 100%);}
+  .lb-row.tb-winner .lb-name{color:#c0392b;}
   .lb-pos{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:var(--muted);width:28px;text-align:center;flex-shrink:0;}
   .lb-info{flex:1;}
   .lb-name{font-weight:800;font-size:0.9rem;}
@@ -1002,29 +1004,53 @@ function sCls(val,par){
 function switchNine(n){activeNine=n;document.getElementById('tab-front').classList.toggle('active',n==='front');document.getElementById('tab-back').classList.toggle('active',n==='back');buildTable();}
 
 function buildLB(){
+  // SI=1 hole is the tiebreaker hole (hardest hole by handicap stroke index)
+  const si1Idx=strokeIndex.indexOf(1);
+  const si1Hole=HOLES[si1Idx>=0?si1Idx:0]; // hole number 1-18
+
   const ranked=players.map(p=>{
     const hcp=p.hcp||0;
     const done=HOLES.filter(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
     const hp=done.length;
-    if(hp===0)return{...p,gross:null,net:null,hcp,vp:null,hp};
+    if(hp===0)return{...p,gross:null,net:null,hcp,vp:null,hp,si1Gross:null};
     const gross=done.reduce((s,h)=>s+scores[p.id][h],0);
     // Match LOW.NET sheet: Net = Gross minus FULL course handicap (all strokes applied immediately)
     const net=gross-hcp;
     const completedPar=done.reduce((s,h)=>s+pars[HOLES.indexOf(h)],0);
     const vp=gross-completedPar; // gross vs par over holes played (scoring pace pill)
-    return{...p,gross,net,hcp,vp,hp};
+    const si1Gross=(scores[p.id]&&scores[p.id][si1Hole]!=null)?scores[p.id][si1Hole]:999;
+    return{...p,gross,net,hcp,vp,hp,si1Gross};
   }).sort((a,b)=>{
     if(a.hp===0&&b.hp===0)return 0;
     if(a.hp===0)return 1;if(b.hp===0)return -1;
-    return a.net-b.net;
+    if(a.net!==b.net)return a.net-b.net;
+    // Tiebreaker 1: lowest gross on the #1 handicap hole
+    if(a.si1Gross!==b.si1Gross)return a.si1Gross-b.si1Gross;
+    // Tiebreaker 2: lowest overall gross
+    return(a.gross||0)-(b.gross||0);
   });
+
+  // Assign proper shared ranks: tied net scores share the same position
+  ranked.forEach((p,i)=>{
+    p.rank=(i===0||p.hp===0||ranked[i-1].net!==p.net)?i+1:ranked[i-1].rank;
+  });
+
+  // Mark tiebreaker winner: first in each net-tie group that has >1 active member
+  ranked.forEach((p,i)=>{
+    if(p.hp===0){p.tbWinner=false;return;}
+    const grp=ranked.filter(q=>q.hp>0&&q.net===p.net);
+    p.tbWinner=grp.length>1&&grp[0].id===p.id;
+  });
+
   const m=['🥇','🥈','🥉'];
-  document.getElementById('lb-card').innerHTML=ranked.map((p,i)=>{
-    const pos=i<3?m[i]:`${i+1}`;
+  document.getElementById('lb-card').innerHTML=ranked.map(p=>{
+    const pos=p.rank<=3?m[p.rank-1]:`${p.rank}`;
     if(p.hp>0){
       const thru=p.hp===18?'F':`Thru ${p.hp}`;
       const vs=p.vp===0?'E':p.vp>0?`+${p.vp}`:p.vp,vc=p.vp<0?'under':p.vp===0?'even':'over';
-      return`<div class="lb-row ${i===0?'top1':''}"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">Net ${p.net} · Gross ${p.gross} · Hcp ${p.hcp} · ${thru}</div></div><div class="lb-net">${p.net}</div><div class="lb-vp ${vc}">${vs}</div></div>`;
+      const rowCls=p.rank===1?'top1':p.tbWinner?'tb-winner':'';
+      const tbNote=p.tbWinner?` · TB: Low H${si1Hole}`:'';
+      return`<div class="lb-row ${rowCls}"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">Net ${p.net} · Gross ${p.gross} · Hcp ${p.hcp} · ${thru}${tbNote}</div></div><div class="lb-net">${p.net}</div><div class="lb-vp ${vc}">${vs}</div></div>`;
     }
     return`<div class="lb-row"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">No scores · Hcp ${p.hcp||0}</div></div><div class="lb-inc">—</div></div>`;
   }).join('');
