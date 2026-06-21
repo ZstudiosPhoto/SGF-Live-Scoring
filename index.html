@@ -1191,7 +1191,7 @@ function buildSkinsView(){
 
   const rowsHTML=results.map(r=>{
     let resTD,trCls='';
-    if(r.status==='won'){trCls='sk-won';resTD=`<td class="sk-result-win">${esc(r.winner.name)}<span class="sk-badge">×${r.val}</span></td>`;}
+    if(r.status==='won'){trCls='sk-won';resTD=`<td class="sk-result-win">${esc(r.winner.name)}</td>`;}
     else if(r.status==='tied'){resTD=`<td class="sk-result-carry">No Skin</td>`;}
     else{resTD=`<td class="sk-result-pending">—</td>`;}
     return`<tr class="${trCls}"><td class="st-hole-cell">${r.hole}</td><td>${r.par}</td><td class="st-si-cell">${r.hsi}</td><td><strong>${r.val}</strong></td>${resTD}</tr>`;
