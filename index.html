@@ -149,6 +149,12 @@
     .header-actions{width:100%;flex-wrap:wrap;gap:4px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.12);margin-top:2px;}
     .hdr-btn{padding:5px 9px;font-size:0.68rem;}
   }
+  /* ===== LOCK BUTTON ===== */
+  #lock-btn{position:fixed;bottom:72px;right:14px;z-index:10000;width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,0.25);background:rgba(0,0,0,0.55);color:#fff;font-size:1.15rem;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,0.45);transition:background 0.2s,border-color 0.2s;}
+  #lock-btn.locked{background:rgba(192,57,43,0.85);border-color:rgba(255,100,80,0.5);}
+  #lock-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:transparent;cursor:not-allowed;}
+  #lock-toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.78);color:#fff;padding:10px 22px;border-radius:22px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.88rem;z-index:10001;pointer-events:none;opacity:0;transition:opacity 0.25s;white-space:nowrap;}
+  #lock-toast.show{opacity:1;}
   /* ===== NET SKINS ===== */
   .skins-summary{display:flex;gap:8px;overflow-x:auto;padding:4px 0 12px;-webkit-overflow-scrolling:touch;}
   .skin-card{flex-shrink:0;background:var(--card-bg);border-radius:12px;padding:10px 12px;text-align:center;border:1.5px solid var(--border);min-width:80px;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
@@ -1097,6 +1103,16 @@ function showScreen(id){
   if(id==='screen-lb')buildLB();
   if(id==='screen-skins')buildSkinsView();
   if(id==='screen-closies')buildClosiesView();
+  // Show lock button on game screens; auto-unlock when leaving them
+  const lockBtn=document.getElementById('lock-btn');
+  if(lockBtn){
+    if(GAME_SCREENS.includes(id)){
+      lockBtn.style.display='flex';
+    } else {
+      lockBtn.style.display='none';
+      if(isLocked) toggleLock();
+    }
+  }
   window.scrollTo(0,0);
 }
 
@@ -1223,6 +1239,43 @@ function buildSkinsView(){
 }
 function fmtDate(d){const dt=new Date(d+'T12:00:00');return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+/* ===== LOCK / UNLOCK ===== */
+const GAME_SCREENS=['screen-scoring','screen-lb','screen-skins','screen-closies'];
+let isLocked=false;
+
+function toggleLock(){
+  isLocked=!isLocked;
+  const btn=document.getElementById('lock-btn');
+  const overlay=document.getElementById('lock-overlay');
+  if(isLocked){
+    overlay.style.display='block';
+    btn.textContent='🔓';
+    btn.classList.add('locked');
+    showLockToast('Screen Locked 🔒');
+  } else {
+    overlay.style.display='none';
+    btn.textContent='🔒';
+    btn.classList.remove('locked');
+    showLockToast('Unlocked 🔓');
+  }
+}
+
+function onLockedTap(){
+  showLockToast('Tap 🔓 to unlock');
+}
+
+function showLockToast(msg){
+  const t=document.getElementById('lock-toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>t.classList.remove('show'),1600);
+}
 </script>
+<!-- Lock overlay & button (always in DOM, shown/hidden per screen) -->
+<div id="lock-overlay" onclick="onLockedTap()"></div>
+<button id="lock-btn" onclick="toggleLock()" title="Lock screen">🔒</button>
+<div id="lock-toast"></div>
 </body>
 </html>
