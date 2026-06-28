@@ -914,7 +914,10 @@ async function endRound(){
       renderPlayerList();
       showScreen('screen-setup');
       applyAdminUI();
-      alert('✅ Round ended! App reset for all players.');
+      // Auto-generate a new 4-digit event code for the next round
+      const newCode = String(Math.floor(1000 + Math.random() * 9000));
+      document.getElementById('inp-eventcode').value = newCode;
+      alert('✅ Round ended! App reset for all players.\n\n🔑 New event code for next round: ' + newCode);
     }
   }catch(e){
     alert('Error: '+e.message);
