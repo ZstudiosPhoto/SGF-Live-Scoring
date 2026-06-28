@@ -552,8 +552,20 @@ function checkForActiveRound(){
     } else {
       showScreen('screen-setup');
       applyAdminUI();
+      // Auto-generate a code if the field is empty
+      const codeField=document.getElementById('inp-eventcode');
+      if(!codeField.value.trim()){
+        codeField.value=String(Math.floor(1000+Math.random()*9000));
+      }
     }
-  }).catch(()=>{showScreen('screen-setup');applyAdminUI();});
+  }).catch(()=>{
+    showScreen('screen-setup');
+    applyAdminUI();
+    const codeField=document.getElementById('inp-eventcode');
+    if(!codeField.value.trim()){
+      codeField.value=String(Math.floor(1000+Math.random()*9000));
+    }
+  });
 }
 
 function verifyAndJoin(){
