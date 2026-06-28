@@ -813,7 +813,7 @@ async function showPastRounds(){
   try{
     const snap=await firebase.database().ref('sgf/endedRounds').limitToLast(20).once('value');
     const data=snap.val()||{};
-    _pastRounds=Object.entries(data).map(([k,v])=>({key:k,...v})).sort((a,b)=>(b.endedAt||0)-(a.endedAt||0));
+    _pastRounds=Object.entries(data).map(([k,v])=>({key:k,...v})).filter(r=>(r.players||[]).some(p=>p.name&&p.name.trim())).sort((a,b)=>(b.endedAt||0)-(a.endedAt||0));
     if(!_pastRounds.length){
       list.innerHTML='<div class="skins-empty">No past rounds found.<br><span style="font-size:0.8rem;margin-top:6px;display:block;">Rounds are archived automatically when you tap End Round.</span></div>';
       return;
