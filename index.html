@@ -938,9 +938,10 @@ function openManageGroups(){
   const overlay=document.createElement('div');
   overlay.id='manage-groups-dialog';
   overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  const distinctGroups=[...new Set(players.map(p=>parseInt(p.group)||1))].sort((a,b)=>a-b);
   const rows=players.filter(p=>p.name&&p.name.trim()!=='').map(p=>{
     const g=parseInt(p.group)||1;
-    const opts=[1,2,3,4].map(n=>`<option value="${n}" ${n===g?'selected':''}>${n}</option>`).join('');
+    const opts=distinctGroups.map(n=>`<option value="${n}" ${n===g?'selected':''}>${n}</option>`).join('');
     return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #eee;">
       <span style="font-weight:700;font-size:0.88rem;color:#142010;">${esc(p.name.trim())}</span>
       <select onchange="reassignGroup(${p.id},this.value)" style="padding:5px 8px;border-radius:6px;border:1.5px solid #b8ddb5;font-weight:800;">${opts}</select>
@@ -1004,30 +1005,34 @@ function sCls(val,par){
 function switchNine(n){activeNine=n;document.getElementById('tab-front').classList.toggle('active',n==='front');document.getElementById('tab-back').classList.toggle('active',n==='back');buildTable();}
 
 function buildLB(){
-  // SI=1 hole is the tiebreaker hole (hardest hole by handicap stroke index)
-  const si1Idx=strokeIndex.indexOf(1);
-  const si1Hole=HOLES[si1Idx>=0?si1Idx:0]; // hole number 1-18
+  // Helper: get a player's gross on a given hole (999 if not yet scored)
+  function holeGross(pid,holeNum){return(scores[pid]&&scores[pid][holeNum]!=null)?scores[pid][holeNum]:999;}
 
   const ranked=players.map(p=>{
     const hcp=p.hcp||0;
     const done=HOLES.filter(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
     const hp=done.length;
-    if(hp===0)return{...p,gross:null,net:null,hcp,vp:null,hp,si1Gross:null};
+    if(hp===0)return{...p,gross:null,net:null,hcp,vp:null,hp};
     const gross=done.reduce((s,h)=>s+scores[p.id][h],0);
     // Match LOW.NET sheet: Net = Gross minus FULL course handicap (all strokes applied immediately)
     const net=gross-hcp;
     const completedPar=done.reduce((s,h)=>s+pars[HOLES.indexOf(h)],0);
     const vp=gross-completedPar; // gross vs par over holes played (scoring pace pill)
-    const si1Gross=(scores[p.id]&&scores[p.id][si1Hole]!=null)?scores[p.id][si1Hole]:999;
-    return{...p,gross,net,hcp,vp,hp,si1Gross};
+    return{...p,gross,net,hcp,vp,hp};
   }).sort((a,b)=>{
     if(a.hp===0&&b.hp===0)return 0;
     if(a.hp===0)return 1;if(b.hp===0)return -1;
     if(a.net!==b.net)return a.net-b.net;
-    // Tiebreaker 1: lowest gross on the #1 handicap hole
-    if(a.si1Gross!==b.si1Gross)return a.si1Gross-b.si1Gross;
-    // Tiebreaker 2: lowest overall gross
-    return(a.gross||0)-(b.gross||0);
+    // Cascade tiebreaker: compare gross hole by hole in HCP difficulty order
+    // (SI=1 first, then SI=2, SI=3 … SI=18) — matches the LOW.NET sheet logic
+    for(let si=1;si<=18;si++){
+      const idx=strokeIndex.indexOf(si);
+      if(idx<0)continue;
+      const h=HOLES[idx];
+      const ag=holeGross(a.id,h),bg=holeGross(b.id,h);
+      if(ag!==bg)return ag-bg;
+    }
+    return 0;
   });
 
   // Assign proper shared ranks: tied net scores share the same position
@@ -1035,11 +1040,22 @@ function buildLB(){
     p.rank=(i===0||p.hp===0||ranked[i-1].net!==p.net)?i+1:ranked[i-1].rank;
   });
 
-  // Mark tiebreaker winner: first in each net-tie group that has >1 active member
-  ranked.forEach((p,i)=>{
-    if(p.hp===0){p.tbWinner=false;return;}
+  // Mark tiebreaker winner and find the deciding hole for each tie group
+  ranked.forEach((p)=>{
+    if(p.hp===0){p.tbWinner=false;p.tbHole=null;return;}
     const grp=ranked.filter(q=>q.hp>0&&q.net===p.net);
-    p.tbWinner=grp.length>1&&grp[0].id===p.id;
+    if(grp.length>1&&grp[0].id===p.id){
+      p.tbWinner=true;
+      // Find first SI hole where this player beats the next tied player
+      p.tbHole=null;
+      for(let si=1;si<=18;si++){
+        const idx=strokeIndex.indexOf(si);if(idx<0)continue;
+        const h=HOLES[idx];
+        const myG=holeGross(p.id,h),nextG=holeGross(grp[1].id,h);
+        if(myG<nextG){p.tbHole=h;break;}
+        if(myG>nextG)break;
+      }
+    }else{p.tbWinner=false;p.tbHole=null;}
   });
 
   const m=['🥇','🥈','🥉'];
@@ -1049,7 +1065,7 @@ function buildLB(){
       const thru=p.hp===18?'F':`Thru ${p.hp}`;
       const vs=p.vp===0?'E':p.vp>0?`+${p.vp}`:p.vp,vc=p.vp<0?'under':p.vp===0?'even':'over';
       const rowCls=p.rank===1?'top1':p.tbWinner?'tb-winner':'';
-      const tbNote=p.tbWinner?` · TB: Low H${si1Hole}`:'';
+      const tbNote=p.tbWinner?` · TB: Low H${p.tbHole||''}`:'' ;
       return`<div class="lb-row ${rowCls}"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">Net ${p.net} · Gross ${p.gross} · Hcp ${p.hcp} · ${thru}${tbNote}</div></div><div class="lb-net">${p.net}</div><div class="lb-vp ${vc}">${vs}</div></div>`;
     }
     return`<div class="lb-row"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">No scores · Hcp ${p.hcp||0}</div></div><div class="lb-inc">—</div></div>`;
