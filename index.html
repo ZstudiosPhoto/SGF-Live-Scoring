@@ -689,7 +689,13 @@ async function loadPlayersFromSheet(){
     const playerEntries=rawPlayers.map((r,i)=>({row:r,group:rawGroups[i]})).filter(e=>e.row[0]&&String(e.row[0]).trim()&&
       !['player name','name','player'].includes(String(e.row[0]).trim().toLowerCase()));
     if(!playerEntries.length){showStatus(st,'No player names found in SETUP.PLAYERS.','err');document.getElementById('btn-load').disabled=false;return;}
-    players=playerEntries.slice(0,30).map((e,i)=>({id:i+1,name:String(e.row[0]).trim(),hcp:e.row[7]?parseInt(e.row[7])||0:0,group:parseInt(e.group)||1}));
+    players=playerEntries.slice(0,30).map((e,i)=>{
+      // Extract just the tee color from CourseTee symbol (e.g. "LRG-WHT" → "WHT")
+      const courseTee=String(e.row[3]||'').trim();
+      const dash=courseTee.lastIndexOf('-');
+      const tee=dash>=0?courseTee.slice(dash+1):courseTee;
+      return{id:i+1,name:String(e.row[0]).trim(),hcp:e.row[7]?parseInt(e.row[7])||0:0,tee,group:parseInt(e.group)||1};
+    });
     nextId=players.length+1;
     renderPlayerList();
 
@@ -1066,7 +1072,8 @@ function buildLB(){
       const vs=p.vp===0?'E':p.vp>0?`+${p.vp}`:p.vp,vc=p.vp<0?'under':p.vp===0?'even':'over';
       const rowCls=p.rank===1?'top1':p.tbWinner?'tb-winner':'';
       const tbNote=p.tbWinner?` · TB: Low H${p.tbHole||''}`:'' ;
-      return`<div class="lb-row ${rowCls}"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">Net ${p.net} · Gross ${p.gross} · Hcp ${p.hcp} · ${thru}${tbNote}</div></div><div class="lb-net">${p.net}</div><div class="lb-vp ${vc}">${vs}</div></div>`;
+      const teeStr=p.tee?` · ${p.tee}`:'';
+      return`<div class="lb-row ${rowCls}"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">Net ${p.net} · Gross ${p.gross} · Hcp ${p.hcp}${teeStr} · ${thru}${tbNote}</div></div><div class="lb-net">${p.net}</div><div class="lb-vp ${vc}">${vs}</div></div>`;
     }
     return`<div class="lb-row"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">No scores · Hcp ${p.hcp||0}</div></div><div class="lb-inc">—</div></div>`;
   }).join('');
