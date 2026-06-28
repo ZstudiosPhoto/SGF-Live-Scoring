@@ -284,6 +284,8 @@ try {
     <button class="start-btn" onclick="startRound()">⛳ Start Live Round</button>
     <div style="height:12px;"></div>
     <button class="end-round-btn" id="btn-end-round-setup" onclick="endRound()">🔴 End Current Round</button>
+    <div style="height:10px;"></div>
+    <button class="add-player-row" onclick="changeAdminPin()" style="width:100%;padding:11px;font-size:0.85rem;">🔐 Change Admin PIN</button>
     <div style="height:20px;"></div>
   </div>
 </div>
@@ -670,7 +672,121 @@ function pushClosieToFirebase(hole,pid){
   if(pid===null||pid===undefined){ ref.remove(); } else { ref.set(pid); }
 }
 
+// ── Admin PIN helpers ──────────────────────────────────────────────────────
+
+function showEnterPinDialog(title, subtitle){
+  return new Promise(resolve=>{
+    const existing=document.getElementById('pin-dialog');
+    if(existing) existing.remove();
+    const overlay=document.createElement('div');
+    overlay.id='pin-dialog';
+    overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;';
+    overlay.innerHTML=`
+      <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:320px;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:#1a5518;letter-spacing:1px;margin-bottom:4px;">🔐 ${title}</div>
+        <div style="font-size:0.82rem;color:#4a7044;margin-bottom:16px;font-weight:600;">${subtitle}</div>
+        <input id="pin-entry" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8"
+          placeholder="••••"
+          style="width:100%;box-sizing:border-box;text-align:center;font-size:1.8rem;font-weight:900;letter-spacing:10px;border:2.5px solid var(--sgf-green);border-radius:10px;padding:12px 8px;color:#1a5518;">
+        <div id="pin-error" style="display:none;color:#c0392b;font-size:0.82rem;font-weight:800;margin-top:6px;text-align:center;">❌ Incorrect PIN — try again.</div>
+        <button id="btn-pin-ok" style="margin-top:14px;width:100%;padding:13px;background:var(--sgf-green);color:white;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.95rem;cursor:pointer;">Submit</button>
+        <button id="btn-pin-cancel" style="margin-top:8px;width:100%;padding:11px;background:transparent;color:#4a7044;border:2px solid #b8ddb5;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">Cancel</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    const inp=document.getElementById('pin-entry');
+    inp.focus();
+    document.getElementById('btn-pin-ok').onclick=()=>{
+      overlay.remove();
+      resolve(inp.value.trim());
+    };
+    document.getElementById('btn-pin-cancel').onclick=()=>{ overlay.remove(); resolve(null); };
+    inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ overlay.remove(); resolve(inp.value.trim()); }});
+  });
+}
+
+function showCreatePinDialog(){
+  return new Promise(resolve=>{
+    const existing=document.getElementById('pin-dialog');
+    if(existing) existing.remove();
+    const overlay=document.createElement('div');
+    overlay.id='pin-dialog';
+    overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;';
+    overlay.innerHTML=`
+      <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:320px;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:#1a5518;letter-spacing:1px;margin-bottom:4px;">🔐 Create Admin PIN</div>
+        <div style="font-size:0.82rem;color:#4a7044;margin-bottom:16px;font-weight:600;">Set a PIN that only you know. Required to start future rounds.</div>
+        <label style="font-size:0.75rem;font-weight:800;color:#4a7044;text-transform:uppercase;letter-spacing:1px;">New PIN</label>
+        <input id="pin-new" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8"
+          placeholder="••••"
+          style="width:100%;box-sizing:border-box;text-align:center;font-size:1.8rem;font-weight:900;letter-spacing:10px;border:2.5px solid var(--sgf-green);border-radius:10px;padding:12px 8px;color:#1a5518;margin-bottom:10px;">
+        <label style="font-size:0.75rem;font-weight:800;color:#4a7044;text-transform:uppercase;letter-spacing:1px;">Confirm PIN</label>
+        <input id="pin-confirm" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8"
+          placeholder="••••"
+          style="width:100%;box-sizing:border-box;text-align:center;font-size:1.8rem;font-weight:900;letter-spacing:10px;border:2.5px solid var(--sgf-green);border-radius:10px;padding:12px 8px;color:#1a5518;">
+        <div id="pin-match-error" style="display:none;color:#c0392b;font-size:0.82rem;font-weight:800;margin-top:6px;text-align:center;">❌ PINs don't match — try again.</div>
+        <div id="pin-short-error" style="display:none;color:#c0392b;font-size:0.82rem;font-weight:800;margin-top:6px;text-align:center;">❌ PIN must be at least 4 digits.</div>
+        <button id="btn-pin-create" style="margin-top:14px;width:100%;padding:13px;background:var(--sgf-green);color:white;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.95rem;cursor:pointer;">Set PIN</button>
+        <button id="btn-pin-skip" style="margin-top:8px;width:100%;padding:11px;background:transparent;color:#4a7044;border:2px solid #b8ddb5;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">Skip for Now</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    document.getElementById('pin-new').focus();
+    document.getElementById('btn-pin-create').onclick=()=>{
+      const p1=document.getElementById('pin-new').value.trim();
+      const p2=document.getElementById('pin-confirm').value.trim();
+      document.getElementById('pin-match-error').style.display='none';
+      document.getElementById('pin-short-error').style.display='none';
+      if(p1.length<4){ document.getElementById('pin-short-error').style.display='block'; return; }
+      if(p1!==p2){ document.getElementById('pin-match-error').style.display='block'; return; }
+      overlay.remove();
+      resolve(p1);
+    };
+    document.getElementById('btn-pin-skip').onclick=()=>{ overlay.remove(); resolve(null); };
+  });
+}
+
+async function changeAdminPin(){
+  if(!db){ alert('Not connected to Firebase.'); return; }
+  const snap=await firebase.database().ref('sgf/adminPin').once('value');
+  const existing=snap.val();
+  if(existing){
+    const entered=await showEnterPinDialog('Verify Current PIN','Enter your current admin PIN to continue.');
+    if(entered===null) return;
+    if(entered!==existing){
+      alert('❌ Incorrect PIN.');
+      return;
+    }
+  }
+  const newPin=await showCreatePinDialog();
+  if(!newPin){ alert('No PIN set — cancelled.'); return; }
+  await firebase.database().ref('sgf/adminPin').set(newPin);
+  alert('✅ Admin PIN saved! You\'ll need it to start future rounds.');
+}
+
+// ── End Admin PIN helpers ──────────────────────────────────────────────────
+
 async function startRound(){
+  // ── Admin PIN gate ──
+  if(db){
+    const pinSnap=await firebase.database().ref('sgf/adminPin').once('value');
+    const existingPin=pinSnap.val();
+    if(!existingPin){
+      // No PIN set yet — prompt to create one first
+      const newPin=await showCreatePinDialog();
+      if(newPin){
+        await firebase.database().ref('sgf/adminPin').set(newPin);
+        alert('✅ Admin PIN set! Remember it — you\'ll need it to start future rounds.');
+      }
+      // Allow starting the round even if they skip PIN setup (first-time grace)
+    } else {
+      const entered=await showEnterPinDialog('Admin PIN Required','Enter the admin PIN to start this round.');
+      if(entered===null) return; // cancelled
+      if(entered!==existingPin){
+        alert('❌ Incorrect PIN. Only the round organizer can start a new round.');
+        return;
+      }
+    }
+  }
+  // ── End PIN gate ──
   document.querySelectorAll('#par-front input').forEach((inp,i)=>{pars[i]=parseInt(inp.value)||4;});
   document.querySelectorAll('#par-back input').forEach((inp,i)=>{pars[i+9]=parseInt(inp.value)||4;});
   scores={};
