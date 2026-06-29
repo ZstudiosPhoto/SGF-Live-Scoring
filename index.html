@@ -161,6 +161,14 @@
   .welcome-msg-icon{font-size:1.6rem;margin-bottom:8px;}
   .welcome-msg-main{color:#e8f5e7;font-weight:800;font-size:1rem;margin-bottom:5px;}
   .welcome-msg-sub{color:#8acc87;font-size:0.82rem;font-weight:600;}
+  /* hamburger menu on welcome screen */
+  .welcome-hamburger{position:relative;margin-left:auto;}
+  .welcome-ham-btn{background:none;border:none;padding:8px 6px;cursor:pointer;display:flex;flex-direction:column;gap:5px;align-items:center;justify-content:center;}
+  .welcome-ham-btn span{display:block;width:22px;height:2.5px;background:rgba(255,255,255,0.75);border-radius:2px;}
+  .welcome-ham-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:#1a2a18;border:1px solid rgba(58,170,53,0.35);border-radius:10px;min-width:165px;box-shadow:0 8px 28px rgba(0,0,0,0.5);z-index:200;overflow:hidden;}
+  .welcome-ham-menu.open{display:block;}
+  .welcome-ham-item{display:block;width:100%;padding:13px 16px;background:none;border:none;color:#e8f5e7;font-family:'Nunito',sans-serif;font-weight:700;font-size:0.88rem;text-align:left;cursor:pointer;}
+  .welcome-ham-item:active,.welcome-ham-item:hover{background:rgba(58,170,53,0.18);}
   @media(max-width:370px){.score-inp{width:26px;height:25px;font-size:0.72rem;}.header-brand{font-size:1.25rem;}}
   @media(max-width:520px){
     .app-header{flex-wrap:wrap;align-items:flex-start;}
@@ -374,6 +382,14 @@ try {
   <div class="app-header">
     <div class="sgf-logo"><img id="logo-welcome" alt="SGF"></div>
     <div class="header-text"><div class="header-brand">Saturday Golf Friends</div><div class="header-sub">Live Scoring</div></div>
+    <div class="welcome-hamburger">
+      <button class="welcome-ham-btn" id="welcome-ham-btn" onclick="toggleWelcomeMenu()">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="welcome-ham-menu" id="welcome-ham-menu">
+        <button class="welcome-ham-item" onclick="adminLoginFromWelcome()">🔐 Admin Login</button>
+      </div>
+    </div>
   </div>
   <div class="welcome-body">
     <div class="welcome-logo-wrap">
@@ -981,6 +997,37 @@ function applyRecovered(i){
 
 // ── Past Rounds (read-only history) ──────────────────────────────────────────
 let _pastRounds=[];
+
+function toggleWelcomeMenu(){
+  const menu=document.getElementById('welcome-ham-menu');
+  menu.classList.toggle('open');
+}
+document.addEventListener('click',function(e){
+  const menu=document.getElementById('welcome-ham-menu');
+  const btn=document.getElementById('welcome-ham-btn');
+  if(menu&&menu.classList.contains('open')&&!menu.contains(e.target)&&btn&&!btn.contains(e.target)){
+    menu.classList.remove('open');
+  }
+});
+async function adminLoginFromWelcome(){
+  document.getElementById('welcome-ham-menu').classList.remove('open');
+  try{
+    if(!db) db=firebase.database();
+    const pinSnap=await firebase.database().ref('sgf/adminPin').once('value');
+    const existingPin=pinSnap.val();
+    if(existingPin){
+      const entered=await showEnterPinDialog('Admin Login','Enter your admin PIN to access setup.');
+      if(entered===null) return;
+      if(entered!==existingPin){ alert('Incorrect PIN.'); return; }
+    }
+  }catch(e){ /* Firebase not ready — allow through */ }
+  localStorage.setItem('sgf_isAdminDevice','true');
+  isAdmin=true;
+  showScreen('screen-setup');
+  applyAdminUI();
+  const codeField=document.getElementById('inp-eventcode');
+  if(codeField&&!codeField.value.trim()) codeField.value=String(Math.floor(1000+Math.random()*9000));
+}
 
 async function showPastRounds(){
   showScreen('screen-past-rounds');
