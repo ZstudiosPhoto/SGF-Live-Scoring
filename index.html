@@ -1300,7 +1300,9 @@ function openManageGroups(){
   const overlay=document.createElement('div');
   overlay.id='manage-groups-dialog';
   overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;';
-  const distinctGroups=[...new Set(players.map(p=>parseInt(p.group)||1))].sort((a,b)=>a-b);
+  const activePlayers=players.filter(p=>p.name&&p.name.trim()!=='');
+  const maxGroup=Math.max(...activePlayers.map(p=>parseInt(p.group)||1), Math.ceil(activePlayers.length/4));
+  const distinctGroups=Array.from({length:maxGroup},(_,i)=>i+1);
   const rows=players.filter(p=>p.name&&p.name.trim()!=='').map(p=>{
     const g=parseInt(p.group)||1;
     const opts=distinctGroups.map(n=>`<option value="${n}" ${n===g?'selected':''}>${n}</option>`).join('');
