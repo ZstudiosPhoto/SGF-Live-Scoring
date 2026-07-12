@@ -1263,7 +1263,7 @@ function buildTable(){
   const holes=hSet(),ps=pSet(),tot=pTot(activeNine),lbl=activeNine==='front'?'Out':'In';
   document.getElementById('score-thead').innerHTML=`
     <tr class="th-header">
-      <th class="th-name">Player</th>
+      <th class="th-name">Hole</th>
       ${holes.map(h=>`<th>${h}</th>`).join('')}
       <th>${lbl}</th>${activeNine==='back'?'<th>Tot</th>':''}<th>+/-</th>
     </tr>
