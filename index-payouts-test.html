@@ -1739,14 +1739,17 @@ function buildPayoutsView(){
 
   // ── NET SKINS ─────────────────────────────────────────────────────────────
   function strokesToGive(hcp,hsi){if(!hcp||hcp<=0)return 0;return Math.min(hcp,18)>=hsi?1:0;}
+  // Only include players who have entered at least 1 score (so testing/partial rounds show skins)
+  const activeSkinPlayers=fullFeePlayers.filter(p=>HOLES.some(h=>scores[p.id]&&scores[p.id][h]!=null));
+  const skinCalcPlayers=activeSkinPlayers.length>=2?activeSkinPlayers:fullFeePlayers;
   let carryVal=1,processing=true;
   const skinResults=[],skinTotals={},skinWins={};
-  fullFeePlayers.forEach(p=>{skinTotals[p.id]=0;skinWins[p.id]=0;});
+  skinCalcPlayers.forEach(p=>{skinTotals[p.id]=0;skinWins[p.id]=0;});
 
   for(let i=0;i<18;i++){
     const hole=i+1,hsi=strokeIndex[i]||hole,par=pars[i]||4,val=carryVal;
     if(!processing){skinResults.push({hole,par,hsi,val,status:'pending',winner:null});continue;}
-    const hd=fullFeePlayers.map(p=>{
+    const hd=skinCalcPlayers.map(p=>{
       const gross=(scores[p.id]&&scores[p.id][hole]!=null)?scores[p.id][hole]:null;
       const str=strokesToGive(p.hcp||0,hsi);
       return{p,gross,net:gross!==null?gross-str:null};
@@ -1763,7 +1766,7 @@ function buildPayoutsView(){
   }
 
   const skinUnitValue=skinsPool>0?skinsPool/18:0;
-  const skinWinnersArr=fullFeePlayers.filter(p=>skinTotals[p.id]>0).sort((a,b)=>skinTotals[b.id]-skinTotals[a.id]);
+  const skinWinnersArr=skinCalcPlayers.filter(p=>skinTotals[p.id]>0).sort((a,b)=>skinTotals[b.id]-skinTotals[a.id]);
   const totalSkinsWon=skinResults.filter(r=>r.status==='won').length;
 
   let skinsHTML=`<div class="payout-section">
@@ -1871,9 +1874,13 @@ function buildSkinsView(){
     return Math.min(hcp,18)>=hsi?1:0; // skins: no double pops, cap at 18 strokes
   }
 
+  // Only include players who have entered at least 1 score (so testing/partial rounds show skins)
+  const activeAp=ap.filter(p=>HOLES.some(h=>scores[p.id]&&scores[p.id][h]!=null));
+  const skinAp=activeAp.length>=2?activeAp:ap;
+
   let carryVal=1,processing=true;
   const results=[],skinTotals={},skinWins={};
-  ap.forEach(p=>{skinTotals[p.id]=0;skinWins[p.id]=0;});
+  skinAp.forEach(p=>{skinTotals[p.id]=0;skinWins[p.id]=0;});
 
   for(let i=0;i<18;i++){
     const hole=i+1;
@@ -1883,7 +1890,7 @@ function buildSkinsView(){
 
     if(!processing){results.push({hole,par,hsi,val,status:'pending',winner:null});continue;}
 
-    const hd=ap.map(p=>{
+    const hd=skinAp.map(p=>{
       const gross=(scores[p.id]&&scores[p.id][hole]!=null)?scores[p.id][hole]:null;
       const str=strokesToGive(p.hcp||0,hsi);
       return{p,gross,net:gross!==null?gross-str:null};
@@ -1902,7 +1909,7 @@ function buildSkinsView(){
     results.push({hole,par,hsi,val,status,winner});
   }
 
-  const cardsHTML=`<div class="skins-summary">${ap.map(p=>`
+  const cardsHTML=`<div class="skins-summary">${skinAp.map(p=>`
     <div class="skin-card${skinWins[p.id]>0?' skin-card-win':''}">
       <div class="skin-card-name">${esc(p.name)}</div>
       <div class="skin-card-count">${skinWins[p.id]}</div>
