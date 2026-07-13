@@ -198,6 +198,9 @@
   /* ===== LOCK BUTTON ===== */
   #lock-btn{position:fixed;bottom:72px;right:14px;z-index:10000;width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,0.25);background:rgba(0,0,0,0.55);color:#fff;font-size:1.15rem;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,0.45);transition:background 0.2s,border-color 0.2s;}
   #lock-btn.locked{background:rgba(192,57,43,0.85);border-color:rgba(255,100,80,0.5);}
+  /* ===== END ROUND FLOATING BUTTON ===== */
+  #end-round-btn{position:fixed;bottom:122px;right:14px;z-index:10000;width:42px;height:42px;border-radius:50%;border:2px solid rgba(192,57,43,0.5);background:rgba(192,57,43,0.75);color:#fff;font-size:1.15rem;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,0.45);transition:background 0.2s,border-color 0.2s;}
+  #end-round-btn:hover{background:rgba(192,57,43,0.95);}
   #lock-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:transparent;cursor:not-allowed;}
   #lock-toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.78);color:#fff;padding:10px 22px;border-radius:22px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.88rem;z-index:10001;pointer-events:none;opacity:0;transition:opacity 0.25s;white-space:nowrap;}
   #lock-toast.show{opacity:1;}
@@ -366,7 +369,8 @@ try {
         <label style="display:block;font-size:0.8rem;font-weight:800;color:var(--sgf-green-dark);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Enter Event Code</label>
         <input type="text" id="join-code-input" inputmode="numeric" pattern="[0-9]*" placeholder="• • • •" maxlength="6"
           style="width:100%;box-sizing:border-box;text-align:center;font-size:2rem;font-weight:900;letter-spacing:14px;border:2.5px solid var(--sgf-green);border-radius:10px;padding:14px 8px;color:var(--sgf-black);background:#fff;"
-          oninput="document.getElementById('join-code-error').style.display='none'">
+          oninput="document.getElementById('join-code-error').style.display='none'"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();verifyAndJoin();}">
         <div id="join-code-error" style="display:none;color:#c0392b;font-size:0.84rem;font-weight:800;margin-top:8px;text-align:center;">
           ❌ Incorrect code — check with the organizer.
         </div>
@@ -453,7 +457,6 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
       <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰</button>
       <button class="hdr-btn" id="btn-manage-groups" onclick="openManageGroups()">👥 Groups</button>
-      <button class="hdr-btn" id="btn-end-round-gear" style="background:rgba(192,57,43,0.3);border-color:rgba(192,57,43,0.5);" onclick="endRound()">⚙️</button>
     </div>
   </div>
   <div class="scoring-meta-bar">
@@ -613,12 +616,15 @@ let moneySetup=null; // loaded from SETUP.MONEY tab, stored in Firebase with rou
 
 function applyAdminUI(){
   // Only the device that started the round (or has previously started one) can end it.
-  const gear=document.getElementById('btn-end-round-gear');
   const setupBtn=document.getElementById('btn-end-round-setup');
   const manageBtn=document.getElementById('btn-manage-groups');
-  if(gear) gear.style.display=isAdmin?'':'none';
   if(setupBtn) setupBtn.style.display=isAdmin?'':'none';
   if(manageBtn) manageBtn.style.display=isAdmin?'':'none';
+  // Floating gear visibility is managed by showScreen (depends on current screen)
+  // Re-trigger via the current active screen id if available
+  const active=document.querySelector('.screen.active');
+  const endRoundBtn=document.getElementById('end-round-btn');
+  if(endRoundBtn&&active) endRoundBtn.style.display=(isAdmin&&GAME_SCREENS.includes(active.id))?'flex':'none';
 }
 
 window.addEventListener('DOMContentLoaded',()=>{
@@ -1287,7 +1293,7 @@ function buildTable(){
     tr.innerHTML=`<td class="td-name"><div class="td-name-text">${esc(p.name||'Player '+p.id)}</div></td>`+
       holes.map((h,i)=>{
         const sv=scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined?scores[p.id][h]:'';
-        return`<td class="td-score"><input class="score-inp ${sCls(sv||null,ps[i])}" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="20" value="${sv}" placeholder="-" ${readOnly?'disabled':`onclick="cellClick(event,${p.id},${h},this)" onchange="upd(${p.id},${h},this)"`}></td>`;
+        return`<td class="td-score"><input class="score-inp ${sCls(sv||null,ps[i])}" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="20" value="${sv}" placeholder="-" data-pid="${p.id}" data-hole="${h}" ${readOnly?'disabled':`onclick="cellClick(event,${p.id},${h},this)" onchange="upd(${p.id},${h},this)"`}></td>`;
       }).join('')+
       `<td class="td-sub" id="sub-${p.id}">${tot2!==null?tot2:'—'}</td>${activeNine==='back'?(()=>{const ft=runSum(p.id,FRONT);const bt=runSum(p.id,BACK);const grossTot=(ft!==null||bt!==null)?((ft||0)+(bt||0)):null;return`<td class="td-sub" id="gtot-${p.id}">${grossTot!==null?grossTot:'—'}</td>`;})():''}<td class="td-total ${vCls}" id="vp-${p.id}">${vpStr}</td>`;
     tbody.appendChild(tr);
@@ -1435,6 +1441,26 @@ function upd(pid,hole,inp){
   if(se)se.textContent=tot!==null?tot:'—';
   if(ve){ve.textContent=vp===null?'—':(vp===0?'E':vp>0?`+${vp}`:vp);ve.className=`td-total ${vp===null?'':(vp<0?'under':vp===0?'even':'over')}`;}
   if(activeNine==='back'){const ge=document.getElementById(`gtot-${pid}`);if(ge){const ft=runSum(pid,FRONT);const bt=runSum(pid,BACK);ge.textContent=(ft!==null||bt!==null)?((ft||0)+(bt||0)):'—';}}
+  // Auto-advance: after a valid score entry, move focus to next player on same hole
+  if(val!==null){
+    const nine=activeNine==='front'?FRONT:BACK;
+    const holeIdx=nine.indexOf(hole);
+    const allInps=[...document.querySelectorAll('.score-inp:not([disabled])')];
+    // Find inputs for this hole in player order, then find next after current pid
+    const holeInps=allInps.filter(el=>parseInt(el.dataset.hole)===hole);
+    const curIdx=holeInps.findIndex(el=>parseInt(el.dataset.pid)===pid);
+    if(curIdx!==-1){
+      const nextInp=holeInps[curIdx+1]||null;
+      if(nextInp){
+        nextInp.focus();nextInp.select();
+      } else if(holeIdx+1<nine.length){
+        // Last player on hole → jump to first player of next hole
+        const nextHole=nine[holeIdx+1];
+        const nextHoleInps=allInps.filter(el=>parseInt(el.dataset.hole)===nextHole);
+        if(nextHoleInps[0]){nextHoleInps[0].focus();nextHoleInps[0].select();}
+      }
+    }
+  }
 }
 
 function sCls(val,par){
@@ -1604,6 +1630,7 @@ function showScreen(id){
   if(id==='screen-payouts')buildPayoutsView();
   // Show lock button on game screens; auto-unlock when leaving them
   const lockBtn=document.getElementById('lock-btn');
+  const endRoundBtn=document.getElementById('end-round-btn');
   if(lockBtn){
     if(GAME_SCREENS.includes(id)){
       lockBtn.style.display='flex';
@@ -1612,6 +1639,8 @@ function showScreen(id){
       if(isLocked) toggleLock();
     }
   }
+  // Show floating ⚙️ gear only for admins on game screens
+  if(endRoundBtn) endRoundBtn.style.display=(isAdmin&&GAME_SCREENS.includes(id))?'flex':'none';
   window.scrollTo(0,0);
 }
 
@@ -2017,6 +2046,7 @@ function showLockToast(msg){
 <!-- Lock overlay & button (always in DOM, shown/hidden per screen) -->
 <div id="lock-overlay" onclick="onLockedTap()"></div>
 <button id="lock-btn" onclick="toggleLock()" title="Lock screen">🔒</button>
+<button id="end-round-btn" onclick="endRound()" title="End Round / Settings">⚙️</button>
 <div id="lock-toast"></div>
 </body>
 </html>
