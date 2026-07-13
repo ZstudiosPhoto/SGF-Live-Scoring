@@ -1689,6 +1689,19 @@ function buildPayoutsView(){
   const lowNet2=money.lowNet2||0;
   const hasMoney=(totalPot+closiesPool+skinsPool+lowNet1+lowNet2)>0;
 
+  // ── CLOSIES (calculate first so pot summary shows actual) ────────────────
+  const par3Holes=HOLES.filter(h=>(pars[h-1]||0)===3);
+  // Derive per-hole if not already set
+  if(!closiePerHole&&closiesPool&&par3Holes.length) closiePerHole=Math.round(closiesPool/par3Holes.length);
+  const closieEntries=par3Holes.map(hole=>{
+    const winnerId=closies[hole];
+    const winner=ap.find(p=>p.id===winnerId);
+    return{hole,winner};
+  });
+  const closiesActualPaid=closieEntries.filter(e=>e.winner).length*(closiePerHole||0);
+  // Reconciled Low Net pool = what's left after actual closies and skins
+  const actualLowNetPool=totalPot>0?totalPot-closiesActualPaid-skinsPool:lowNet1+lowNet2;
+
   // ── POT SUMMARY ─────────────────────────────────────────────────────────
   let potHTML='';
   if(hasMoney){
@@ -1699,30 +1712,21 @@ function buildPayoutsView(){
       </div>
       <div class="pot-breakdown">
         <div class="pot-bucket">
-          <div class="pot-bucket-label">Closies</div>
-          <div class="pot-bucket-amount">$${closiesPool}</div>
+          <div class="pot-bucket-label">CLOSIES</div>
+          <div class="pot-bucket-amount">$${closiesActualPaid||closiesPool}</div>
         </div>
         <div class="pot-bucket">
-          <div class="pot-bucket-label">Net Skins</div>
+          <div class="pot-bucket-label">NET SKINS</div>
           <div class="pot-bucket-amount">$${skinsPool}</div>
         </div>
         <div class="pot-bucket">
-          <div class="pot-bucket-label">Low Net</div>
-          <div class="pot-bucket-amount">$${lowNet1+lowNet2}</div>
+          <div class="pot-bucket-label">LOW NET</div>
+          <div class="pot-bucket-amount">$${actualLowNetPool||lowNet1+lowNet2}</div>
         </div>
       </div>
     </div>`;
   }
 
-  // ── CLOSIES ──────────────────────────────────────────────────────────────
-  const par3Holes=HOLES.filter(h=>(pars[h-1]||0)===3);
-  // Derive per-hole if not already set
-  if(!closiePerHole&&closiesPool&&par3Holes.length) closiePerHole=Math.round(closiesPool/par3Holes.length);
-  const closieEntries=par3Holes.map(hole=>{
-    const winnerId=closies[hole];
-    const winner=ap.find(p=>p.id===winnerId);
-    return{hole,winner};
-  });
   const closiesHTML=`<div class="payout-section">
     <div class="payout-section-hdr">
       <span class="payout-section-title">📍 CLOSIES</span>
@@ -1765,26 +1769,29 @@ function buildPayoutsView(){
     skinResults.push({hole,par,hsi,val,status,winner});
   }
 
-  const skinUnitValue=skinsPool>0?skinsPool/18:0;
-  const skinWinnersArr=skinCalcPlayers.filter(p=>skinTotals[p.id]>0).sort((a,b)=>skinTotals[b.id]-skinTotals[a.id]);
   const totalSkinsWon=skinResults.filter(r=>r.status==='won').length;
+  // Flat per-skin payout (matches Google Sheet: pool ÷ total skins won)
+  const skinPerWin=totalSkinsWon>0&&skinsPool>0?Math.floor(skinsPool/totalSkinsWon):0;
+  const skinRemainder=skinsPool>0?skinsPool-(skinPerWin*totalSkinsWon):0;
+  const skinWinnersArr=skinCalcPlayers.filter(p=>skinWins[p.id]>0).sort((a,b)=>skinWins[b.id]-skinWins[a.id]);
 
   let skinsHTML=`<div class="payout-section">
     <div class="payout-section-hdr">
       <span class="payout-section-title">🏌️ NET SKINS</span>
-      ${skinsPool>0?`<span class="payout-pool-badge">$${skinsPool} pool · ${totalSkinsWon>0?'$'+Math.round(skinUnitValue)+'/unit':totalSkinsWon+' skins won'}</span>`:''}
+      ${skinsPool>0?`<span class="payout-pool-badge">$${skinsPool} pool · ${totalSkinsWon>0?'$'+skinPerWin+'/skin':''}</span>`:''}
     </div>`;
   if(skinWinnersArr.length===0){
     skinsHTML+=`<div class="skins-empty" style="padding:16px;">No skins won yet.</div>`;
   }else{
-    skinsHTML+=skinWinnersArr.map(p=>{
-      const payout=skinsPool>0?Math.round(skinTotals[p.id]*skinUnitValue):0;
+    skinsHTML+=skinWinnersArr.map((p,idx)=>{
+      // Give any rounding remainder to the first (most skins) winner
+      const payout=skinsPool>0?skinWins[p.id]*skinPerWin+(idx===0?skinRemainder:0):0;
       const wonHoles=skinResults.filter(r=>r.status==='won'&&r.winner&&r.winner.id===p.id);
-      const holesStr=wonHoles.map(r=>`H${r.hole}${r.val>1?' (carry '+r.val+')':''}`).join(', ');
+      const holesStr=wonHoles.map(r=>`H${r.hole}`).join(', ');
       return`<div class="payout-row">
         <div style="flex:1;">
           <div class="payout-name">${esc(p.name)}</div>
-          <div class="payout-sub">${holesStr}</div>
+          <div class="payout-sub">${holesStr} · ${skinWins[p.id]} skin${skinWins[p.id]!==1?'s':''}</div>
         </div>
         ${skinsPool>0?`<div class="payout-amount">$${payout}</div>`:`<div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:var(--sgf-green-dark);">${skinWins[p.id]} skin${skinWins[p.id]!==1?'s':''}</div>`}
       </div>`;
@@ -1822,14 +1829,20 @@ function buildPayoutsView(){
 
   const lowNet1st=netRanked.find(p=>p.rank===1);
   const lowNet2nd=netRanked.find(p=>p.rank===2);
+  // Reconcile Low Net prizes: if closies paid more than budgeted, Low Net pool shrinks
+  // so the total always equals the exact pot.  Preserves the 1st/2nd ratio from SETUP.
+  const setupLowTotal=lowNet1+lowNet2;
+  const ratio1=setupLowTotal>0?lowNet1/setupLowTotal:2/3;
+  const actualLowNet1=actualLowNetPool>0?Math.floor(actualLowNetPool*ratio1):lowNet1;
+  const actualLowNet2=actualLowNetPool>0?actualLowNetPool-actualLowNet1:lowNet2;
   const places=[
-    {icon:'🥇',label:'1st Place',player:lowNet1st,prize:lowNet1},
-    {icon:'🥈',label:'2nd Place',player:lowNet2nd,prize:lowNet2}
+    {icon:'🥇',label:'1st Place',player:lowNet1st,prize:actualLowNet1},
+    {icon:'🥈',label:'2nd Place',player:lowNet2nd,prize:actualLowNet2}
   ];
   const lowNetHTML=`<div class="payout-section">
     <div class="payout-section-hdr">
       <span class="payout-section-title">🏆 LOW NET</span>
-      ${(lowNet1+lowNet2)>0?`<span class="payout-pool-badge">$${lowNet1+lowNet2} pool</span>`:''}
+      ${actualLowNetPool>0?`<span class="payout-pool-badge">$${actualLowNetPool} pool</span>`:''}
     </div>
     ${places.map(e=>`
     <div class="payout-row">
@@ -1858,7 +1871,41 @@ function buildPayoutsView(){
     </div>`;
   }
 
-  document.getElementById('payouts-content').innerHTML=potHTML+noMoneyNote+closieNote+closiesHTML+skinsHTML+lowNetHTML;
+  // ── PER-PLAYER TOTALS ("Total $ to Give Out") ────────────────────────────
+  let playerTotalsHTML='';
+  if(hasMoney){
+    const totals={};
+    ap.forEach(p=>{totals[p.id]=0;});
+    // Add closies
+    closieEntries.forEach(e=>{
+      if(e.winner&&closiePerHole>0) totals[e.winner.id]=(totals[e.winner.id]||0)+closiePerHole;
+    });
+    // Add skins (flat per-win)
+    skinWinnersArr.forEach((p,idx)=>{
+      totals[p.id]=(totals[p.id]||0)+skinWins[p.id]*skinPerWin+(idx===0?skinRemainder:0);
+    });
+    // Add low net (reconciled amounts)
+    if(lowNet1st&&actualLowNet1>0) totals[lowNet1st.id]=(totals[lowNet1st.id]||0)+actualLowNet1;
+    if(lowNet2nd&&actualLowNet2>0) totals[lowNet2nd.id]=(totals[lowNet2nd.id]||0)+actualLowNet2;
+
+    const winners=ap.filter(p=>totals[p.id]>0).sort((a,b)=>totals[b.id]-totals[a.id]);
+    const grandTotal=winners.reduce((s,p)=>s+totals[p.id],0);
+    if(winners.length>0){
+      playerTotalsHTML=`<div class="payout-section" style="margin-top:8px;">
+        <div class="payout-section-hdr" style="background:linear-gradient(135deg,#1a4a1a,#2d6a2d);">
+          <span class="payout-section-title">💵 TOTAL $ TO GIVE OUT</span>
+          <span class="payout-pool-badge" style="background:rgba(255,215,0,0.25);border-color:rgba(255,215,0,0.5);color:#ffd700;">$${grandTotal} total</span>
+        </div>
+        ${winners.map(p=>`
+        <div class="payout-row">
+          <div class="payout-name">${esc(p.name)}</div>
+          <div class="payout-amount" style="font-size:1.35rem;">$${totals[p.id]}</div>
+        </div>`).join('')}
+      </div>`;
+    }
+  }
+
+  document.getElementById('payouts-content').innerHTML=potHTML+noMoneyNote+closieNote+closiesHTML+skinsHTML+lowNetHTML+playerTotalsHTML;
 }
 
 function buildSkinsView(){
