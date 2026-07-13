@@ -1293,7 +1293,7 @@ function buildTable(){
     tr.innerHTML=`<td class="td-name"><div class="td-name-text">${esc(p.name||'Player '+p.id)}</div></td>`+
       holes.map((h,i)=>{
         const sv=scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined?scores[p.id][h]:'';
-        return`<td class="td-score"><input class="score-inp ${sCls(sv||null,ps[i])}" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="20" value="${sv}" placeholder="-" data-pid="${p.id}" data-hole="${h}" ${readOnly?'disabled':`onclick="cellClick(event,${p.id},${h},this)" onchange="upd(${p.id},${h},this)"`}></td>`;
+        return`<td class="td-score"><input class="score-inp ${sCls(sv||null,ps[i])}" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="20" value="${sv}" placeholder="-" data-pid="${p.id}" data-hole="${h}" ${readOnly?'disabled':`onclick="cellClick(event,${p.id},${h},this)" onchange="upd(${p.id},${h},this)" oninput="autoAdvanceScore(${p.id},${h},this)"`}></td>`;
       }).join('')+
       `<td class="td-sub" id="sub-${p.id}">${tot2!==null?tot2:'—'}</td>${activeNine==='back'?(()=>{const ft=runSum(p.id,FRONT);const bt=runSum(p.id,BACK);const grossTot=(ft!==null||bt!==null)?((ft||0)+(bt||0)):null;return`<td class="td-sub" id="gtot-${p.id}">${grossTot!==null?grossTot:'—'}</td>`;})():''}<td class="td-total ${vCls}" id="vp-${p.id}">${vpStr}</td>`;
     tbody.appendChild(tr);
@@ -1441,25 +1441,25 @@ function upd(pid,hole,inp){
   if(se)se.textContent=tot!==null?tot:'—';
   if(ve){ve.textContent=vp===null?'—':(vp===0?'E':vp>0?`+${vp}`:vp);ve.className=`td-total ${vp===null?'':(vp<0?'under':vp===0?'even':'over')}`;}
   if(activeNine==='back'){const ge=document.getElementById(`gtot-${pid}`);if(ge){const ft=runSum(pid,FRONT);const bt=runSum(pid,BACK);ge.textContent=(ft!==null||bt!==null)?((ft||0)+(bt||0)):'—';}}
-  // Auto-advance: after a valid score entry, move focus to next player on same hole
-  if(val!==null){
-    const nine=activeNine==='front'?FRONT:BACK;
-    const holeIdx=nine.indexOf(hole);
-    const allInps=[...document.querySelectorAll('.score-inp:not([disabled])')];
-    // Find inputs for this hole in player order, then find next after current pid
-    const holeInps=allInps.filter(el=>parseInt(el.dataset.hole)===hole);
-    const curIdx=holeInps.findIndex(el=>parseInt(el.dataset.pid)===pid);
-    if(curIdx!==-1){
-      const nextInp=holeInps[curIdx+1]||null;
-      if(nextInp){
-        nextInp.focus();nextInp.select();
-      } else if(holeIdx+1<nine.length){
-        // Last player on hole → jump to first player of next hole
-        const nextHole=nine[holeIdx+1];
-        const nextHoleInps=allInps.filter(el=>parseInt(el.dataset.hole)===nextHole);
-        if(nextHoleInps[0]){nextHoleInps[0].focus();nextHoleInps[0].select();}
-      }
-    }
+}
+
+// Auto-advance called from oninput (fires within user gesture — iOS allows focus() here).
+// Advances after any single digit 1–9; scores ≥10 require a manual tap to the next cell.
+function autoAdvanceScore(pid,hole,inp){
+  const val=parseInt(inp.value,10);
+  if(isNaN(val)||val<1||val>9) return; // wait for blur/onchange to validate
+  const nine=activeNine==='front'?FRONT:BACK;
+  const holeIdx=nine.indexOf(hole);
+  const allInps=[...document.querySelectorAll('.score-inp:not([disabled])')];
+  const holeInps=allInps.filter(el=>parseInt(el.dataset.hole)===hole);
+  const curIdx=holeInps.findIndex(el=>parseInt(el.dataset.pid)===pid);
+  if(curIdx===-1) return;
+  const nextInp=holeInps[curIdx+1]||null;
+  if(nextInp){nextInp.focus();nextInp.select();}
+  else if(holeIdx+1<nine.length){
+    const nextHole=nine[holeIdx+1];
+    const nextHoleInps=allInps.filter(el=>parseInt(el.dataset.hole)===nextHole);
+    if(nextHoleInps[0]){nextHoleInps[0].focus();nextHoleInps[0].select();}
   }
 }
 
