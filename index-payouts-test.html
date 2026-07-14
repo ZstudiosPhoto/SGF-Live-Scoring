@@ -100,12 +100,12 @@
   .score-row{border-bottom:1px solid #c8e6c4;background:#ffffff;}
   .score-row:nth-child(even){background:#e8f7e6;}
   .score-row.my-row{background:#fffbef!important;border-left:3px solid var(--gold);}
-  .td-name{padding:3px 3px 3px 7px;white-space:nowrap;min-width:68px;max-width:82px;}
-  .td-name-last{font-size:0.78rem;font-weight:900;color:var(--text);line-height:1.15;overflow:hidden;text-overflow:ellipsis;max-width:78px;}
-  .td-name-first{font-size:0.63rem;font-weight:700;color:var(--muted);line-height:1.15;overflow:hidden;text-overflow:ellipsis;max-width:78px;}
+  .td-name{padding:3px 2px 3px 6px;white-space:nowrap;min-width:56px;max-width:70px;}
+  .td-name-last{font-size:0.77rem;font-weight:900;color:var(--text);line-height:1.15;overflow:hidden;text-overflow:ellipsis;max-width:66px;}
+  .td-name-first{font-size:0.62rem;font-weight:700;color:var(--muted);line-height:1.15;overflow:hidden;text-overflow:ellipsis;max-width:66px;}
   .td-name-text{font-size:0.78rem;font-weight:800;color:var(--text);}
-  .td-score{padding:3px 1px;text-align:center;}
-  .score-btn{width:38px;height:42px;display:inline-flex;align-items:center;justify-content:center;border:1.5px solid #cce0ca;border-radius:6px;font-size:1rem;font-family:'Nunito',sans-serif;font-weight:900;background:white;color:var(--text);cursor:pointer;transition:all 0.12s;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;}
+  .td-score{padding:2px 0;text-align:center;}
+  .score-btn{width:31px;height:42px;display:inline-flex;align-items:center;justify-content:center;border:1.5px solid #cce0ca;border-radius:6px;font-size:0.95rem;font-family:'Nunito',sans-serif;font-weight:900;background:white;color:var(--text);cursor:pointer;transition:all 0.12s;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;}
   .score-btn:disabled{background:#f0f0f0;color:#aaa;border-color:#ddd;cursor:not-allowed;pointer-events:none;}
   .score-btn.sp-active{box-shadow:0 0 0 2px var(--gold),0 0 0 4px rgba(58,170,53,0.7);}
   .score-btn.eagle{background:var(--eagle-bg);color:var(--eagle-fg);border-color:var(--eagle-bg);}
@@ -114,8 +114,8 @@
   .score-btn.bogey{background:var(--bogey-bg);color:var(--bogey-fg);border-color:var(--bogey-bg);}
   .score-btn.double{background:var(--double-bg);color:var(--double-fg);border-color:var(--double-bg);}
   .score-btn.triple{background:var(--triple-bg);color:var(--triple-fg);border-color:var(--triple-bg);}
-  .td-sub{text-align:center;font-weight:800;font-size:0.78rem;color:var(--muted);padding:0 4px;white-space:nowrap;}
-  .td-total{text-align:center;font-weight:900;font-size:0.82rem;padding:0 4px;white-space:nowrap;}
+  .td-sub{text-align:center;font-weight:800;font-size:0.74rem;color:var(--muted);padding:0 2px;white-space:nowrap;}
+  .td-total{text-align:center;font-weight:900;font-size:0.78rem;padding:0 2px;white-space:nowrap;}
   .td-total.under{color:#1e6b1e;}.td-total.even{color:#2a5028;}.td-total.over{color:#c0392b;}
   .sync-bar{background:var(--sgf-black);padding:9px 11px;border-top:3px solid var(--sgf-green);display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;flex-shrink:0;}
   .sync-btn{padding:9px 13px;border:none;border-radius:8px;cursor:pointer;font-family:'Nunito',sans-serif;font-size:0.77rem;font-weight:800;transition:all 0.2s;}
@@ -171,7 +171,7 @@
   .welcome-ham-item{display:block;width:100%;padding:13px 16px;background:none;border:none;color:#e8f5e7;font-family:'Nunito',sans-serif;font-weight:700;font-size:0.88rem;text-align:left;cursor:pointer;}
   .welcome-ham-item:active,.welcome-ham-item:hover{background:rgba(58,170,53,0.18);}
   .sgf-copyright{text-align:center;font-size:0.68rem;color:rgba(255,255,255,0.3);font-weight:600;letter-spacing:1px;padding:12px 0 16px;}
-  @media(max-width:370px){.score-btn{width:34px;height:38px;font-size:0.88rem;}.header-brand{font-size:1.25rem;}}
+  @media(max-width:370px){.score-btn{width:28px;height:38px;font-size:0.85rem;}.header-brand{font-size:1.25rem;}}
   @media(max-width:520px){
     .app-header{flex-wrap:wrap;align-items:flex-start;}
     .header-text{flex:1;min-width:0;}
