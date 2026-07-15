@@ -53,6 +53,12 @@
   .player-item input{flex:1;border:none;background:transparent;font-family:'Nunito',sans-serif;font-size:0.9rem;color:var(--text);outline:none;font-weight:700;}
   .rm-btn{background:none;border:none;color:#bbb;cursor:pointer;font-size:1.1rem;padding:0 2px;line-height:1;}
   .rm-btn:hover{color:#c0392b;}
+  .play-type-btn{border:none;border-radius:10px;padding:3px 7px;font-family:'Nunito',sans-serif;font-size:0.7rem;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all 0.15s;}
+  .play-type-btn.full{background:rgba(58,170,53,0.15);color:var(--sgf-green-dark);}
+  .play-type-btn.closie{background:rgba(212,168,67,0.2);color:#8a6a00;}
+  .play-type-btn.guest{background:rgba(150,150,150,0.18);color:#555;}
+  .td-name-excluded{opacity:0.55;}
+  .excluded-badge{display:inline-block;font-size:0.52rem;font-weight:900;padding:1px 3px;border-radius:3px;margin-left:2px;vertical-align:middle;line-height:1.3;background:rgba(212,168,67,0.25);color:#8a6a00;}
   .add-player-row{width:100%;padding:9px;border:2px dashed var(--sgf-green);background:transparent;color:var(--sgf-green-dark);border-radius:8px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.85rem;transition:background 0.2s;}
   .add-player-row:hover{background:var(--sgf-green-pale);}
   .par-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;margin-top:6px;}
@@ -1032,16 +1038,32 @@ function buildParInputs(){
 
 function renderPlayerList(){
   const el=document.getElementById('player-list');
-  el.innerHTML=players.map((p,i)=>`
-    <div class="player-item">
+  el.innerHTML=players.map((p,i)=>{
+    const pt=p.playType||'full';
+    const ptLabel=pt==='closie'?'📍 Closie':pt==='guest'?'🚫 Opt-Out':'⛳ Full';
+    const ptCls=pt==='closie'?'closie':pt==='guest'?'guest':'full';
+    return`<div class="player-item">
       <span class="player-num">${i+1}</span>
       <input type="text" value="${esc(p.name||'')}" placeholder="Player ${i+1}" maxlength="20" oninput="players[${i}].name=this.value">
+      <button class="play-type-btn ${ptCls}" onclick="cyclePlayType(${p.id})">${ptLabel}</button>
       ${players.length>1?`<button class="rm-btn" onclick="removePlayer(${p.id})">×</button>`:''}
-    </div>`).join('');
+    </div>`;
+  }).join('');
   document.getElementById('player-count').textContent=players.length;
 }
 
-function addPlayer(){if(players.length>=30)return;players.push({id:nextId++,name:''});renderPlayerList();}
+function cyclePlayType(id){
+  const p=players.find(p=>p.id===id);
+  if(!p)return;
+  const order=['full','closie','guest'];
+  const cur=p.playType||'full';
+  p.playType=order[(order.indexOf(cur)+1)%order.length];
+  // Keep closieOnly in sync for backward compat
+  p.closieOnly=(p.playType!=='full');
+  renderPlayerList();
+}
+
+function addPlayer(){if(players.length>=30)return;players.push({id:nextId++,name:'',playType:'full',closieOnly:false});renderPlayerList();}
 function removePlayer(id){if(players.length<=1)return;players=players.filter(p=>p.id!==id);renderPlayerList();}
 
 async function loadPlayersFromSheet(){
@@ -1070,7 +1092,8 @@ async function loadPlayersFromSheet(){
       const tee=dash>=0?courseTee.slice(dash+1):courseTee;
       // Col C (index 1) = Handicap Index — blank means Closie-Only player (no GHIN)
       const hcpIndex=String(e.row[1]||'').trim();
-      return{id:i+1,name:String(e.row[0]).trim(),hcp:e.row[7]?parseInt(e.row[7])||0:0,tee,group:parseInt(e.group)||1,closieOnly:hcpIndex===''||hcpIndex.toLowerCase()==='n/a'};
+      const isClosie=hcpIndex===''||hcpIndex.toLowerCase()==='n/a';
+      return{id:i+1,name:String(e.row[0]).trim(),hcp:e.row[7]?parseInt(e.row[7])||0:0,tee,group:parseInt(e.group)||1,closieOnly:isClosie,playType:isClosie?'closie':'full'};
     });
     nextId=players.length+1;
     renderPlayerList();
@@ -1369,9 +1392,12 @@ function buildTable(){
     const vCls=vp===null?'':(vp<0?'under':vp===0?'even':'over');
     const rawName=p.name||'Player '+p.id;
     const commaIdx=rawName.indexOf(',');
+    const excluded=p.closieOnly||p.playType==='closie'||p.playType==='guest';
+    const excludedBadge=excluded?`<span class="excluded-badge">${p.playType==='guest'?'OPT':'C'}</span>`:'';
+    const nameCls=excluded?'td-name-excluded':'';
     const nameHTML=commaIdx>-1
-      ?`<div class="td-name-last">${esc(rawName.slice(0,commaIdx).trim())}</div><div class="td-name-first">${esc(rawName.slice(commaIdx+1).trim())}</div>`
-      :(()=>{const parts=rawName.trim().split(' ');return parts.length>1?`<div class="td-name-last">${esc(parts.slice(1).join(' '))}</div><div class="td-name-first">${esc(parts[0])}</div>`:`<div class="td-name-last">${esc(rawName)}</div>`;})();
+      ?`<div class="td-name-last ${nameCls}">${esc(rawName.slice(0,commaIdx).trim())}${excludedBadge}</div><div class="td-name-first">${esc(rawName.slice(commaIdx+1).trim())}</div>`
+      :(()=>{const parts=rawName.trim().split(' ');return parts.length>1?`<div class="td-name-last ${nameCls}">${esc(parts.slice(1).join(' '))}${excludedBadge}</div><div class="td-name-first">${esc(parts[0])}</div>`:`<div class="td-name-last ${nameCls}">${esc(rawName)}${excludedBadge}</div>`;})();
     tr.innerHTML=`<td class="td-name">${nameHTML}</td>`+
       holes.map((h,i)=>{
         const sv=scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined?scores[p.id][h]:'';
