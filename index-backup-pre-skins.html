@@ -1901,16 +1901,13 @@ function buildPayoutsView(){
   // Only include players who have entered at least 1 score (so testing/partial rounds show skins)
   const activeSkinPlayers=fullFeePlayers.filter(p=>HOLES.some(h=>scores[p.id]&&scores[p.id][h]!=null));
   const skinCalcPlayers=activeSkinPlayers.length>=2?activeSkinPlayers:fullFeePlayers;
-  const skinTotals={},skinWins={};
+  let carryVal=1,processing=true;
+  const skinResults=[],skinTotals={},skinWins={};
   skinCalcPlayers.forEach(p=>{skinTotals[p.id]=0;skinWins[p.id]=0;});
-  // Shotgun-aware play order: find first all-scored hole after a gap, process from there
-  const _pAH=h=>skinCalcPlayers.every(p=>scores[p.id]&&scores[p.id][h]!=null);
-  let _pStart=1;
-  for(let s=1;s<=18;s++){if(_pAH(s)&&!_pAH(s===1?18:s-1)){_pStart=s;break;}}
-  const _pOrder=Array.from({length:18},(_,i)=>((_pStart-1+i)%18)+1);
-  let carryVal=1;const _pMap={};
-  for(const hole of _pOrder){
-    const i=hole-1,hsi=strokeIndex[i]||hole,par=pars[i]||4,val=carryVal;
+
+  for(let i=0;i<18;i++){
+    const hole=i+1,hsi=strokeIndex[i]||hole,par=pars[i]||4,val=carryVal;
+    if(!processing){skinResults.push({hole,par,hsi,val,status:'pending',winner:null});continue;}
     const hd=skinCalcPlayers.map(p=>{
       const gross=(scores[p.id]&&scores[p.id][hole]!=null)?scores[p.id][hole]:null;
       const str=strokesToGive(p.hcp||0,hsi);
@@ -1923,10 +1920,9 @@ function buildPayoutsView(){
       const tied=hd.filter(h=>h.net===minNet);
       if(tied.length===1){winner=tied[0].p;skinTotals[winner.id]+=val;skinWins[winner.id]+=1;status='won';carryVal=1;}
       else{status='tied';carryVal++;}
-    }else{carryVal=1;}// pending hole — reset carry but keep processing
-    _pMap[hole]={hole,par,hsi,val,status,winner};
+    }else{processing=false;}
+    skinResults.push({hole,par,hsi,val,status,winner});
   }
-  const skinResults=Array.from({length:18},(_,i)=>_pMap[i+1]);
 
   const totalSkinsWon=skinResults.filter(r=>r.status==='won').length;
   // Flat per-skin payout (matches Google Sheet: pool ÷ total skins won)
@@ -2084,33 +2080,36 @@ function buildSkinsView(){
   const activeAp=ap.filter(p=>HOLES.some(h=>scores[p.id]&&scores[p.id][h]!=null));
   const skinAp=activeAp.length>=2?activeAp:ap;
 
-  const skinTotals={},skinWins={};
+  let carryVal=1,processing=true;
+  const results=[],skinTotals={},skinWins={};
   skinAp.forEach(p=>{skinTotals[p.id]=0;skinWins[p.id]=0;});
-  // Shotgun-aware play order: find first all-scored hole after a gap, process from there
-  const _sAH=h=>skinAp.every(p=>scores[p.id]&&scores[p.id][h]!=null);
-  let _sStart=1;
-  for(let s=1;s<=18;s++){if(_sAH(s)&&!_sAH(s===1?18:s-1)){_sStart=s;break;}}
-  const _sOrder=Array.from({length:18},(_,i)=>((_sStart-1+i)%18)+1);
-  let carryVal=1;const _sMap={};
-  for(const hole of _sOrder){
-    const i=hole-1;
-    const hsi=strokeIndex[i]||hole,par=pars[i]||4,val=carryVal;
+
+  for(let i=0;i<18;i++){
+    const hole=i+1;
+    const hsi=strokeIndex[i]||hole;
+    const par=pars[i]||4;
+    const val=carryVal;
+
+    if(!processing){results.push({hole,par,hsi,val,status:'pending',winner:null});continue;}
+
     const hd=skinAp.map(p=>{
       const gross=(scores[p.id]&&scores[p.id][hole]!=null)?scores[p.id][hole]:null;
       const str=strokesToGive(p.hcp||0,hsi);
       return{p,gross,net:gross!==null?gross-str:null};
     });
+
     const allScored=hd.every(h=>h.gross!==null);
     let status='pending',winner=null;
+
     if(allScored){
       const minNet=Math.min(...hd.map(h=>h.net));
       const tied=hd.filter(h=>h.net===minNet);
       if(tied.length===1){winner=tied[0].p;skinTotals[winner.id]+=val;skinWins[winner.id]+=1;status='won';carryVal=1;}
       else{status='tied';carryVal++;}
-    }else{carryVal=1;}// pending hole — reset carry but keep processing
-    _sMap[hole]={hole,par,hsi,val,status,winner};
+    }else{processing=false;}
+
+    results.push({hole,par,hsi,val,status,winner});
   }
-  const results=Array.from({length:18},(_,i)=>_sMap[i+1]);
 
   const cardsHTML=`<div class="skins-summary">${skinAp.map(p=>`
     <div class="skin-card${skinWins[p.id]>0?' skin-card-win':''}">
