@@ -640,6 +640,40 @@ let activeEventCode=null; // set when checkForActiveRound reads the round
 let myGroup=null, viewMode='myFoursome', groupsRef=null; // foursome isolation state
 let moneySetup=null; // loaded from SETUP.MONEY tab, stored in Firebase with round
 
+// ── Device ID for persistent admin detection ──────────────────────────────
+function getDeviceId(){
+  let id=localStorage.getItem('sgf_deviceId');
+  if(!id){ id='dev_'+Math.random().toString(36).slice(2)+Date.now().toString(36); localStorage.setItem('sgf_deviceId',id); }
+  return id;
+}
+
+// ── 5-tap title secret admin unlock ───────────────────────────────────────
+(function(){
+  let taps=0,tapTimer=null;
+  function handleTap(){
+    taps++;
+    clearTimeout(tapTimer);
+    if(taps>=5){
+      taps=0;
+      if(!isAdmin){
+        isAdmin=true;
+        localStorage.setItem('sgf_isAdminDevice','true');
+        applyAdminUI();
+        const t=document.createElement('div');
+        t.textContent='🔓 Admin unlocked';
+        Object.assign(t.style,{position:'fixed',bottom:'80px',left:'50%',transform:'translateX(-50%)',background:'rgba(58,170,53,0.92)',color:'#fff',padding:'10px 22px',borderRadius:'20px',fontFamily:'Nunito,sans-serif',fontWeight:'800',fontSize:'0.95rem',zIndex:'99999',pointerEvents:'none',transition:'opacity 0.5s'});
+        document.body.appendChild(t);
+        setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),600); },1800);
+      }
+    } else {
+      tapTimer=setTimeout(()=>{ taps=0; },800);
+    }
+  }
+  document.addEventListener('click',e=>{
+    if(e.target.closest('.header-brand,.sgf-logo')) handleTap();
+  });
+})();
+
 function applyAdminUI(){
   // Only the device that started the round (or has previously started one) can end it.
   const setupBtn=document.getElementById('btn-end-round-setup');
@@ -690,6 +724,12 @@ function checkForActiveRound(){
       document.getElementById('join-date').textContent=data.date||'';
       document.getElementById('join-players').textContent=`${(data.players||[]).length} players`;
       activeEventCode=data.code||null;
+      // Auto-grant admin if this device created the round (device ID match)
+      if(data.adminDeviceId && data.adminDeviceId===getDeviceId()){
+        isAdmin=true; localStorage.setItem('sgf_isAdminDevice','true');
+      }
+      // Admin devices skip the join screen and go straight in
+      if(isAdmin){ joinRound(); return; }
       // Show code entry only if this round has a code set
       const codeSection=document.getElementById('join-code-section');
       if(activeEventCode){ codeSection.style.display='block'; } else { codeSection.style.display='none'; }
@@ -969,7 +1009,8 @@ async function startRound(){
       code:(document.getElementById('inp-eventcode').value.trim()||''),
       sheetId:sheetIdVal,
       moneySetup: moneySetup||null,
-      startedAt:Date.now()
+      startedAt:Date.now(),
+      adminDeviceId:getDeviceId()
     };
     await firebase.database().ref('sgf/activeRound').set(roundData);
     listenForScoreUpdates();
