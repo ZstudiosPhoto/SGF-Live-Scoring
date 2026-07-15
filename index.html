@@ -105,7 +105,9 @@
   .td-name-first{font-size:0.62rem;font-weight:700;color:var(--muted);line-height:1.15;overflow:hidden;text-overflow:ellipsis;max-width:66px;}
   .td-name-text{font-size:0.78rem;font-weight:800;color:var(--text);}
   .td-score{padding:2px 0;text-align:center;}
-  .score-btn{width:31px;height:42px;display:inline-flex;align-items:center;justify-content:center;border:1.5px solid #cce0ca;border-radius:6px;font-size:0.95rem;font-family:'Nunito',sans-serif;font-weight:900;background:white;color:var(--text);cursor:pointer;transition:all 0.12s;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;}
+  .score-btn{width:31px;height:54px;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:1.5px solid #cce0ca;border-radius:6px;font-size:0.95rem;font-family:'Nunito',sans-serif;font-weight:900;background:white;color:var(--text);cursor:pointer;transition:all 0.12s;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;}
+  .sb-gross{font-size:0.82rem;font-weight:900;line-height:1;}
+  .sb-net{font-size:0.64rem;font-weight:800;line-height:1;opacity:0.75;}
   .score-btn:disabled{background:#f0f0f0;color:#aaa;border-color:#ddd;cursor:not-allowed;pointer-events:none;}
   .score-btn.sp-active{box-shadow:0 0 0 2px var(--gold),0 0 0 4px rgba(58,170,53,0.7);}
   .score-btn.eagle{background:var(--eagle-bg);color:var(--eagle-fg);border-color:var(--eagle-bg);}
@@ -171,7 +173,7 @@
   .welcome-ham-item{display:block;width:100%;padding:13px 16px;background:none;border:none;color:#e8f5e7;font-family:'Nunito',sans-serif;font-weight:700;font-size:0.88rem;text-align:left;cursor:pointer;}
   .welcome-ham-item:active,.welcome-ham-item:hover{background:rgba(58,170,53,0.18);}
   .sgf-copyright{text-align:center;font-size:0.68rem;color:rgba(255,255,255,0.3);font-weight:600;letter-spacing:1px;padding:12px 0 16px;}
-  @media(max-width:370px){.score-btn{width:28px;height:38px;font-size:0.85rem;}.header-brand{font-size:1.25rem;}}
+  @media(max-width:370px){.score-btn{width:28px;height:50px;font-size:0.85rem;}.header-brand{font-size:1.25rem;}}
   @media(max-width:520px){
     .app-header{flex-wrap:wrap;align-items:flex-start;}
     .header-text{flex:1;min-width:0;}
@@ -495,6 +497,7 @@ try {
     <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div>Bogey</div>
     <div class="legend-item"><div class="legend-dot" style="background:#bdc3c7;border:1px solid #aaa"></div>Double</div>
     <div class="legend-item"><div class="legend-dot" style="background:#1a1a1a"></div>Triple+</div>
+    <div class="legend-item" style="margin-left:auto;gap:0;flex-direction:column;line-height:1.1;text-align:center;opacity:0.65;"><span>G</span><span style="font-size:0.55rem;">N</span></div>
   </div>
   <div class="score-table-wrap">
     <table class="score-table">
@@ -1287,6 +1290,16 @@ function pTot(n){return(n==='front'?pars.slice(0,9):pars.slice(9)).reduce((a,b)=
 function runSum(pid,nineHoles){let s=0,any=false;nineHoles.forEach(h=>{const v=scores[pid]&&scores[pid][h];if(v!==null&&v!==undefined){s+=v;any=true;}});return any?s:null;}
 function runPar(pid,nineHoles){let s=0;nineHoles.forEach(h=>{const v=scores[pid]&&scores[pid][h];if(v!==null&&v!==undefined){s+=pars[HOLES.indexOf(h)];}});return s;}
 
+function strokesOnHole(hcp,hsi){
+  if(!hcp||hcp<=0)return 0;
+  return Math.floor(hcp/18)+(hcp%18>0&&hcp%18>=hsi?1:0);
+}
+function scoreBtnInner(gross,hcp,hsi){
+  if(gross===null||gross===undefined)return'—';
+  if(!hcp||hcp<=0)return String(gross);
+  const net=parseInt(gross)-strokesOnHole(hcp,hsi);
+  return`<span class="sb-gross">${gross}</span><span class="sb-net">${net}</span>`;
+}
 function buildTable(){
   const holes=hSet(),ps=pSet(),tot=pTot(activeNine),lbl=activeNine==='front'?'Out':'In';
   document.getElementById('score-thead').innerHTML=`
@@ -1321,7 +1334,8 @@ function buildTable(){
       holes.map((h,i)=>{
         const sv=scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined?scores[p.id][h]:'';
         const svNum=sv!==''?parseInt(sv):null;
-        return`<td class="td-score"><button class="score-btn ${sCls(svNum,ps[i])}" data-pid="${p.id}" data-hole="${h}" ${readOnly?'disabled':`onclick="openScorePad(${p.id},${h})"`}>${sv!==''?sv:'—'}</button></td>`;
+        const hsi=strokeIndex[HOLES.indexOf(h)]||HOLES.indexOf(h)+1;
+        return`<td class="td-score"><button class="score-btn ${sCls(svNum,ps[i])}" data-pid="${p.id}" data-hole="${h}" ${readOnly?'disabled':`onclick="openScorePad(${p.id},${h})"`}>${scoreBtnInner(svNum!==null?svNum:null,p.hcp||0,hsi)}</button></td>`;
       }).join('')+
       `<td class="td-sub" id="sub-${p.id}">${tot2!==null?tot2:'—'}</td>${activeNine==='back'?(()=>{const ft=runSum(p.id,FRONT);const bt=runSum(p.id,BACK);const grossTot=(ft!==null||bt!==null)?((ft||0)+(bt||0)):null;return`<td class="td-sub" id="gtot-${p.id}">${grossTot!==null?grossTot:'—'}</td>`;})():''}<td class="td-total ${vCls}" id="vp-${p.id}">${vpStr}</td>`;
     tbody.appendChild(tr);
@@ -1447,8 +1461,10 @@ function saveScore(pid,hole,val){
   scores[pid][hole]=val;
   const btn=document.querySelector(`.score-btn[data-pid="${pid}"][data-hole="${hole}"]`);
   if(btn){
-    btn.textContent=val!==null?String(val):'—';
     const wasActive=btn.classList.contains('sp-active');
+    const player=players.find(p=>p.id===pid);
+    const hsi=strokeIndex[HOLES.indexOf(hole)]||HOLES.indexOf(hole)+1;
+    btn.innerHTML=scoreBtnInner(val!==null?val:null,player?player.hcp||0:0,hsi);
     btn.className=`score-btn ${sCls(val,pars[HOLES.indexOf(hole)])}`;
     if(wasActive)btn.classList.add('sp-active');
   }
