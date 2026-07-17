@@ -298,7 +298,7 @@
 <body>
 <script>
 const SGF_LOGO="sgf-logo.jpg";
-const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbzQF0sf--CkPm7MhtCIuE_7vQJuK8W0zVwSB5CYx1GO2uf7R3RZb0Cb-GEJwBYX6Tvc/exec';
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbxa8byg5L4rR09_jBYe47uPS-DstnfMyIQZRkVUW_e0l9DlR6syPcbU4XKrmO3I9R8v/exec';
 const SGF_TOKEN='SGF-LIVE-2026';
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyAA0EGLpcVvEIDwDtfyPIJttvQT_lfLlNM",
@@ -1764,7 +1764,8 @@ async function pushToSheets(silent=false){
         out:FRONT.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:'').join(','),
         in:BACK.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:'').join(','),
         outTotal,inTotal,
-        holes:HOLES.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:'')
+        holes:HOLES.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:''),
+        closieOnly:p.closieOnly?1:0
       };
     })};
     await fetch(APPS_SCRIPT_URL, {
