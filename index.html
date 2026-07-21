@@ -1752,30 +1752,38 @@ function openManageGroups(){
   const activePlayers=players.filter(p=>p.name&&p.name.trim()!=='');
   const maxGroup=Math.max(...activePlayers.map(p=>parseInt(p.group)||1), Math.ceil(activePlayers.length/4));
   const distinctGroups=Array.from({length:maxGroup},(_,i)=>i+1);
+  // Collect unique tee values across all loaded players for the dropdown
+  const allTees=[...new Set(activePlayers.filter(p=>p.tee&&p.tee.trim()).map(p=>p.tee.trim()))].sort();
   const rows=players.filter(p=>p.name&&p.name.trim()!=='').map(p=>{
     const g=parseInt(p.group)||1;
-    const opts=distinctGroups.map(n=>`<option value="${n}" ${n===g?'selected':''}>${n}</option>`).join('');
+    const grpOpts=distinctGroups.map(n=>`<option value="${n}" ${n===g?'selected':''}>${n}</option>`).join('');
     const isNS=!!(noShows[p.id]);
     const nsBtnCls=isNS?'ns-toggle-btn is-ns':'ns-toggle-btn';
     const nsBtnTxt=isNS?'✅ NS':'No Show';
-    const teeVal=esc(p.tee||'');
+    const teeVal=p.tee||'';
     const hcpVal=parseInt(p.hcp)||0;
     const pt=p.playType||'full';
-    const ptLabel=pt==='full'?'🏆 Full':pt==='closie'?'⛳ Closie':'👤 Guest';
+    const ptLabel=pt==='full'?'🏆 Full Game':pt==='closie'?'⛳ Closies Only':'👤 Guest (No $)';
     const ptColor=pt==='full'?'#1a5518':pt==='closie'?'#8a6a00':'#555';
     const ptBg=pt==='full'?'rgba(58,170,53,0.15)':pt==='closie'?'rgba(212,168,67,0.2)':'rgba(150,150,150,0.18)';
-    return `<div style="padding:8px 0;border-bottom:1px solid #eee;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
-        <span style="font-weight:700;font-size:0.88rem;color:#142010;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.name.trim())}</span>
-        <select onchange="reassignGroup(${p.id},this.value)" style="padding:5px 8px;border-radius:6px;border:1.5px solid #b8ddb5;font-weight:800;flex-shrink:0;font-size:0.82rem;">${opts}</select>
-        <button class="${nsBtnCls}" onclick="toggleNoShow(${p.id})" style="flex-shrink:0;">${nsBtnTxt}</button>
+    const teeOpts=allTees.length
+      ? allTees.map(t=>`<option value="${esc(t)}" ${t===teeVal?'selected':''}>${esc(t)}</option>`).join('')
+      : `<option value="${esc(teeVal)}">${esc(teeVal)||'—'}</option>`;
+    return `<div style="padding:9px 0;border-bottom:1px solid #eee;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="font-weight:800;font-size:0.9rem;color:#142010;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.name.trim())}</span>
+        <select onchange="reassignGroup(${p.id},this.value)" style="padding:5px 8px;border-radius:6px;border:1.5px solid #b8ddb5;font-weight:800;flex-shrink:0;font-size:0.82rem;" title="Group">${grpOpts}</select>
+        <button class="${nsBtnCls}" onclick="toggleNoShow(${p.id})" style="flex-shrink:0;" title="No Show">${nsBtnTxt}</button>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;padding-left:2px;flex-wrap:wrap;">
-        <label style="font-size:0.68rem;font-weight:800;color:#4a7044;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">Tee</label>
-        <input type="text" maxlength="8" value="${teeVal}" placeholder="e.g. WHT" onchange="updatePlayerTee(${p.id},this.value)" style="width:56px;padding:4px 6px;border:1.5px solid #b8ddb5;border-radius:5px;font-family:'Nunito',sans-serif;font-size:0.8rem;font-weight:700;">
-        <label style="font-size:0.68rem;font-weight:800;color:#4a7044;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">HCP</label>
-        <input type="number" min="0" max="54" value="${hcpVal}" onchange="updatePlayerHcp(${p.id},this.value)" style="width:46px;padding:4px 6px;border:1.5px solid #b8ddb5;border-radius:5px;font-family:'Nunito',sans-serif;font-size:0.8rem;font-weight:700;text-align:center;">
-        <button onclick="updatePlayerPlayType(${p.id})" style="flex-shrink:0;padding:4px 9px;border-radius:6px;border:1.5px solid #ccc;background:${ptBg};color:${ptColor};cursor:pointer;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.72rem;white-space:nowrap;">${ptLabel}</button>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;padding-left:2px;">
+        <span style="font-size:0.65rem;font-weight:800;color:#4a7044;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">Game</span>
+        <button onclick="updatePlayerPlayType(${p.id})" style="flex:1;padding:5px 10px;border-radius:6px;border:1.5px solid #ccc;background:${ptBg};color:${ptColor};cursor:pointer;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.78rem;text-align:left;">${ptLabel} <span style="float:right;opacity:0.5;font-size:0.7rem;">tap to cycle ›</span></button>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;padding-left:2px;">
+        <span style="font-size:0.65rem;font-weight:800;color:#4a7044;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">Tee</span>
+        <select onchange="updatePlayerTee(${p.id},this.value)" style="padding:4px 6px;border:1.5px solid #b8ddb5;border-radius:5px;font-family:'Nunito',sans-serif;font-size:0.8rem;font-weight:700;background:#fff;">${teeOpts}</select>
+        <span style="font-size:0.65rem;font-weight:800;color:#4a7044;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;margin-left:4px;">HCP</span>
+        <input type="number" min="0" max="54" value="${hcpVal}" onchange="updatePlayerHcp(${p.id},this.value)" style="width:48px;padding:4px 6px;border:1.5px solid #b8ddb5;border-radius:5px;font-family:'Nunito',sans-serif;font-size:0.8rem;font-weight:700;text-align:center;">
       </div>
     </div>`;
   }).join('');
