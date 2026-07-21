@@ -1079,14 +1079,33 @@ async function showPastRounds(){
     list.innerHTML=_pastRounds.map((r,i)=>{
       const playerCount=(r.players||[]).filter(p=>p.name&&p.name.trim()).length;
       const dt=r.endedAt?new Date(r.endedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):(r.date||'');
-      return `<div class="hist-round-card" onclick="viewRoundHistory(${i})">
-        <div class="hist-round-course">${esc(r.course||'(no course)')}</div>
-        <div class="hist-round-date">${esc(dt)}</div>
-        <div class="hist-round-meta">${playerCount} player${playerCount!==1?'s':''}</div>
+      const delBtn=isAdmin?`<button onclick="event.stopPropagation();deletePastRound(${i})" style="background:none;border:none;font-size:1rem;cursor:pointer;padding:4px 6px;color:#c0392b;opacity:0.6;flex-shrink:0;" title="Delete this round">🗑️</button>`:'';
+      return `<div class="hist-round-card" style="display:flex;align-items:center;gap:6px;" onclick="viewRoundHistory(${i})">
+        <div style="flex:1;min-width:0;">
+          <div class="hist-round-course">${esc(r.course||'(no course)')}</div>
+          <div class="hist-round-date">${esc(dt)}</div>
+          <div class="hist-round-meta">${playerCount} player${playerCount!==1?'s':''}</div>
+        </div>
+        ${delBtn}
       </div>`;
     }).join('');
   }catch(e){
     list.innerHTML=`<div class="skins-empty" style="color:#c0392b;">Error loading: ${esc(e.message)}</div>`;
+  }
+}
+
+async function deletePastRound(idx){
+  const r=_pastRounds[idx];
+  if(!r) return;
+  const label=(r.course||'(no course)')+' · '+(r.date||'');
+  if(!confirm(`Delete "${label}"?\n\nThis removes it from Past Rounds permanently.`)) return;
+  try{
+    await firebase.database().ref('sgf/endedRounds/'+r.key).remove();
+    _pastRounds.splice(idx,1);
+    // Refresh the list in place
+    showPastRounds();
+  }catch(e){
+    alert('Error deleting round: '+e.message);
   }
 }
 
