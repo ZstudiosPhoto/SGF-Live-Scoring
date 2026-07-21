@@ -442,6 +442,7 @@ try {
         </div>
       </div>
       <button class="start-btn" style="margin-top:16px;" onclick="verifyAndJoin()">Join Scorecard →</button>
+      <button class="start-btn" style="margin-top:10px;background:transparent;border:2px solid var(--sgf-green);color:var(--sgf-green-dark);" onclick="watchLiveRound()">👁️ Watch Live (Read-Only)</button>
     </div>
   </div>
 </div>
@@ -504,6 +505,8 @@ try {
       <div class="welcome-msg-main">No round in progress at this time.</div>
       <div class="welcome-msg-sub">Check back soon — tee time is coming!</div>
     </div>
+    <div style="height:20px;"></div>
+    <button onclick="showPastRoundsPublic()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#e8f5e7;padding:12px 28px;border-radius:24px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;letter-spacing:0.3px;">📋 View Past Results</button>
   </div>
   <div class="sgf-copyright">© 2026 Saturday Golf Friends · All Rights Reserved</div>
 </div>
@@ -587,7 +590,7 @@ try {
       <div class="header-sub">Read-Only History</div>
     </div>
     <div class="header-actions">
-      <button class="hdr-btn" onclick="showScreen('screen-setup')">← Setup</button>
+      <button class="hdr-btn" onclick="goBackFromPastRounds()">← Setup</button>
     </div>
   </div>
   <div class="lb-body" id="past-rounds-list">
@@ -706,6 +709,7 @@ let activeEventCode=null; // set when checkForActiveRound reads the round
 let myGroup=null, viewMode='myFoursome', groupsRef=null; // foursome isolation state
 let moneySetup=null; // loaded from SETUP.MONEY tab, stored in Firebase with round
 let roundInfo={lcp:false,coursePhone:'',orgPhone:'',notes:''}; // INFO screen data
+let spectatorMode = false;
 
 // ── Device ID for persistent admin detection ──────────────────────────────
 function getDeviceId(){
@@ -840,6 +844,11 @@ function verifyAndJoin(){
   joinRound();
 }
 
+function watchLiveRound(){
+  spectatorMode = true;
+  joinRound();
+}
+
 function joinRound(){
   showScreen('screen-loading');
   roundRef=firebase.database().ref('sgf/activeRound');
@@ -872,6 +881,9 @@ function joinRound(){
     listenForClosieUpdates();
     listenForGroupUpdates();
     startAutoPush();
+    if(spectatorMode){
+      applySpectatorMode();
+    }
     afterRoundLoaded();
   });
 }
@@ -1290,30 +1302,49 @@ async function adminLoginFromWelcome(){
   if(codeField&&!codeField.value.trim()) codeField.value=String(Math.floor(1000+Math.random()*9000));
 }
 
-async function showPastRounds(){
+let _pastRoundsFrom = 'setup'; // track where we came from
+
+function showPastRoundsPublic(){
+  _pastRoundsFrom = 'welcome';
+  // Update back button header to go back to welcome
+  const hdr = document.querySelector('#screen-past-rounds .header-actions button');
+  if(hdr) hdr.textContent = '← Back';
+  showPastRoundsInner();
+}
+
+function goBackFromPastRounds(){
+  showScreen(_pastRoundsFrom === 'welcome' ? 'screen-welcome' : 'screen-setup');
+}
+
+async function showPastRoundsInner(){
   showScreen('screen-past-rounds');
-  const list=document.getElementById('past-rounds-list');
-  list.innerHTML='<div class="skins-empty">Loading…</div>';
-  try{
-    const snap=await firebase.database().ref('sgf/endedRounds').limitToLast(20).once('value');
-    const data=snap.val()||{};
-    _pastRounds=Object.entries(data).map(([k,v])=>({key:k,...v})).filter(r=>(r.players||[]).some(p=>p.name&&p.name.trim())).sort((a,b)=>(b.endedAt||0)-(a.endedAt||0));
+  const list = document.getElementById('past-rounds-list');
+  list.innerHTML = '<div class="skins-empty">Loading…</div>';
+  try {
+    const snap = await firebase.database().ref('sgf/endedRounds').limitToLast(20).once('value');
+    const data = snap.val() || {};
+    _pastRounds = Object.entries(data).map(([k,v])=>({key:k,...v})).filter(r=>(r.players||[]).some(p=>p.name&&p.name.trim())).sort((a,b)=>(b.endedAt||0)-(a.endedAt||0));
     if(!_pastRounds.length){
-      list.innerHTML='<div class="skins-empty">No past rounds found.<br><span style="font-size:0.8rem;margin-top:6px;display:block;">Rounds are archived automatically when you tap End Round.</span></div>';
+      list.innerHTML = '<div class="skins-empty">No past rounds found.<br><span style="font-size:0.8rem;margin-top:6px;display:block;">Rounds are archived automatically when you tap End Round.</span></div>';
       return;
     }
-    list.innerHTML=_pastRounds.map((r,i)=>{
-      const playerCount=(r.players||[]).filter(p=>p.name&&p.name.trim()).length;
-      const dt=r.endedAt?new Date(r.endedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):(r.date||'');
+    list.innerHTML = _pastRounds.map((r,i) => {
+      const playerCount = (r.players||[]).filter(p=>p.name&&p.name.trim()).length;
+      const dt = r.endedAt ? new Date(r.endedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : (r.date||'');
       return `<div class="hist-round-card" onclick="viewRoundHistory(${i})">
         <div class="hist-round-course">${esc(r.course||'(no course)')}</div>
         <div class="hist-round-date">${esc(dt)}</div>
         <div class="hist-round-meta">${playerCount} player${playerCount!==1?'s':''}</div>
       </div>`;
     }).join('');
-  }catch(e){
-    list.innerHTML=`<div class="skins-empty" style="color:#c0392b;">Error loading: ${esc(e.message)}</div>`;
+  } catch(e) {
+    list.innerHTML = `<div class="skins-empty" style="color:#c0392b;">Error loading: ${esc(e.message)}</div>`;
   }
+}
+
+async function showPastRounds(){
+  _pastRoundsFrom = 'setup';
+  await showPastRoundsInner();
 }
 
 function viewRoundHistory(idx){
@@ -1901,6 +1932,35 @@ function showSync(msg,ok){
   el.style.display='block';el.style.color=ok===true?'#7dcea0':ok===false?'#f08080':'#aac8e0';el.textContent=msg;
   if(ok!==null)setTimeout(()=>{el.style.display='none';},6000);
 }
+function applySpectatorMode(){
+  // Force whole-field view so all score buttons render as disabled (read-only)
+  viewMode = 'wholeField';
+  // Hide scoring nav buttons from all live screen headers
+  document.querySelectorAll('.hdr-btn').forEach(btn=>{
+    if(btn.textContent.trim()==='Scores') btn.style.display='none';
+  });
+  // Hide sync bar on scoring screen
+  const syncBar = document.querySelector('#screen-scoring .sync-bar');
+  if(syncBar) syncBar.style.display='none';
+  // Hide closie sync bar
+  const closieSync = document.querySelector('#screen-closies .sync-bar');
+  if(closieSync) closieSync.style.display='none';
+  // Make closie checkboxes non-interactive
+  const closieContent = document.getElementById('closies-content');
+  if(closieContent) closieContent.style.pointerEvents='none';
+  // Add spectator banner to scoring screen
+  const scoreWrap = document.querySelector('.scoring-meta-bar');
+  if(scoreWrap && !document.getElementById('spectator-banner')){
+    const banner = document.createElement('div');
+    banner.id = 'spectator-banner';
+    banner.style.cssText = 'background:#e8f0fe;border-bottom:1px solid #c0ccee;padding:7px 14px;font-size:0.78rem;font-weight:800;color:#3a5a8a;text-align:center;flex-shrink:0;';
+    banner.textContent = '👁️ Spectator Mode — Read Only';
+    scoreWrap.parentNode.insertBefore(banner, scoreWrap);
+  }
+  // Show leaderboard by default for spectators
+  showScreen('screen-lb');
+}
+
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
