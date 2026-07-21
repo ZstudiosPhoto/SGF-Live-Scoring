@@ -351,6 +351,7 @@ try {
         <input type="text" id="inp-tabname" value="gross.scores">
       </div>
       <button class="green-btn" id="btn-load" onclick="loadPlayersFromSheet()">Load Players from Sheet</button>
+      <div id="loaded-course-banner" style="display:none;margin-top:8px;padding:10px 14px;background:#e8f5e9;border:2px solid #2e7d32;border-radius:8px;font-weight:800;font-size:1rem;color:#1b5e20;letter-spacing:0.3px;"></div>
       <div id="load-status" style="display:none;" class="status-msg"></div>
       <button type="button" class="add-player-row" style="margin-top:8px;" onclick="toggleRecoverList()">↩️ Recover a Recent Sheet ID</button>
       <div id="recover-list" style="display:none;margin-top:8px;"></div>
@@ -1100,6 +1101,20 @@ async function loadPlayersFromSheet(){
 
     // Parse pars from SETUP.COURSE — find the row where any of the first 3 cells says "Par"
     const courseData=json.course||[];
+
+    // Extract course name from SETUP.COURSE for verification banner
+    const courseNameRow=courseData.find(r=>String(r[1]||'').trim().toLowerCase()==='course-tee name')
+      || courseData.find(r=>String(r[1]||'').trim().toLowerCase()==='default course name');
+    const loadedCourseName=courseNameRow?String(courseNameRow[0]||'').trim():'';
+    const banner=document.getElementById('loaded-course-banner');
+    if(loadedCourseName){
+      banner.style.display='block';
+      banner.textContent='⛳ Course loaded: '+loadedCourseName;
+      // Auto-fill the course name field if it's blank or still a placeholder
+      const courseInp=document.getElementById('inp-course');
+      if(!courseInp.value.trim()||courseInp.value.trim()==='SGF Live Scoring'){courseInp.value=loadedCourseName;}
+    } else { banner.style.display='none'; }
+
     const parRow=courseData.find(r=>r.some((cell,i)=>i<3&&cell&&String(cell).trim().toLowerCase()==='par'));
     if(parRow){
       // Find the first column with a par-range number (3–6) to handle any label offsets
