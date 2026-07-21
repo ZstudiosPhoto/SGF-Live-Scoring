@@ -1195,6 +1195,7 @@ async function loadPlayersFromSheet(){
     const rawPlayers=json.players||[];
     const rawGroups=json.groups||[];
     console.log('SGF groups from sheet:', JSON.stringify(rawGroups));
+    showStatus(st,'DEBUG: groups returned = '+JSON.stringify(rawGroups.slice(0,12)),'info');
     const playerEntries=rawPlayers.map((r,i)=>({row:r,group:rawGroups[i]})).filter(e=>e.row[0]&&String(e.row[0]).trim()&&
       !['player name','name','player'].includes(String(e.row[0]).trim().toLowerCase()));
     if(!playerEntries.length){showStatus(st,'No player names found in SETUP.PLAYERS.','err');document.getElementById('btn-load').disabled=false;return;}
