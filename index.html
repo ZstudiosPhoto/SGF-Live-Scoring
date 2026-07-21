@@ -134,6 +134,18 @@
   .btn-link:hover{border-color:#8acc87;color:#fff;}
   .sync-result{color:#7dcea0;font-size:0.72rem;width:100%;text-align:center;font-weight:700;}
   .lb-body{flex:1;padding:14px 13px 20px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .info-screen-body{padding:16px;max-width:520px;margin:0 auto;}
+  .info-card{background:#fff;border-radius:14px;border:1.5px solid var(--border);padding:18px 20px;margin-bottom:14px;}
+  .info-card-title{font-size:0.65rem;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:var(--sgf-green-dark);margin-bottom:10px;}
+  .info-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+  .info-row:last-child{border-bottom:none;}
+  .info-label{font-size:0.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;min-width:90px;padding-top:2px;}
+  .info-value{font-size:0.95rem;font-weight:700;color:var(--sgf-black);flex:1;word-break:break-word;}
+  .info-code-big{font-size:2.2rem;font-weight:900;letter-spacing:10px;color:var(--sgf-green-dark);text-align:center;padding:10px 0 4px;}
+  .info-code-label{font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);text-align:center;margin-bottom:4px;}
+  .info-lcp-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:0.85rem;font-weight:900;}
+  .info-lcp-yes{background:#e8f5e9;color:#2e7d32;}
+  .info-lcp-no{background:#f5f5f5;color:#666;}
   .lb-card{background:var(--card-bg);border-radius:13px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,0.2);border:1px solid rgba(58,170,53,0.25);}
   .lb-row{display:flex;align-items:center;padding:11px 13px;border-bottom:1px solid var(--border);gap:9px;}
   .lb-row:last-child{border-bottom:none;}
@@ -369,6 +381,28 @@ try {
       <div style="font-size:0.68rem;color:var(--muted);font-weight:800;margin:10px 0 4px;text-transform:uppercase;letter-spacing:1px;">Back 9 — Holes 10–18</div>
       <div class="par-grid" id="par-back"></div>
     </div>
+    <div class="setup-card">
+      <div class="section-title">Round Info</div>
+      <div class="field">
+        <label>Lift, Clean & Place (LCP)?</label>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <button type="button" id="lcp-yes" onclick="setLCP(true)" style="flex:1;padding:9px;border-radius:8px;border:2px solid var(--border);font-weight:800;font-size:0.9rem;background:#f5f5f5;cursor:pointer;">✅ Yes</button>
+          <button type="button" id="lcp-no" onclick="setLCP(false)" style="flex:1;padding:9px;border-radius:8px;border:2px solid var(--sgf-green);font-weight:800;font-size:0.9rem;background:#e8f5e9;cursor:pointer;">🚫 No</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Course Phone</label>
+        <input type="tel" id="inp-course-phone" placeholder="e.g. (805) 555-1234" maxlength="20">
+      </div>
+      <div class="field">
+        <label>Organizer Phone</label>
+        <input type="tel" id="inp-org-phone" placeholder="e.g. (805) 555-5678" maxlength="20">
+      </div>
+      <div class="field">
+        <label>Notes (optional)</label>
+        <input type="text" id="inp-round-notes" placeholder="e.g. Cart path only, hole 7 OOB staked" maxlength="120">
+      </div>
+    </div>
     <button class="start-btn" onclick="startRound()">⛳ Start Live Round</button>
     <div style="height:12px;"></div>
     <button class="end-round-btn" id="btn-end-round-setup" onclick="endRound()">🔴 End Current Round</button>
@@ -489,6 +523,7 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
       <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰</button>
       <button class="hdr-btn" id="btn-manage-groups" onclick="openManageGroups()">👥 Groups</button>
+      <button class="hdr-btn" onclick="showScreen('screen-info')">ℹ️</button>
     </div>
   </div>
   <div class="scoring-meta-bar">
@@ -535,6 +570,7 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
       <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
       <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰</button>
+      <button class="hdr-btn" onclick="showScreen('screen-info')">ℹ️</button>
     </div>
   </div>
   <div class="lb-body">
@@ -586,6 +622,7 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
       <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
       <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰</button>
+      <button class="hdr-btn" onclick="showScreen('screen-info')">ℹ️</button>
     </div>
   </div>
   <div class="lb-body" id="skins-content">
@@ -606,6 +643,7 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
       <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
       <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰</button>
+      <button class="hdr-btn" onclick="showScreen('screen-info')">ℹ️</button>
     </div>
   </div>
   <div class="lb-body" id="closies-content">
@@ -630,10 +668,31 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
       <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
       <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
+      <button class="hdr-btn" onclick="showScreen('screen-info')">ℹ️</button>
     </div>
   </div>
   <div class="lb-body" id="payouts-content">
     <div class="skins-empty">Start a round to view payouts.</div>
+  </div>
+</div>
+<!-- ===== INFO SCREEN ===== -->
+<div id="screen-info" class="screen">
+  <div class="app-header">
+    <div class="sgf-logo"><img id="logo-info" alt="SGF"></div>
+    <div class="header-text">
+      <div class="header-brand">ℹ️ Round Info</div>
+      <div class="header-sub" id="info-sub">SGF Live Scoring</div>
+    </div>
+    <div class="header-actions">
+      <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+      <button class="hdr-btn" onclick="showScreen('screen-scoring')">Scores</button>
+      <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
+      <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
+      <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
+    </div>
+  </div>
+  <div class="info-screen-body" id="info-content">
+    <div class="skins-empty">Start a round to view info.</div>
   </div>
 </div>
 <script>
@@ -646,6 +705,7 @@ let scores={}, closies={}, activeNine='front', nextId=2, db=null, roundRef=null,
 let activeEventCode=null; // set when checkForActiveRound reads the round
 let myGroup=null, viewMode='myFoursome', groupsRef=null; // foursome isolation state
 let moneySetup=null; // loaded from SETUP.MONEY tab, stored in Firebase with round
+let roundInfo={lcp:false,coursePhone:'',orgPhone:'',notes:''}; // INFO screen data
 
 // ── Device ID for persistent admin detection ──────────────────────────────
 function getDeviceId(){
@@ -695,7 +755,7 @@ function applyAdminUI(){
 }
 
 window.addEventListener('DOMContentLoaded',()=>{
-  ['logo1','logo2','logo3','logo4','logo5','logo-skins','logo-closies','logo-payouts','logo-grouppick','logo-history','logo-history2','logo-welcome','logo-welcome-big'].forEach(id=>{
+  ['logo1','logo2','logo3','logo4','logo5','logo-skins','logo-closies','logo-payouts','logo-grouppick','logo-history','logo-history2','logo-welcome','logo-welcome-big','logo-info'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.src=SGF_LOGO;
   });
   document.getElementById('inp-date').value=new Date().toISOString().slice(0,10);
@@ -798,6 +858,8 @@ function joinRound(){
     players.forEach(p=>{ p.group=groupsData[p.id]!==undefined?(parseInt(groupsData[p.id])||1):(p.group||1); });
     players.forEach(p=>{ if(!scores[p.id]) scores[p.id]={}; HOLES.forEach(h=>{ if(scores[p.id][h]===undefined) scores[p.id][h]=null; }); });
     moneySetup=data.moneySetup||null;
+    roundInfo=data.roundInfo||{lcp:false,coursePhone:'',orgPhone:'',notes:''};
+    buildInfoScreen(data);
     document.getElementById('hdr-course').textContent=data.course||'SGF Live Scoring';
     document.getElementById('hdr-date').textContent=data.date||'Live Round';
     document.getElementById('lb-sub').textContent=data.course||'SGF Live Scoring';
@@ -1016,6 +1078,7 @@ async function startRound(){
       code:(document.getElementById('inp-eventcode').value.trim()||''),
       sheetId:sheetIdVal,
       moneySetup: moneySetup||null,
+      roundInfo: {lcp:roundInfo.lcp, coursePhone:(document.getElementById('inp-course-phone').value.trim()||''), orgPhone:(document.getElementById('inp-org-phone').value.trim()||''), notes:(document.getElementById('inp-round-notes').value.trim()||'')},
       startedAt:Date.now(),
       adminDeviceId:getDeviceId()
     };
@@ -1026,6 +1089,14 @@ async function startRound(){
   }
   startAutoPush();
   afterRoundLoaded();
+}
+
+function setLCP(val){
+  roundInfo.lcp=val;
+  document.getElementById('lcp-yes').style.background=val?'#e8f5e9':'#f5f5f5';
+  document.getElementById('lcp-yes').style.borderColor=val?'var(--sgf-green)':'var(--border)';
+  document.getElementById('lcp-no').style.background=val?'#f5f5f5':'#e8f5e9';
+  document.getElementById('lcp-no').style.borderColor=val?'var(--border)':'var(--sgf-green)';
 }
 
 function buildParInputs(){
@@ -1834,6 +1905,7 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   if(id==='screen-lb')buildLB();
+  if(id==='screen-info') buildInfoScreen();
   if(id==='screen-skins')buildSkinsView();
   if(id==='screen-closies')buildClosiesView();
   if(id==='screen-payouts')buildPayoutsView();
@@ -2217,6 +2289,47 @@ function buildSkinsView(){
         <tbody>${rowsHTML}</tbody>
       </table></div></div>`;
 }
+function buildInfoScreen(data){
+  const ri=roundInfo||{};
+  const code=(data&&data.code)||(typeof activeEventCode!=='undefined'?activeEventCode:null)||'';
+  const course=(data&&data.course)||document.getElementById('hdr-course').textContent||'';
+  const date=(data&&data.date)||document.getElementById('hdr-date').textContent||'';
+  document.getElementById('info-sub').textContent=course||'SGF Live Scoring';
+  const el=document.getElementById('info-content');
+  if(!el)return;
+  let html='';
+
+  // Code card (always shown, prominent)
+  if(code){
+    html+=`<div class="info-card">
+      <div class="info-code-label">Today's Event Code</div>
+      <div class="info-code-big">${esc(code)}</div>
+      <div style="font-size:0.72rem;color:var(--muted);text-align:center;padding-bottom:4px;">Share this with late arrivals</div>
+    </div>`;
+  }
+
+  // Round details card
+  html+=`<div class="info-card">
+    <div class="info-card-title">Round Details</div>`;
+  if(course) html+=`<div class="info-row"><span class="info-label">Course</span><span class="info-value">${esc(course)}</span></div>`;
+  if(date)   html+=`<div class="info-row"><span class="info-label">Date</span><span class="info-value">${esc(date)}</span></div>`;
+  html+=`<div class="info-row"><span class="info-label">LCP</span><span class="info-value"><span class="info-lcp-badge ${ri.lcp?'info-lcp-yes':'info-lcp-no'}">${ri.lcp?'✅ Yes — Lift, Clean & Place':'🚫 No LCP Today'}</span></span></div>`;
+  if(ri.notes) html+=`<div class="info-row"><span class="info-label">Notes</span><span class="info-value">${esc(ri.notes)}</span></div>`;
+  html+=`</div>`;
+
+  // Contact card
+  if(ri.coursePhone||ri.orgPhone){
+    html+=`<div class="info-card">
+      <div class="info-card-title">Contacts</div>`;
+    if(ri.coursePhone) html+=`<div class="info-row"><span class="info-label">Course</span><span class="info-value"><a href="tel:${esc(ri.coursePhone)}" style="color:var(--sgf-green-dark);text-decoration:none;font-weight:800;">${esc(ri.coursePhone)}</a></span></div>`;
+    if(ri.orgPhone)    html+=`<div class="info-row"><span class="info-label">Organizer</span><span class="info-value"><a href="tel:${esc(ri.orgPhone)}" style="color:var(--sgf-green-dark);text-decoration:none;font-weight:800;">${esc(ri.orgPhone)}</a></span></div>`;
+    html+=`</div>`;
+  }
+
+  if(!html) html='<div class="skins-empty">No round info available.</div>';
+  el.innerHTML=html;
+}
+
 function fmtDate(d){const dt=new Date(d+'T12:00:00');return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
