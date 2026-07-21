@@ -53,6 +53,12 @@
   .player-item input{flex:1;border:none;background:transparent;font-family:'Nunito',sans-serif;font-size:0.9rem;color:var(--text);outline:none;font-weight:700;}
   .rm-btn{background:none;border:none;color:#bbb;cursor:pointer;font-size:1.1rem;padding:0 2px;line-height:1;}
   .rm-btn:hover{color:#c0392b;}
+  .play-type-btn{border:none;border-radius:10px;padding:3px 7px;font-family:'Nunito',sans-serif;font-size:0.7rem;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all 0.15s;}
+  .play-type-btn.full{background:rgba(58,170,53,0.15);color:var(--sgf-green-dark);}
+  .play-type-btn.closie{background:rgba(212,168,67,0.2);color:#8a6a00;}
+  .play-type-btn.guest{background:rgba(150,150,150,0.18);color:#555;}
+  .td-name-excluded{opacity:0.55;}
+  .excluded-badge{display:inline-block;font-size:0.52rem;font-weight:900;padding:1px 3px;border-radius:3px;margin-left:2px;vertical-align:middle;line-height:1.3;background:rgba(212,168,67,0.25);color:#8a6a00;}
   .add-player-row{width:100%;padding:9px;border:2px dashed var(--sgf-green);background:transparent;color:var(--sgf-green-dark);border-radius:8px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.85rem;transition:background 0.2s;}
   .add-player-row:hover{background:var(--sgf-green-pale);}
   .par-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;margin-top:6px;}
@@ -100,21 +106,25 @@
   .score-row{border-bottom:1px solid #c8e6c4;background:#ffffff;}
   .score-row:nth-child(even){background:#e8f7e6;}
   .score-row.my-row{background:#fffbef!important;border-left:3px solid var(--gold);}
-  .td-name{padding:4px 4px 4px 8px;white-space:nowrap;min-width:90px;}
+  .td-name{padding:3px 2px 3px 6px;white-space:nowrap;min-width:56px;max-width:70px;}
+  .td-name-last{font-size:0.77rem;font-weight:900;color:var(--text);line-height:1.15;overflow:hidden;text-overflow:ellipsis;max-width:66px;}
+  .td-name-first{font-size:0.62rem;font-weight:700;color:var(--muted);line-height:1.15;overflow:hidden;text-overflow:ellipsis;max-width:66px;}
   .td-name-text{font-size:0.78rem;font-weight:800;color:var(--text);}
-  .td-score{padding:3px 1px;text-align:center;}
-  .score-inp{width:29px;height:28px;text-align:center;border:1.5px solid #cce0ca;border-radius:5px;font-size:0.8rem;font-family:'Nunito',sans-serif;font-weight:900;outline:none;-moz-appearance:textfield;background:white;color:var(--text);transition:all 0.15s;}
-  .score-inp::-webkit-outer-spin-button,.score-inp::-webkit-inner-spin-button{-webkit-appearance:none;}
-  .score-inp:focus{border-color:var(--sgf-green);}
-  .score-inp:disabled{background:#f0f0f0;color:#aaa;border-color:#ddd;cursor:not-allowed;}
-  .score-inp.eagle{background:var(--eagle-bg);color:var(--eagle-fg);border-color:var(--eagle-bg);}
-  .score-inp.birdie{background:var(--birdie-bg);color:var(--birdie-fg);border-color:var(--birdie-bg);}
-  .score-inp.par-s{background:var(--par-bg);color:var(--par-fg);border-color:var(--par-bg);}
-  .score-inp.bogey{background:var(--bogey-bg);color:var(--bogey-fg);border-color:var(--bogey-bg);}
-  .score-inp.double{background:var(--double-bg);color:var(--double-fg);border-color:var(--double-bg);}
-  .score-inp.triple{background:var(--triple-bg);color:var(--triple-fg);border-color:var(--triple-bg);}
-  .td-sub{text-align:center;font-weight:800;font-size:0.78rem;color:var(--muted);padding:0 4px;white-space:nowrap;}
-  .td-total{text-align:center;font-weight:900;font-size:0.82rem;padding:0 4px;white-space:nowrap;}
+  .td-score{padding:2px 0;text-align:center;}
+  .score-btn{position:relative;width:36px;height:72px;display:inline-flex;align-items:center;justify-content:center;border:1.5px solid #cce0ca;border-radius:6px;font-size:0.95rem;font-family:'Nunito',sans-serif;font-weight:900;background:white;color:var(--text);cursor:pointer;transition:all 0.12s;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;overflow:hidden;}
+  .score-btn.has-net::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom right,transparent calc(50% - 0.7px),currentColor calc(50% - 0.7px),currentColor calc(50% + 0.7px),transparent calc(50% + 0.7px));opacity:0.22;pointer-events:none;}
+  .score-btn.has-net .sb-gross{position:absolute;top:3px;left:3px;font-size:1.1rem;font-weight:900;line-height:1;}
+  .score-btn.has-net .sb-net{position:absolute;bottom:3px;right:3px;font-size:0.92rem;font-weight:800;line-height:1;opacity:0.85;}
+  .score-btn:disabled{background:#f0f0f0;color:#aaa;border-color:#ddd;cursor:not-allowed;pointer-events:none;}
+  .score-btn.sp-active{box-shadow:0 0 0 2px var(--gold),0 0 0 4px rgba(58,170,53,0.7);}
+  .score-btn.eagle{background:var(--eagle-bg);color:var(--eagle-fg);border-color:var(--eagle-bg);}
+  .score-btn.birdie{background:var(--birdie-bg);color:var(--birdie-fg);border-color:var(--birdie-bg);}
+  .score-btn.par-s{background:var(--par-bg);color:var(--par-fg);border-color:var(--par-bg);}
+  .score-btn.bogey{background:var(--bogey-bg);color:var(--bogey-fg);border-color:var(--bogey-bg);}
+  .score-btn.double{background:var(--double-bg);color:var(--double-fg);border-color:var(--double-bg);}
+  .score-btn.triple{background:var(--triple-bg);color:var(--triple-fg);border-color:var(--triple-bg);}
+  .td-sub{text-align:center;font-weight:800;font-size:0.74rem;color:var(--muted);padding:0 2px;white-space:nowrap;}
+  .td-total{text-align:center;font-weight:900;font-size:0.78rem;padding:0 2px;white-space:nowrap;}
   .td-total.under{color:#1e6b1e;}.td-total.even{color:#2a5028;}.td-total.over{color:#c0392b;}
   .sync-bar{background:var(--sgf-black);padding:9px 11px;border-top:3px solid var(--sgf-green);display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;flex-shrink:0;}
   .sync-btn{padding:9px 13px;border:none;border-radius:8px;cursor:pointer;font-family:'Nunito',sans-serif;font-size:0.77rem;font-weight:800;transition:all 0.2s;}
@@ -170,7 +180,7 @@
   .welcome-ham-item{display:block;width:100%;padding:13px 16px;background:none;border:none;color:#e8f5e7;font-family:'Nunito',sans-serif;font-weight:700;font-size:0.88rem;text-align:left;cursor:pointer;}
   .welcome-ham-item:active,.welcome-ham-item:hover{background:rgba(58,170,53,0.18);}
   .sgf-copyright{text-align:center;font-size:0.68rem;color:rgba(255,255,255,0.3);font-weight:600;letter-spacing:1px;padding:12px 0 16px;}
-  @media(max-width:370px){.score-inp{width:26px;height:25px;font-size:0.72rem;}.header-brand{font-size:1.25rem;}}
+  @media(max-width:370px){.score-btn{width:32px;height:64px;font-size:0.85rem;}.header-brand{font-size:1.25rem;}}
   @media(max-width:520px){
     .app-header{flex-wrap:wrap;align-items:flex-start;}
     .header-text{flex:1;min-width:0;}
@@ -198,6 +208,30 @@
   /* ===== LOCK BUTTON ===== */
   #lock-btn{position:fixed;bottom:72px;right:14px;z-index:10000;width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,0.25);background:rgba(0,0,0,0.55);color:#fff;font-size:1.15rem;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,0.45);transition:background 0.2s,border-color 0.2s;}
   #lock-btn.locked{background:rgba(192,57,43,0.85);border-color:rgba(255,100,80,0.5);}
+  /* ===== CUSTOM SCORE PAD ===== */
+  #score-pad{position:fixed;inset:0;z-index:20000;display:none;}
+  #score-pad.open{display:block;}
+  #score-pad-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.55);}
+  #score-pad-panel{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(160deg,#1c3d1c,#0e2a0e);border-radius:22px 22px 0 0;padding:16px 16px calc(24px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 40px rgba(0,0,0,0.6);transition:transform 0.14s ease-in;}
+  #score-pad-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+  #score-pad-name{font-size:1.15rem;font-weight:900;color:#fff;letter-spacing:0.3px;}
+  #score-pad-meta{font-size:0.8rem;color:#7dcea0;font-weight:700;margin-top:2px;}
+  #score-pad-closebtn{background:rgba(255,255,255,0.1);border:none;color:rgba(255,255,255,0.65);font-size:0.8rem;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer;padding:6px 12px;border-radius:20px;line-height:1;white-space:nowrap;}
+  #score-pad-closebtn:hover{color:#fff;background:rgba(255,255,255,0.2);}
+  #score-pad-disp{text-align:center;font-family:'Bebas Neue',sans-serif;font-size:5rem;line-height:1;color:rgba(255,255,255,0.35);height:76px;display:flex;align-items:center;justify-content:center;margin:10px 0 14px;transition:color 0.1s;}
+  #score-pad-disp.has-val{color:#fff;}
+  #score-pad-keys{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:360px;margin:0 auto;}
+  .sp-key{height:62px;border:none;border-radius:14px;font-family:'Bebas Neue',sans-serif;font-size:2rem;color:#fff;background:rgba(255,255,255,0.13);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.1s;-webkit-tap-highlight-color:transparent;user-select:none;}
+  .sp-key:active{background:rgba(58,170,53,0.5);}
+  .sp-key-action{font-family:'Nunito',sans-serif;font-size:1.05rem;font-weight:800;background:rgba(255,255,255,0.07);}
+  .sp-key-save{background:rgba(58,170,53,0.35);border:1px solid rgba(58,170,53,0.5);}
+  .sp-key-save:active{background:rgba(58,170,53,0.7);}
+  .sp-key-flash{background:rgba(58,170,53,0.65)!important;}
+  .sp-key-hidden{visibility:hidden;pointer-events:none;}
+  @media(max-height:700px){.sp-key{height:50px;font-size:1.6rem;}#score-pad-disp{font-size:3.5rem;height:56px;margin:4px 0 10px;}}
+  /* ===== END ROUND FLOATING BUTTON ===== */
+  #end-round-btn{position:fixed;bottom:122px;right:14px;z-index:10000;width:42px;height:42px;border-radius:50%;border:2px solid rgba(192,57,43,0.5);background:rgba(192,57,43,0.75);color:#fff;font-size:1.15rem;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,0.45);transition:background 0.2s,border-color 0.2s;}
+  #end-round-btn:hover{background:rgba(192,57,43,0.95);}
   #lock-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:transparent;cursor:not-allowed;}
   #lock-toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.78);color:#fff;padding:10px 22px;border-radius:22px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.88rem;z-index:10001;pointer-events:none;opacity:0;transition:opacity 0.25s;white-space:nowrap;}
   #lock-toast.show{opacity:1;}
@@ -232,12 +266,56 @@
   .st-hole-cell{font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--sgf-green-dark);}
   .st-si-cell{color:var(--muted);font-size:0.72rem;}
   .skins-empty{text-align:center;padding:40px 20px;color:var(--muted);font-weight:600;font-size:0.88rem;}
+  /* ===== PAYOUTS ===== */
+  .payout-section{background:var(--card-bg);border-radius:13px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,0.2);border:1px solid rgba(58,170,53,0.25);margin-bottom:14px;}
+  .payout-section-hdr{background:var(--sgf-green);padding:11px 14px;display:flex;justify-content:space-between;align-items:center;}
+  .payout-section-title{font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:#fff;letter-spacing:1px;}
+  .payout-pool-badge{color:#f0cc70;font-weight:800;font-size:0.85rem;}
+  .payout-row{display:flex;align-items:center;padding:11px 14px;border-bottom:1px solid var(--border);gap:10px;}
+  .payout-row:last-child{border-bottom:none;}
+  .payout-hole{font-family:'Bebas Neue',sans-serif;font-size:1.05rem;color:var(--sgf-green-dark);width:62px;flex-shrink:0;}
+  .payout-name{flex:1;font-weight:800;font-size:0.9rem;color:var(--text);}
+  .payout-name-empty{flex:1;font-weight:600;font-size:0.88rem;color:#aaa;}
+  .payout-amount{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:#d4a843;}
+  .payout-amount-pending{font-size:0.78rem;color:#bbb;font-style:italic;}
+  .payout-sub{font-size:0.7rem;color:var(--muted);font-weight:700;}
+  .payout-place-icon{font-size:1.3rem;width:32px;text-align:center;flex-shrink:0;}
+  .payout-place-label{font-size:0.65rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+  .pot-summary{background:linear-gradient(135deg,#1a5518,#3aaa35);border-radius:13px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,0.2);margin-bottom:14px;}
+  .pot-total-row{padding:13px 16px;display:flex;justify-content:space-between;align-items:center;}
+  .pot-total-label{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:#fff;letter-spacing:1px;}
+  .pot-total-amount{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;color:#f0cc70;line-height:1;}
+  .pot-breakdown{display:flex;border-top:2px solid rgba(255,255,255,0.2);}
+  .pot-bucket{flex:1;padding:10px 8px;text-align:center;border-right:1px solid rgba(255,255,255,0.15);}
+  .pot-bucket:last-child{border-right:none;}
+  .pot-bucket-label{font-size:0.6rem;font-weight:800;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:1px;}
+  .pot-bucket-amount{font-family:'Bebas Neue',sans-serif;font-size:1.35rem;color:#f0cc70;line-height:1.1;}
+  .closie-only-note{background:#fff9e0;border:1px solid #f0cc70;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:0.78rem;font-weight:700;color:#8a6d1f;}
+  /* closie-only badge on leaderboard */
+  .lb-closie-badge{display:inline-block;background:#fff9e0;border:1px solid #f0cc70;color:#8a6d1f;border-radius:8px;padding:1px 6px;font-size:0.6rem;font-weight:800;margin-left:5px;vertical-align:middle;}
+  /* INFO screen */
+  .info-body{flex:1;overflow-y:auto;padding:16px;}
+  .info-card{background:var(--card-bg);border-radius:14px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,0.2);border:1px solid rgba(58,170,53,0.25);margin-bottom:14px;}
+  .info-row{display:flex;align-items:flex-start;padding:13px 16px;border-bottom:1px solid var(--border);gap:12px;}
+  .info-row:last-child{border-bottom:none;}
+  .info-icon{font-size:1.3rem;width:28px;flex-shrink:0;text-align:center;padding-top:1px;}
+  .info-label{font-size:0.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;}
+  .info-value{font-size:0.95rem;font-weight:800;color:var(--text);}
+  .info-notes{font-size:0.88rem;font-weight:600;color:var(--text);white-space:pre-wrap;line-height:1.5;}
+  .info-badge{display:inline-block;border-radius:8px;padding:3px 10px;font-size:0.78rem;font-weight:800;letter-spacing:0.5px;}
+  .info-badge.on{background:#e8f7e6;color:#1a6b1a;border:1px solid #b8ddb5;}
+  .info-badge.off{background:#f5f5f5;color:#888;border:1px solid #ddd;}
+  /* Spectator banner */
+  .spectator-banner{background:rgba(26,107,26,0.12);border:1.5px solid rgba(58,170,53,0.4);border-radius:10px;margin:8px 12px;padding:8px 14px;font-size:0.82rem;font-weight:800;color:var(--sgf-green-dark);text-align:center;letter-spacing:0.3px;}
+  /* Past results on welcome */
+  .welcome-past-btn{display:block;width:100%;max-width:280px;margin:12px auto 0;padding:12px 20px;background:transparent;border:2px solid rgba(58,170,53,0.4);border-radius:12px;color:#b8e6b5;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;letter-spacing:0.3px;}
+  .welcome-past-btn:active{background:rgba(58,170,53,0.12);}
 </style>
 </head>
 <body>
 <script>
 const SGF_LOGO="sgf-logo.jpg";
-const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbxznwpjvFfEliSttPB5SGc9WnJQYKsbLB3qo35RbUw_MTphh2faut3S_qfkBi-7VfMEFQ/exec';
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbzQF0sf--CkPm7MhtCIuE_7vQJuK8W0zVwSB5CYx1GO2uf7R3RZb0Cb-GEJwBYX6Tvc/exec';
 const SGF_TOKEN='SGF-LIVE-2026';
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyAA0EGLpcVvEIDwDtfyPIJttvQT_lfLlNM",
@@ -277,6 +355,17 @@ try {
       <div class="field">
         <label>Event Code <span style="font-size:0.72rem;color:var(--muted);font-weight:600;">(players enter this to join — change each event)</span></label>
         <input type="text" id="inp-eventcode" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 7823" maxlength="6" style="letter-spacing:6px;font-size:1.3rem;font-weight:800;text-align:center;width:100%;box-sizing:border-box;">
+      </div>
+      <div class="field">
+        <label>Lift, Clean &amp; Place</label>
+        <select id="inp-lcp" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #cce0ca;border-radius:8px;font-family:'Nunito',sans-serif;font-weight:700;font-size:0.9rem;background:#fff;color:var(--text);">
+          <option value="no">No — Play it as it lies</option>
+          <option value="yes">Yes — Lift, Clean &amp; Place in effect</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Admin Notes <span style="font-size:0.72rem;color:var(--muted);font-weight:600;">(shown on Info tab to all players)</span></label>
+        <textarea id="inp-notes" rows="3" maxlength="300" placeholder="e.g. Cart path only on 14, pace of play reminder..." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #cce0ca;border-radius:8px;font-family:'Nunito',sans-serif;font-weight:600;font-size:0.88rem;resize:vertical;color:var(--text);"></textarea>
       </div>
     </div>
     <div class="setup-card">
@@ -339,12 +428,14 @@ try {
         <label style="display:block;font-size:0.8rem;font-weight:800;color:var(--sgf-green-dark);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Enter Event Code</label>
         <input type="text" id="join-code-input" inputmode="numeric" pattern="[0-9]*" placeholder="• • • •" maxlength="6"
           style="width:100%;box-sizing:border-box;text-align:center;font-size:2rem;font-weight:900;letter-spacing:14px;border:2.5px solid var(--sgf-green);border-radius:10px;padding:14px 8px;color:var(--sgf-black);background:#fff;"
-          oninput="document.getElementById('join-code-error').style.display='none'">
+          oninput="document.getElementById('join-code-error').style.display='none'"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();verifyAndJoin();}">
         <div id="join-code-error" style="display:none;color:#c0392b;font-size:0.84rem;font-weight:800;margin-top:8px;text-align:center;">
           ❌ Incorrect code — check with the organizer.
         </div>
       </div>
       <button class="start-btn" style="margin-top:16px;" onclick="verifyAndJoin()">Join Scorecard →</button>
+      <button class="add-player-row" style="margin-top:10px;width:100%;text-align:center;" onclick="joinAsSpectator()">👁️ Watch as Spectator (Read Only)</button>
     </div>
   </div>
 </div>
@@ -407,6 +498,7 @@ try {
       <div class="welcome-msg-main">No round in progress at this time.</div>
       <div class="welcome-msg-sub">Check back soon — tee time is coming!</div>
     </div>
+    <button class="welcome-past-btn" onclick="showPastRounds()">📅 View Past Results</button>
   </div>
   <div class="sgf-copyright">© 2026 Saturday Golf Friends · All Rights Reserved</div>
 </div>
@@ -424,10 +516,12 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
       <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
       <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
+      <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰</button>
+      <button class="hdr-btn" onclick="showScreen('screen-info')">ℹ️</button>
       <button class="hdr-btn" id="btn-manage-groups" onclick="openManageGroups()">👥 Groups</button>
-      <button class="hdr-btn" id="btn-end-round-gear" style="background:rgba(192,57,43,0.3);border-color:rgba(192,57,43,0.5);" onclick="endRound()">⚙️</button>
     </div>
   </div>
+  <div id="spectator-banner-scoring" class="spectator-banner" style="display:none;">👁️ Spectator Mode — Read Only</div>
   <div class="scoring-meta-bar">
     <div class="nine-tabs">
       <button class="nine-tab active" id="tab-front" onclick="switchNine('front')">Out (1–9)</button>
@@ -442,6 +536,7 @@ try {
     <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div>Bogey</div>
     <div class="legend-item"><div class="legend-dot" style="background:#bdc3c7;border:1px solid #aaa"></div>Double</div>
     <div class="legend-item"><div class="legend-dot" style="background:#1a1a1a"></div>Triple+</div>
+    <div class="legend-item" style="margin-left:auto;gap:0;flex-direction:column;line-height:1.1;text-align:center;opacity:0.65;"><span>G</span><span style="font-size:0.55rem;">N</span></div>
   </div>
   <div class="score-table-wrap">
     <table class="score-table">
@@ -470,6 +565,7 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-scoring')">Scores</button>
       <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
       <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
+      <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰</button>
     </div>
   </div>
   <div class="lb-body">
@@ -520,6 +616,7 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-scoring')">Scores</button>
       <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
       <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
+      <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰</button>
     </div>
   </div>
   <div class="lb-body" id="skins-content">
@@ -539,6 +636,7 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-scoring')">Scores</button>
       <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
       <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
+      <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰</button>
     </div>
   </div>
   <div class="lb-body" id="closies-content">
@@ -549,6 +647,68 @@ try {
     <div id="closies-sync-result" class="sync-result" style="display:none;"></div>
   </div>
 </div>
+<!-- ===== PAYOUTS SCREEN ===== -->
+<div id="screen-payouts" class="screen">
+  <div class="app-header">
+    <div class="sgf-logo"><img id="logo-payouts" alt="SGF"></div>
+    <div class="header-text">
+      <div class="header-brand">💰 Payouts</div>
+      <div class="header-sub" id="payouts-sub">Round Results</div>
+    </div>
+    <div class="header-actions">
+      <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+      <button class="hdr-btn" onclick="showScreen('screen-scoring')">Scores</button>
+      <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
+      <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
+      <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
+    </div>
+  </div>
+  <div class="lb-body" id="payouts-content">
+    <div class="skins-empty">Start a round to view payouts.</div>
+  </div>
+</div>
+
+<!-- ===== INFO SCREEN ===== -->
+<div id="screen-info" class="screen">
+  <div class="app-header">
+    <div class="sgf-logo"><img id="logo-info" alt="SGF"></div>
+    <div class="header-text">
+      <div class="header-brand">Round Info</div>
+      <div class="header-sub" id="info-sub">Today's Round</div>
+    </div>
+    <div class="header-actions">
+      <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+      <button class="hdr-btn" onclick="showScreen('screen-scoring')">Scores</button>
+      <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
+    </div>
+  </div>
+  <div id="spectator-banner-info" style="display:none;" class="spectator-banner">👁️ Spectator Mode — Read Only</div>
+  <div class="info-body">
+    <div class="info-card">
+      <div class="info-row">
+        <div class="info-icon">⛳</div>
+        <div><div class="info-label">Course</div><div class="info-value" id="info-course">—</div></div>
+      </div>
+      <div class="info-row">
+        <div class="info-icon">📅</div>
+        <div><div class="info-label">Date</div><div class="info-value" id="info-date">—</div></div>
+      </div>
+      <div class="info-row">
+        <div class="info-icon">🔑</div>
+        <div><div class="info-label">Event Code</div><div class="info-value" id="info-code">—</div></div>
+      </div>
+      <div class="info-row">
+        <div class="info-icon">🌿</div>
+        <div><div class="info-label">Lift, Clean &amp; Place</div><div class="info-value" id="info-lcp">—</div></div>
+      </div>
+      <div class="info-row" id="info-notes-row" style="display:none;">
+        <div class="info-icon">📋</div>
+        <div style="flex:1;"><div class="info-label">Admin Notes</div><div class="info-notes" id="info-notes"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 const HOLES=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18];
 const FRONT=[1,2,3,4,5,6,7,8,9];
@@ -558,19 +718,57 @@ let strokeIndex=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]; // Handicap Stro
 let scores={}, closies={}, activeNine='front', nextId=2, db=null, roundRef=null, isAdmin=(localStorage.getItem('sgf_isAdminDevice')==='true');
 let activeEventCode=null; // set when checkForActiveRound reads the round
 let myGroup=null, viewMode='myFoursome', groupsRef=null; // foursome isolation state
+let moneySetup=null; // loaded from SETUP.MONEY tab, stored in Firebase with round
+
+// ── Device ID for persistent admin detection ──────────────────────────────
+function getDeviceId(){
+  let id=localStorage.getItem('sgf_deviceId');
+  if(!id){ id='dev_'+Math.random().toString(36).slice(2)+Date.now().toString(36); localStorage.setItem('sgf_deviceId',id); }
+  return id;
+}
+
+// ── 5-tap title secret admin unlock ───────────────────────────────────────
+(function(){
+  let taps=0,tapTimer=null;
+  function handleTap(){
+    taps++;
+    clearTimeout(tapTimer);
+    if(taps>=5){
+      taps=0;
+      if(!isAdmin){
+        isAdmin=true;
+        localStorage.setItem('sgf_isAdminDevice','true');
+        applyAdminUI();
+        const t=document.createElement('div');
+        t.textContent='🔓 Admin unlocked';
+        Object.assign(t.style,{position:'fixed',bottom:'80px',left:'50%',transform:'translateX(-50%)',background:'rgba(58,170,53,0.92)',color:'#fff',padding:'10px 22px',borderRadius:'20px',fontFamily:'Nunito,sans-serif',fontWeight:'800',fontSize:'0.95rem',zIndex:'99999',pointerEvents:'none',transition:'opacity 0.5s'});
+        document.body.appendChild(t);
+        setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),600); },1800);
+      }
+    } else {
+      tapTimer=setTimeout(()=>{ taps=0; },800);
+    }
+  }
+  document.addEventListener('click',e=>{
+    if(e.target.closest('.header-brand,.sgf-logo')) handleTap();
+  });
+})();
 
 function applyAdminUI(){
   // Only the device that started the round (or has previously started one) can end it.
-  const gear=document.getElementById('btn-end-round-gear');
   const setupBtn=document.getElementById('btn-end-round-setup');
   const manageBtn=document.getElementById('btn-manage-groups');
-  if(gear) gear.style.display=isAdmin?'':'none';
   if(setupBtn) setupBtn.style.display=isAdmin?'':'none';
   if(manageBtn) manageBtn.style.display=isAdmin?'':'none';
+  // Floating gear visibility is managed by showScreen (depends on current screen)
+  // Re-trigger via the current active screen id if available
+  const active=document.querySelector('.screen.active');
+  const endRoundBtn=document.getElementById('end-round-btn');
+  if(endRoundBtn&&active) endRoundBtn.style.display=(isAdmin&&GAME_SCREENS.includes(active.id))?'flex':'none';
 }
 
 window.addEventListener('DOMContentLoaded',()=>{
-  ['logo1','logo2','logo3','logo4','logo5','logo-skins','logo-closies','logo-grouppick','logo-history','logo-history2','logo-welcome','logo-welcome-big'].forEach(id=>{
+  ['logo1','logo2','logo3','logo4','logo5','logo-skins','logo-closies','logo-payouts','logo-info','logo-grouppick','logo-history','logo-history2','logo-welcome','logo-welcome-big'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.src=SGF_LOGO;
   });
   document.getElementById('inp-date').value=new Date().toISOString().slice(0,10);
@@ -606,6 +804,12 @@ function checkForActiveRound(){
       document.getElementById('join-date').textContent=data.date||'';
       document.getElementById('join-players').textContent=`${(data.players||[]).length} players`;
       activeEventCode=data.code||null;
+      // Auto-grant admin if this device created the round (device ID match)
+      if(data.adminDeviceId && data.adminDeviceId===getDeviceId()){
+        isAdmin=true; localStorage.setItem('sgf_isAdminDevice','true');
+      }
+      // Admin devices skip the join screen and go straight in
+      if(isAdmin){ joinRound(); return; }
       // Show code entry only if this round has a code set
       const codeSection=document.getElementById('join-code-section');
       if(activeEventCode){ codeSection.style.display='block'; } else { codeSection.style.display='none'; }
@@ -646,6 +850,12 @@ function verifyAndJoin(){
       return;
     }
   }
+  window.isSpectator=false;
+  joinRound();
+}
+
+function joinAsSpectator(){
+  window.isSpectator=true;
   joinRound();
 }
 
@@ -666,11 +876,13 @@ function joinRound(){
     const groupsData=data.groups||{};
     players.forEach(p=>{ p.group=groupsData[p.id]!==undefined?(parseInt(groupsData[p.id])||1):(p.group||1); });
     players.forEach(p=>{ if(!scores[p.id]) scores[p.id]={}; HOLES.forEach(h=>{ if(scores[p.id][h]===undefined) scores[p.id][h]=null; }); });
+    moneySetup=data.moneySetup||null;
     document.getElementById('hdr-course').textContent=data.course||'SGF Live Scoring';
     document.getElementById('hdr-date').textContent=data.date||'Live Round';
     document.getElementById('lb-sub').textContent=data.course||'SGF Live Scoring';
     document.getElementById('skins-sub').textContent=data.course||'SGF Live Scoring';
     document.getElementById('closies-sub').textContent=data.course||'SGF Live Scoring';
+    document.getElementById('payouts-sub').textContent=data.course||'Round Results';
     // Remember this round so we can detect a new one next visit
     localStorage.setItem('sgf_lastRoundStart',String(data.startedAt||''));
     listenForScoreUpdates();
@@ -705,6 +917,7 @@ function listenForScoreUpdates(){
     buildTable();
     if(document.getElementById('screen-lb').classList.contains('active')) buildLB();
     if(document.getElementById('screen-skins').classList.contains('active')) buildSkinsView();
+    if(document.getElementById('screen-payouts').classList.contains('active')) buildPayoutsView();
   });
 }
 
@@ -861,6 +1074,8 @@ async function startRound(){
   players.forEach(p=>{scores[p.id]={};HOLES.forEach(h=>scores[p.id][h]=null);});
   const course=document.getElementById('inp-course').value.trim()||'SGF Live Scoring';
   const date=document.getElementById('inp-date').value;
+  const lcp=document.getElementById('inp-lcp')?document.getElementById('inp-lcp').value:'no';
+  const adminNotes=document.getElementById('inp-notes')?document.getElementById('inp-notes').value.trim():'';
   document.getElementById('hdr-course').textContent=course;
   document.getElementById('hdr-date').textContent=date?fmtDate(date):'Live Round';
   document.getElementById('lb-sub').textContent=course;
@@ -868,6 +1083,7 @@ async function startRound(){
   localStorage.setItem('sgf_isAdminDevice','true');
   document.getElementById('skins-sub').textContent=course;
   document.getElementById('closies-sub').textContent=course;
+  document.getElementById('payouts-sub').textContent=course;
   const sheetIdVal=extractSheetId(document.getElementById('inp-sheetid').value.trim());
   localStorage.setItem('sgf_sheetId',sheetIdVal);
   window.activeSheetId=sheetIdVal;
@@ -880,7 +1096,10 @@ async function startRound(){
       groups: groupsMap,
       code:(document.getElementById('inp-eventcode').value.trim()||''),
       sheetId:sheetIdVal,
-      startedAt:Date.now()
+      moneySetup: moneySetup||null,
+      lcp, adminNotes,
+      startedAt:Date.now(),
+      adminDeviceId:getDeviceId()
     };
     await firebase.database().ref('sgf/activeRound').set(roundData);
     listenForScoreUpdates();
@@ -902,16 +1121,32 @@ function buildParInputs(){
 
 function renderPlayerList(){
   const el=document.getElementById('player-list');
-  el.innerHTML=players.map((p,i)=>`
-    <div class="player-item">
+  el.innerHTML=players.map((p,i)=>{
+    const pt=p.playType||'full';
+    const ptLabel=pt==='closie'?'📍 Closie':pt==='guest'?'🚫 Opt-Out':'⛳ Full';
+    const ptCls=pt==='closie'?'closie':pt==='guest'?'guest':'full';
+    return`<div class="player-item">
       <span class="player-num">${i+1}</span>
       <input type="text" value="${esc(p.name||'')}" placeholder="Player ${i+1}" maxlength="20" oninput="players[${i}].name=this.value">
+      <button class="play-type-btn ${ptCls}" onclick="cyclePlayType(${p.id})">${ptLabel}</button>
       ${players.length>1?`<button class="rm-btn" onclick="removePlayer(${p.id})">×</button>`:''}
-    </div>`).join('');
+    </div>`;
+  }).join('');
   document.getElementById('player-count').textContent=players.length;
 }
 
-function addPlayer(){if(players.length>=30)return;players.push({id:nextId++,name:''});renderPlayerList();}
+function cyclePlayType(id){
+  const p=players.find(p=>p.id===id);
+  if(!p)return;
+  const order=['full','closie','guest'];
+  const cur=p.playType||'full';
+  p.playType=order[(order.indexOf(cur)+1)%order.length];
+  // Keep closieOnly in sync for backward compat
+  p.closieOnly=(p.playType!=='full');
+  renderPlayerList();
+}
+
+function addPlayer(){if(players.length>=30)return;players.push({id:nextId++,name:'',playType:'full',closieOnly:false});renderPlayerList();}
 function removePlayer(id){if(players.length<=1)return;players=players.filter(p=>p.id!==id);renderPlayerList();}
 
 // Extracts the Google Sheet ID from a full URL if one is pasted.
@@ -922,9 +1157,7 @@ function extractSheetId(val){
   var m=val.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
   return m ? m[1] : val;
 }
-
 // Called live as the user types/pastes into the Sheet ID field.
-// If a full URL is detected, immediately replaces the field value with just the ID.
 function autoExtractSheetId(input){
   var raw=input.value.trim();
   var extracted=extractSheetId(raw);
@@ -955,7 +1188,10 @@ async function loadPlayersFromSheet(){
       const courseTee=String(e.row[3]||'').trim();
       const dash=courseTee.lastIndexOf('-');
       const tee=dash>=0?courseTee.slice(dash+1):courseTee;
-      return{id:i+1,name:String(e.row[0]).trim(),hcp:e.row[7]?parseInt(e.row[7])||0:0,tee,group:parseInt(e.group)||1};
+      // Col C (index 1) = Handicap Index — blank means Closie-Only player (no GHIN)
+      const hcpIndex=String(e.row[1]||'').trim();
+      const isClosie=hcpIndex===''||hcpIndex.toLowerCase()==='n/a';
+      return{id:i+1,name:String(e.row[0]).trim(),hcp:e.row[7]?parseInt(e.row[7])||0:0,tee,group:parseInt(e.group)||1,closieOnly:isClosie,playType:isClosie?'closie':'full'};
     });
     nextId=players.length+1;
     renderPlayerList();
@@ -982,6 +1218,23 @@ async function loadPlayersFromSheet(){
         } else { showStatus(st,`✅ Loaded ${players.length} players + course pars! (No stroke index row found — add a "Handicap" row to SETUP.COURSE for net skins)`, 'ok'); }
       } else { showStatus(st,`✅ Loaded ${players.length} players with handicaps!`,'ok'); }
     } else { showStatus(st,`✅ Loaded ${players.length} players with handicaps!`,'ok'); }
+    // Load money setup from SETUP.MONEY (non-fatal if tab missing)
+    moneySetup=null;
+    try{
+      const mUrl=`${APPS_SCRIPT_URL}?action=loadMoneySetup&token=${SGF_TOKEN}&sheetId=${encodeURIComponent(sheetId)}`;
+      const mResp=await fetch(mUrl);
+      const mJson=await mResp.json();
+      if(mJson.status==='ok'&&mJson.money){
+        moneySetup=mJson.money;
+        // Derive closiePerHole if not returned directly
+        if(!moneySetup.closiePerHole&&moneySetup.closiesPool){
+          const par3Count=pars.filter(p=>p===3).length||1;
+          moneySetup.closiePerHole=Math.round(moneySetup.closiesPool/par3Count);
+        }
+        console.log('Money setup loaded:',moneySetup);
+      }
+    }catch(me){ console.log('Money setup load skipped:',me.message); }
+
   }catch(e){showStatus(st,`Error: ${e.message}`,'err');}
   document.getElementById('btn-load').disabled=false;
 }
@@ -1200,11 +1453,21 @@ function pTot(n){return(n==='front'?pars.slice(0,9):pars.slice(9)).reduce((a,b)=
 function runSum(pid,nineHoles){let s=0,any=false;nineHoles.forEach(h=>{const v=scores[pid]&&scores[pid][h];if(v!==null&&v!==undefined){s+=v;any=true;}});return any?s:null;}
 function runPar(pid,nineHoles){let s=0;nineHoles.forEach(h=>{const v=scores[pid]&&scores[pid][h];if(v!==null&&v!==undefined){s+=pars[HOLES.indexOf(h)];}});return s;}
 
+function strokesOnHole(hcp,hsi){
+  if(!hcp||hcp<=0)return 0;
+  return Math.floor(hcp/18)+(hcp%18>0&&hcp%18>=hsi?1:0);
+}
+function scoreBtnInner(gross,hcp,hsi){
+  if(gross===null||gross===undefined)return{html:'—',hasNet:false};
+  if(!hcp||hcp<=0)return{html:String(gross),hasNet:false};
+  const net=parseInt(gross)-strokesOnHole(hcp,hsi);
+  return{html:`<span class="sb-gross">${gross}</span><span class="sb-net">${net}</span>`,hasNet:true};
+}
 function buildTable(){
   const holes=hSet(),ps=pSet(),tot=pTot(activeNine),lbl=activeNine==='front'?'Out':'In';
   document.getElementById('score-thead').innerHTML=`
     <tr class="th-header">
-      <th class="th-name">Player</th>
+      <th class="th-name">Hole</th>
       ${holes.map(h=>`<th>${h}</th>`).join('')}
       <th>${lbl}</th>${activeNine==='back'?'<th>Tot</th>':''}<th>+/-</th>
     </tr>
@@ -1225,10 +1488,21 @@ function buildTable(){
     const vp=tot2!==null?tot2-runPar(p.id,holes):null;
     const vpStr=vp===null?'—':(vp===0?'E':vp>0?`+${vp}`:vp);
     const vCls=vp===null?'':(vp<0?'under':vp===0?'even':'over');
-    tr.innerHTML=`<td class="td-name"><div class="td-name-text">${esc(p.name||'Player '+p.id)}</div></td>`+
+    const rawName=p.name||'Player '+p.id;
+    const commaIdx=rawName.indexOf(',');
+    const excluded=p.closieOnly||p.playType==='closie'||p.playType==='guest';
+    const excludedBadge=excluded?`<span class="excluded-badge">${p.playType==='guest'?'OPT':'C'}</span>`:'';
+    const nameCls=excluded?'td-name-excluded':'';
+    const nameHTML=commaIdx>-1
+      ?`<div class="td-name-last ${nameCls}">${esc(rawName.slice(0,commaIdx).trim())}${excludedBadge}</div><div class="td-name-first">${esc(rawName.slice(commaIdx+1).trim())}</div>`
+      :(()=>{const parts=rawName.trim().split(' ');return parts.length>1?`<div class="td-name-last ${nameCls}">${esc(parts.slice(1).join(' '))}${excludedBadge}</div><div class="td-name-first">${esc(parts[0])}</div>`:`<div class="td-name-last ${nameCls}">${esc(rawName)}${excludedBadge}</div>`;})();
+    tr.innerHTML=`<td class="td-name">${nameHTML}</td>`+
       holes.map((h,i)=>{
         const sv=scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined?scores[p.id][h]:'';
-        return`<td class="td-score"><input class="score-inp ${sCls(sv||null,ps[i])}" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="20" value="${sv}" placeholder="-" ${readOnly?'disabled':`onclick="cellClick(event,${p.id},${h},this)" onchange="upd(${p.id},${h},this)"`}></td>`;
+        const svNum=sv!==''?parseInt(sv):null;
+        const hsi=strokeIndex[HOLES.indexOf(h)]||HOLES.indexOf(h)+1;
+        const inner=scoreBtnInner(svNum!==null?svNum:null,p.hcp||0,hsi);
+        return`<td class="td-score"><button class="score-btn ${inner.hasNet?'has-net ':''}${sCls(svNum,ps[i])}" data-pid="${p.id}" data-hole="${h}" ${readOnly?'disabled':`onclick="openScorePad(${p.id},${h})"`}>${inner.html}</button></td>`;
       }).join('')+
       `<td class="td-sub" id="sub-${p.id}">${tot2!==null?tot2:'—'}</td>${activeNine==='back'?(()=>{const ft=runSum(p.id,FRONT);const bt=runSum(p.id,BACK);const grossTot=(ft!==null||bt!==null)?((ft||0)+(bt||0)):null;return`<td class="td-sub" id="gtot-${p.id}">${grossTot!==null?grossTot:'—'}</td>`;})():''}<td class="td-total ${vCls}" id="vp-${p.id}">${vpStr}</td>`;
     tbody.appendChild(tr);
@@ -1236,7 +1510,42 @@ function buildTable(){
   updateGroupStatusBar();
 }
 
+function populateInfoScreen(data){
+  // Populate the INFO screen with round details from Firebase data
+  const d=data||{};
+  const el=id=>document.getElementById(id);
+  if(el('info-course')) el('info-course').textContent=d.course||'—';
+  if(el('info-date'))   el('info-date').textContent=d.date||'—';
+  if(el('info-sub'))    el('info-sub').textContent=d.course||'Today\'s Round';
+  if(el('info-code'))   el('info-code').textContent=d.code||'—';
+  const lcp=d.lcp==='yes';
+  if(el('info-lcp'))    el('info-lcp').innerHTML=lcp?'<span class="info-badge on">✅ Yes — In Effect</span>':'<span class="info-badge off">No — Play it as it lies</span>';
+  if(el('info-notes')){
+    const notes=(d.adminNotes||'').trim();
+    el('info-notes').textContent=notes;
+    if(el('info-notes-row')) el('info-notes-row').style.display=notes?'flex':'none';
+  }
+  // Spectator banners
+  const isSpec=!!window.isSpectator;
+  ['spectator-banner-info','spectator-banner-scoring'].forEach(id=>{const b=el(id);if(b)b.style.display=isSpec?'block':'none';});
+}
+
 function afterRoundLoaded(){
+  // Pull round meta for INFO screen from Firebase
+  if(db){
+    firebase.database().ref('sgf/activeRound').once('value').then(snap=>{
+      if(snap.exists()) populateInfoScreen(snap.val());
+    });
+  }
+  // Spectator mode: force whole-field view, skip group picker
+  if(window.isSpectator){
+    myGroup=null;
+    viewMode='wholeField';
+    buildTable();
+    showScreen('screen-scoring');
+    applyAdminUI();
+    return;
+  }
   const distinctGroups=[...new Set(players.map(p=>parseInt(p.group)||1))].sort((a,b)=>a-b);
   if(distinctGroups.length<=1){
     myGroup=distinctGroups[0]||1;
@@ -1348,26 +1657,20 @@ function reassignGroup(pid, newGroup){
   buildTable();
 }
 
-function cellClick(e,pid,hole,inp){
-  const existing=scores[pid]&&scores[pid][hole]!==null&&scores[pid][hole]!==undefined?scores[pid][hole]:null;
-  if(existing!==null){
-    const confirmed=confirm(`Hole ${hole} score is ${existing}. Change it?`);
-    if(!confirmed){e.preventDefault();inp.blur();return;}
-    inp.value='';
-    upd(pid,hole,inp);
-  }
-}
-
-function upd(pid,hole,inp){
-  const raw=inp.value===''?'':inp.value;
-  const val=raw===''?null:parseInt(raw,10);
-  if(val!==null&&(isNaN(val)||val<1||val>20)){
-    inp.value=scores[pid]&&scores[pid][hole]?scores[pid][hole]:'';
-    return;
-  }
+// ===== SAVE SCORE =====
+function saveScore(pid,hole,val){
   if(!scores[pid])scores[pid]={};
   scores[pid][hole]=val;
-  inp.className=`score-inp ${sCls(val,pars[HOLES.indexOf(hole)])}`;
+  const btn=document.querySelector(`.score-btn[data-pid="${pid}"][data-hole="${hole}"]`);
+  if(btn){
+    const wasActive=btn.classList.contains('sp-active');
+    const player=players.find(p=>p.id===pid);
+    const hsi=strokeIndex[HOLES.indexOf(hole)]||HOLES.indexOf(hole)+1;
+    const inner=scoreBtnInner(val!==null?val:null,player?player.hcp||0:0,hsi);
+    btn.innerHTML=inner.html;
+    btn.className=`score-btn ${inner.hasNet?'has-net ':''}${sCls(val,pars[HOLES.indexOf(hole)])}`;
+    if(wasActive)btn.classList.add('sp-active');
+  }
   pushScoreToFirebase(pid,hole,val);
   const nine=activeNine==='front'?FRONT:BACK;
   const tot=runSum(pid,nine);
@@ -1376,6 +1679,115 @@ function upd(pid,hole,inp){
   if(se)se.textContent=tot!==null?tot:'—';
   if(ve){ve.textContent=vp===null?'—':(vp===0?'E':vp>0?`+${vp}`:vp);ve.className=`td-total ${vp===null?'':(vp<0?'under':vp===0?'even':'over')}`;}
   if(activeNine==='back'){const ge=document.getElementById(`gtot-${pid}`);if(ge){const ft=runSum(pid,FRONT);const bt=runSum(pid,BACK);ge.textContent=(ft!==null||bt!==null)?((ft||0)+(bt||0)):'—';}}
+}
+
+// ===== CUSTOM SCORE PAD =====
+let padPid=null,padHole=null,padEntry='',padTimer=null,padReplaceNext=false;
+
+function getPadPlayers(){
+  return players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name')
+    .filter(p=>myGroup===null||(parseInt(p.group)||1)===myGroup);
+}
+
+function openScorePad(pid,hole){
+  if(isLocked)return;
+  if(window.isSpectator)return; // spectators cannot enter scores
+  if(padTimer){clearTimeout(padTimer);padTimer=null;}
+  padPid=pid;padHole=hole;
+  const existing=scores[pid]&&scores[pid][hole]!=null?scores[pid][hole]:null;
+  padEntry=existing!==null?String(existing):'';
+  padReplaceNext=existing!==null;
+  updatePadUI();
+  document.querySelectorAll('.score-btn.sp-active').forEach(b=>b.classList.remove('sp-active'));
+  const btn=document.querySelector(`.score-btn[data-pid="${pid}"][data-hole="${hole}"]`);
+  if(btn)btn.classList.add('sp-active');
+  const panel=document.getElementById('score-pad-panel');
+  panel.style.transform='translateY(0)';
+  panel.style.transition='transform 0.14s ease-in';
+  document.getElementById('score-pad').classList.add('open');
+}
+
+function updatePadUI(){
+  const p=players.find(pl=>pl.id===padPid);
+  const par=pars[HOLES.indexOf(padHole)];
+  document.getElementById('score-pad-name').textContent=p?p.name:'';
+  document.getElementById('score-pad-meta').textContent=`Hole ${padHole}  ·  Par ${par}`;
+  const disp=document.getElementById('score-pad-disp');
+  disp.textContent=padEntry||'—';
+  disp.className=padEntry?'has-val':'';
+}
+
+function scorePadKey(n){
+  if(padTimer){clearTimeout(padTimer);padTimer=null;}
+  if(padReplaceNext||padEntry===''){
+    padEntry=String(n);padReplaceNext=false;
+  } else if(padEntry.length===1){
+    const two=parseInt(padEntry+n);
+    padEntry=(two>=10&&two<=20)?String(two):String(n);
+  } else {
+    padEntry=String(n);
+  }
+  updatePadUI();
+  // Flash the tapped key
+  const allKeys=[...document.querySelectorAll('.sp-key')];
+  const key=allKeys.find(k=>k.textContent.trim()===String(n)&&!k.classList.contains('sp-key-action'));
+  if(key){key.classList.add('sp-key-flash');setTimeout(()=>key.classList.remove('sp-key-flash'),130);}
+  // Auto-save after pause (gives time to type a 2nd digit for scores 10-20)
+  const val=parseInt(padEntry);
+  if(!isNaN(val)&&val>=1&&val<=20){
+    padTimer=setTimeout(()=>{padTimer=null;scorePadCommit();},600);
+  }
+}
+
+function scorePadBackspace(){
+  if(padTimer){clearTimeout(padTimer);padTimer=null;}
+  padReplaceNext=false;
+  padEntry=padEntry.slice(0,-1);
+  updatePadUI();
+}
+
+function scorePadManualSave(){
+  if(padTimer){clearTimeout(padTimer);padTimer=null;}
+  if(padEntry===''){saveScore(padPid,padHole,null);closeScorePad();return;}
+  scorePadCommit();
+}
+
+function scorePadCommit(){
+  const val=parseInt(padEntry);
+  if(isNaN(val)||val<1||val>20)return;
+  saveScore(padPid,padHole,val);
+  // Find next player/hole within current nine
+  const nine=activeNine==='front'?FRONT:BACK;
+  const holeIdx=nine.indexOf(padHole);
+  const tp=getPadPlayers();
+  const curIdx=tp.findIndex(p=>p.id===padPid);
+  const curBtn=document.querySelector(`.score-btn[data-pid="${padPid}"][data-hole="${padHole}"]`);
+  if(curBtn)curBtn.classList.remove('sp-active');
+  let nextPid=null,nextHole=padHole;
+  if(curIdx+1<tp.length){nextPid=tp[curIdx+1].id;}
+  else if(holeIdx+1<nine.length){nextHole=nine[holeIdx+1];nextPid=tp[0].id;}
+  if(nextPid===null){closeScorePad();return;}
+  // Slide panel down, swap content, slide back up
+  const panel=document.getElementById('score-pad-panel');
+  panel.style.transform='translateY(110%)';
+  setTimeout(()=>{
+    padPid=nextPid;padHole=nextHole;
+    const ex=scores[padPid]&&scores[padPid][padHole]!=null?scores[padPid][padHole]:null;
+    padEntry=ex!==null?String(ex):'';padReplaceNext=ex!==null;
+    updatePadUI();
+    const nb=document.querySelector(`.score-btn[data-pid="${padPid}"][data-hole="${padHole}"]`);
+    if(nb)nb.classList.add('sp-active');
+    panel.style.transition='transform 0.18s ease-out';
+    panel.style.transform='translateY(0)';
+    setTimeout(()=>{panel.style.transition='transform 0.14s ease-in';},200);
+  },150);
+}
+
+function closeScorePad(){
+  if(padTimer){clearTimeout(padTimer);padTimer=null;}
+  document.getElementById('score-pad').classList.remove('open');
+  document.querySelectorAll('.score-btn.sp-active').forEach(b=>b.classList.remove('sp-active'));
+  padPid=null;padHole=null;padEntry='';padReplaceNext=false;
 }
 
 function sCls(val,par){
@@ -1389,7 +1801,11 @@ function buildLB(){
   // Helper: get a player's gross on a given hole (999 if not yet scored)
   function holeGross(pid,holeNum){return(scores[pid]&&scores[pid][holeNum]!=null)?scores[pid][holeNum]:999;}
 
-  const ranked=players.map(p=>{
+  // Only full-fee players compete in Low Net; closie-only players shown separately
+  const competingPlayers=players.filter(p=>!p.closieOnly);
+  const closieOnlyPlayers=players.filter(p=>p.closieOnly&&p.name&&p.name.trim()!=='');
+
+  const ranked=competingPlayers.map(p=>{
     const hcp=p.hcp||0;
     const done=HOLES.filter(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
     const hp=done.length;
@@ -1440,7 +1856,8 @@ function buildLB(){
   });
 
   const m=['🥇','🥈','🥉'];
-  document.getElementById('lb-card').innerHTML=ranked.map(p=>{
+  // Render competing players
+  const competingHTML=ranked.map(p=>{
     const pos=p.rank<=3?m[p.rank-1]:`${p.rank}`;
     if(p.hp>0){
       const thru=p.hp===18?'F':`Thru ${p.hp}`;
@@ -1452,6 +1869,16 @@ function buildLB(){
     }
     return`<div class="lb-row"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">No scores · Hcp ${p.hcp||0}</div></div><div class="lb-inc">—</div></div>`;
   }).join('');
+
+  // Render closie-only players at the bottom (show gross scores, no net ranking)
+  const closieOnlyHTML=closieOnlyPlayers.map(p=>{
+    const done=HOLES.filter(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
+    const gross=done.length?done.reduce((s,h)=>s+scores[p.id][h],0):null;
+    const thru=done.length===18?'F':done.length>0?`Thru ${done.length}`:'No scores';
+    return`<div class="lb-row" style="opacity:0.7;"><div class="lb-pos" style="font-size:0.9rem;color:#bbb;">—</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}<span class="lb-closie-badge">CLOSIES ONLY</span></div><div class="lb-holes">${thru}${gross!==null?' · Gross '+gross:''}</div></div><div class="lb-inc" style="font-size:0.82rem;color:#bbb;">${gross!==null?gross:'—'}</div></div>`;
+  }).join('');
+
+  document.getElementById('lb-card').innerHTML=competingHTML+closieOnlyHTML;
 }
 
 async function pushToSheets(silent=false){
@@ -1527,8 +1954,10 @@ function showScreen(id){
   if(id==='screen-lb')buildLB();
   if(id==='screen-skins')buildSkinsView();
   if(id==='screen-closies')buildClosiesView();
+  if(id==='screen-payouts')buildPayoutsView();
   // Show lock button on game screens; auto-unlock when leaving them
   const lockBtn=document.getElementById('lock-btn');
+  const endRoundBtn=document.getElementById('end-round-btn');
   if(lockBtn){
     if(GAME_SCREENS.includes(id)){
       lockBtn.style.display='flex';
@@ -1537,6 +1966,8 @@ function showScreen(id){
       if(isLocked) toggleLock();
     }
   }
+  // Show floating ⚙️ gear only for admins on game screens
+  if(endRoundBtn) endRoundBtn.style.display=(isAdmin&&GAME_SCREENS.includes(id))?'flex':'none';
   window.scrollTo(0,0);
 }
 
@@ -1596,8 +2027,250 @@ async function pushClosiesToSheet(){
   }
 }
 
-function buildSkinsView(){
+function buildPayoutsView(){
   const ap=players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name');
+  if(!ap.length){
+    document.getElementById('payouts-content').innerHTML='<div class="skins-empty">No players loaded. Start a round first.</div>';
+    return;
+  }
+
+  const fullFeePlayers=ap.filter(p=>!p.closieOnly);
+  const closieOnlyPlayers=ap.filter(p=>p.closieOnly);
+  const money=moneySetup||{};
+  const totalPot=money.totalPot||0;
+  const closiesPool=money.closiesPool||0;
+  let closiePerHole=money.closiePerHole||0;
+  const skinsPool=money.skinsPool||0;
+  const lowNet1=money.lowNet1||0;
+  const lowNet2=money.lowNet2||0;
+  const hasMoney=(totalPot+closiesPool+skinsPool+lowNet1+lowNet2)>0;
+
+  // ── CLOSIES (calculate first so pot summary shows actual) ────────────────
+  const par3Holes=HOLES.filter(h=>(pars[h-1]||0)===3);
+  // Derive per-hole if not already set
+  if(!closiePerHole&&closiesPool&&par3Holes.length) closiePerHole=Math.round(closiesPool/par3Holes.length);
+  const closieEntries=par3Holes.map(hole=>{
+    const winnerId=closies[hole];
+    const winner=ap.find(p=>p.id===winnerId);
+    return{hole,winner};
+  });
+  const closiesActualPaid=closieEntries.filter(e=>e.winner).length*(closiePerHole||0);
+  // Reconciled Low Net pool = what's left after actual closies and skins
+  const actualLowNetPool=totalPot>0?totalPot-closiesActualPaid-skinsPool:lowNet1+lowNet2;
+
+  // ── POT SUMMARY ─────────────────────────────────────────────────────────
+  let potHTML='';
+  if(hasMoney){
+    potHTML=`<div class="pot-summary">
+      <div class="pot-total-row">
+        <span class="pot-total-label">TOTAL POT</span>
+        <span class="pot-total-amount">$${totalPot}</span>
+      </div>
+      <div class="pot-breakdown">
+        <div class="pot-bucket">
+          <div class="pot-bucket-label">CLOSIES</div>
+          <div class="pot-bucket-amount">$${closiesActualPaid||closiesPool}</div>
+        </div>
+        <div class="pot-bucket">
+          <div class="pot-bucket-label">NET SKINS</div>
+          <div class="pot-bucket-amount">$${skinsPool}</div>
+        </div>
+        <div class="pot-bucket">
+          <div class="pot-bucket-label">LOW NET</div>
+          <div class="pot-bucket-amount">$${actualLowNetPool||lowNet1+lowNet2}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  const closiesHTML=`<div class="payout-section">
+    <div class="payout-section-hdr">
+      <span class="payout-section-title">📍 CLOSIES</span>
+      ${closiesPool>0?`<span class="payout-pool-badge">${closiePerHole>0?'$'+closiePerHole+'/hole':'$'+closiesPool+' pool'}</span>`:''}
+    </div>
+    ${closieEntries.length===0?'<div class="skins-empty" style="padding:16px;">No Par 3 holes configured.</div>':
+      closieEntries.map(e=>`
+      <div class="payout-row">
+        <div class="payout-hole">Hole ${e.hole}</div>
+        <div class="${e.winner?'payout-name':'payout-name-empty'}">${e.winner?esc(e.winner.name):'No winner yet'}</div>
+        ${e.winner&&closiePerHole>0?`<div class="payout-amount">$${closiePerHole}</div>`:e.winner?'':'<div class="payout-amount-pending">—</div>'}
+      </div>`).join('')}
+  </div>`;
+
+  // ── NET SKINS ─────────────────────────────────────────────────────────────
+  function strokesToGive(hcp,hsi){if(!hcp||hcp<=0)return 0;return Math.min(hcp,18)>=hsi?1:0;}
+  // Only include players who have entered at least 1 score (so testing/partial rounds show skins)
+  const activeSkinPlayers=fullFeePlayers.filter(p=>HOLES.some(h=>scores[p.id]&&scores[p.id][h]!=null));
+  const skinCalcPlayers=activeSkinPlayers.length>=2?activeSkinPlayers:fullFeePlayers;
+  const skinTotals={},skinWins={};
+  skinCalcPlayers.forEach(p=>{skinTotals[p.id]=0;skinWins[p.id]=0;});
+  // Shotgun-aware play order: find first all-scored hole after a gap, process from there
+  const _pAH=h=>skinCalcPlayers.every(p=>scores[p.id]&&scores[p.id][h]!=null);
+  let _pStart=1;
+  for(let s=1;s<=18;s++){if(_pAH(s)&&!_pAH(s===1?18:s-1)){_pStart=s;break;}}
+  const _pOrder=Array.from({length:18},(_,i)=>((_pStart-1+i)%18)+1);
+  let carryVal=1;const _pMap={};
+  for(const hole of _pOrder){
+    const i=hole-1,hsi=strokeIndex[i]||hole,par=pars[i]||4,val=carryVal;
+    const hd=skinCalcPlayers.map(p=>{
+      const gross=(scores[p.id]&&scores[p.id][hole]!=null)?scores[p.id][hole]:null;
+      const str=strokesToGive(p.hcp||0,hsi);
+      return{p,gross,net:gross!==null?gross-str:null};
+    });
+    const allScored=hd.every(h=>h.gross!==null);
+    let status='pending',winner=null;
+    if(allScored){
+      const minNet=Math.min(...hd.map(h=>h.net));
+      const tied=hd.filter(h=>h.net===minNet);
+      if(tied.length===1){winner=tied[0].p;skinTotals[winner.id]+=val;skinWins[winner.id]+=1;status='won';carryVal=1;}
+      else{status='tied';carryVal++;}
+    }else{carryVal=1;}// pending hole — reset carry but keep processing
+    _pMap[hole]={hole,par,hsi,val,status,winner};
+  }
+  const skinResults=Array.from({length:18},(_,i)=>_pMap[i+1]);
+
+  const totalSkinsWon=skinResults.filter(r=>r.status==='won').length;
+  // Flat per-skin payout (matches Google Sheet: pool ÷ total skins won)
+  const skinPerWin=totalSkinsWon>0&&skinsPool>0?Math.floor(skinsPool/totalSkinsWon):0;
+  const skinRemainder=skinsPool>0?skinsPool-(skinPerWin*totalSkinsWon):0;
+  const skinWinnersArr=skinCalcPlayers.filter(p=>skinWins[p.id]>0).sort((a,b)=>skinWins[b.id]-skinWins[a.id]);
+
+  let skinsHTML=`<div class="payout-section">
+    <div class="payout-section-hdr">
+      <span class="payout-section-title">🏌️ NET SKINS</span>
+      ${skinsPool>0?`<span class="payout-pool-badge">$${skinsPool} pool · ${totalSkinsWon>0?'$'+skinPerWin+'/skin':''}</span>`:''}
+    </div>`;
+  if(skinWinnersArr.length===0){
+    skinsHTML+=`<div class="skins-empty" style="padding:16px;">No skins won yet.</div>`;
+  }else{
+    skinsHTML+=skinWinnersArr.map((p,idx)=>{
+      // Give any rounding remainder to the first (most skins) winner
+      const payout=skinsPool>0?skinWins[p.id]*skinPerWin+(idx===0?skinRemainder:0):0;
+      const wonHoles=skinResults.filter(r=>r.status==='won'&&r.winner&&r.winner.id===p.id);
+      const holesStr=wonHoles.map(r=>`H${r.hole}`).join(', ');
+      return`<div class="payout-row">
+        <div style="flex:1;">
+          <div class="payout-name">${esc(p.name)}</div>
+          <div class="payout-sub">${holesStr} · ${skinWins[p.id]} skin${skinWins[p.id]!==1?'s':''}</div>
+        </div>
+        ${skinsPool>0?`<div class="payout-amount">$${payout}</div>`:`<div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:var(--sgf-green-dark);">${skinWins[p.id]} skin${skinWins[p.id]!==1?'s':''}</div>`}
+      </div>`;
+    }).join('');
+  }
+  // Show any carried/pending holes at the end
+  const pendingCarry=skinResults.filter(r=>r.status==='pending'&&r.val>1);
+  if(pendingCarry.length>0){
+    skinsHTML+=`<div style="padding:8px 14px;background:#fff9e0;font-size:0.75rem;font-weight:700;color:#8a6d1f;border-top:1px solid #f0cc70;">
+      ⚑ ${pendingCarry[0].val-1} skins carrying into Hole ${pendingCarry[0].hole}</div>`;
+  }
+  skinsHTML+=`</div>`;
+
+  // ── LOW NET ───────────────────────────────────────────────────────────────
+  function holeGrossFF(pid,holeNum){return(scores[pid]&&scores[pid][holeNum]!=null)?scores[pid][holeNum]:999;}
+  const netRanked=fullFeePlayers.map(p=>{
+    const hcp=p.hcp||0;
+    const done=HOLES.filter(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
+    const hp=done.length;
+    if(hp===0)return{...p,gross:null,net:null,hcp,hp};
+    const gross=done.reduce((s,h)=>s+scores[p.id][h],0);
+    const net=gross-hcp;
+    return{...p,gross,net,hcp,hp};
+  }).filter(p=>p.hp>0).sort((a,b)=>{
+    if(a.net!==b.net)return a.net-b.net;
+    for(let si=1;si<=18;si++){
+      const idx=strokeIndex.indexOf(si);if(idx<0)continue;
+      const h=HOLES[idx];
+      const ag=holeGrossFF(a.id,h),bg=holeGrossFF(b.id,h);
+      if(ag!==bg)return ag-bg;
+    }
+    return 0;
+  });
+  netRanked.forEach((p,i)=>{p.rank=(i===0||netRanked[i-1].net!==p.net)?i+1:netRanked[i-1].rank;});
+
+  const lowNet1st=netRanked.find(p=>p.rank===1);
+  const lowNet2nd=netRanked.find(p=>p.rank===2);
+  // Reconcile Low Net prizes: if closies paid more than budgeted, Low Net pool shrinks
+  // so the total always equals the exact pot.  Preserves the 1st/2nd ratio from SETUP.
+  const setupLowTotal=lowNet1+lowNet2;
+  const ratio1=setupLowTotal>0?lowNet1/setupLowTotal:2/3;
+  const actualLowNet1=actualLowNetPool>0?Math.floor(actualLowNetPool*ratio1):lowNet1;
+  const actualLowNet2=actualLowNetPool>0?actualLowNetPool-actualLowNet1:lowNet2;
+  const places=[
+    {icon:'🥇',label:'1st Place',player:lowNet1st,prize:actualLowNet1},
+    {icon:'🥈',label:'2nd Place',player:lowNet2nd,prize:actualLowNet2}
+  ];
+  const lowNetHTML=`<div class="payout-section">
+    <div class="payout-section-hdr">
+      <span class="payout-section-title">🏆 LOW NET</span>
+      ${actualLowNetPool>0?`<span class="payout-pool-badge">$${actualLowNetPool} pool</span>`:''}
+    </div>
+    ${places.map(e=>`
+    <div class="payout-row">
+      <div class="payout-place-icon">${e.icon}</div>
+      <div style="flex:1;">
+        <div class="payout-place-label">${e.label}</div>
+        ${e.player?`<div class="payout-name">${esc(e.player.name)}</div>
+          <div class="payout-sub">Net ${e.player.net} · Gross ${e.player.gross} · Hcp ${e.player.hcp}</div>`:
+          `<div class="payout-name-empty">—</div>`}
+      </div>
+      ${e.player&&e.prize>0?`<div class="payout-amount">$${e.prize}</div>`:''}
+    </div>`).join('')}
+  </div>`;
+
+  // ── CLOSIE-ONLY NOTE ─────────────────────────────────────────────────────
+  let closieNote='';
+  if(closieOnlyPlayers.length>0){
+    closieNote=`<div class="closie-only-note">📍 <strong>Closies-Only</strong> (not in Skins or Low Net): ${closieOnlyPlayers.map(p=>esc(p.name)).join(', ')}</div>`;
+  }
+
+  // ── NO MONEY DATA NOTICE ─────────────────────────────────────────────────
+  let noMoneyNote='';
+  if(!hasMoney){
+    noMoneyNote=`<div style="background:#e8f0fe;border:1px solid #c0ccee;border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:0.78rem;font-weight:700;color:#3a5a8a;">
+      ℹ️ No money setup found. Load players from a sheet with a SETUP.MONEY tab to see dollar amounts. Results still show winners correctly.
+    </div>`;
+  }
+
+  // ── PER-PLAYER TOTALS ("Total $ to Give Out") ────────────────────────────
+  let playerTotalsHTML='';
+  if(hasMoney){
+    const totals={};
+    ap.forEach(p=>{totals[p.id]=0;});
+    // Add closies
+    closieEntries.forEach(e=>{
+      if(e.winner&&closiePerHole>0) totals[e.winner.id]=(totals[e.winner.id]||0)+closiePerHole;
+    });
+    // Add skins (flat per-win)
+    skinWinnersArr.forEach((p,idx)=>{
+      totals[p.id]=(totals[p.id]||0)+skinWins[p.id]*skinPerWin+(idx===0?skinRemainder:0);
+    });
+    // Add low net (reconciled amounts)
+    if(lowNet1st&&actualLowNet1>0) totals[lowNet1st.id]=(totals[lowNet1st.id]||0)+actualLowNet1;
+    if(lowNet2nd&&actualLowNet2>0) totals[lowNet2nd.id]=(totals[lowNet2nd.id]||0)+actualLowNet2;
+
+    const winners=ap.filter(p=>totals[p.id]>0).sort((a,b)=>totals[b.id]-totals[a.id]);
+    const grandTotal=winners.reduce((s,p)=>s+totals[p.id],0);
+    if(winners.length>0){
+      playerTotalsHTML=`<div class="payout-section" style="margin-top:8px;">
+        <div class="payout-section-hdr" style="background:linear-gradient(135deg,#1a4a1a,#2d6a2d);">
+          <span class="payout-section-title">💵 TOTAL $ TO GIVE OUT</span>
+          <span class="payout-pool-badge" style="background:rgba(255,215,0,0.25);border-color:rgba(255,215,0,0.5);color:#ffd700;">$${grandTotal} total</span>
+        </div>
+        ${winners.map(p=>`
+        <div class="payout-row">
+          <div class="payout-name">${esc(p.name)}</div>
+          <div class="payout-amount" style="font-size:1.35rem;">$${totals[p.id]}</div>
+        </div>`).join('')}
+      </div>`;
+    }
+  }
+
+  document.getElementById('payouts-content').innerHTML=potHTML+noMoneyNote+closieNote+closiesHTML+skinsHTML+lowNetHTML+playerTotalsHTML;
+}
+
+function buildSkinsView(){
+  // Only full-fee players (those with a GHIN handicap) compete in Net Skins
+  const ap=players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name'&&!p.closieOnly);
   if(!ap.length){
     document.getElementById('skins-content').innerHTML='<div class="skins-empty">No players loaded. Start a round first.</div>';
     return;
@@ -1608,38 +2281,39 @@ function buildSkinsView(){
     return Math.min(hcp,18)>=hsi?1:0; // skins: no double pops, cap at 18 strokes
   }
 
-  let carryVal=1,processing=true;
-  const results=[],skinTotals={},skinWins={};
-  ap.forEach(p=>{skinTotals[p.id]=0;skinWins[p.id]=0;});
+  // Only include players who have entered at least 1 score (so testing/partial rounds show skins)
+  const activeAp=ap.filter(p=>HOLES.some(h=>scores[p.id]&&scores[p.id][h]!=null));
+  const skinAp=activeAp.length>=2?activeAp:ap;
 
-  for(let i=0;i<18;i++){
-    const hole=i+1;
-    const hsi=strokeIndex[i]||hole;
-    const par=pars[i]||4;
-    const val=carryVal;
-
-    if(!processing){results.push({hole,par,hsi,val,status:'pending',winner:null});continue;}
-
-    const hd=ap.map(p=>{
+  const skinTotals={},skinWins={};
+  skinAp.forEach(p=>{skinTotals[p.id]=0;skinWins[p.id]=0;});
+  // Shotgun-aware play order: find first all-scored hole after a gap, process from there
+  const _sAH=h=>skinAp.every(p=>scores[p.id]&&scores[p.id][h]!=null);
+  let _sStart=1;
+  for(let s=1;s<=18;s++){if(_sAH(s)&&!_sAH(s===1?18:s-1)){_sStart=s;break;}}
+  const _sOrder=Array.from({length:18},(_,i)=>((_sStart-1+i)%18)+1);
+  let carryVal=1;const _sMap={};
+  for(const hole of _sOrder){
+    const i=hole-1;
+    const hsi=strokeIndex[i]||hole,par=pars[i]||4,val=carryVal;
+    const hd=skinAp.map(p=>{
       const gross=(scores[p.id]&&scores[p.id][hole]!=null)?scores[p.id][hole]:null;
       const str=strokesToGive(p.hcp||0,hsi);
       return{p,gross,net:gross!==null?gross-str:null};
     });
-
     const allScored=hd.every(h=>h.gross!==null);
     let status='pending',winner=null;
-
     if(allScored){
       const minNet=Math.min(...hd.map(h=>h.net));
       const tied=hd.filter(h=>h.net===minNet);
       if(tied.length===1){winner=tied[0].p;skinTotals[winner.id]+=val;skinWins[winner.id]+=1;status='won';carryVal=1;}
       else{status='tied';carryVal++;}
-    }else{processing=false;}
-
-    results.push({hole,par,hsi,val,status,winner});
+    }else{carryVal=1;}// pending hole — reset carry but keep processing
+    _sMap[hole]={hole,par,hsi,val,status,winner};
   }
+  const results=Array.from({length:18},(_,i)=>_sMap[i+1]);
 
-  const cardsHTML=`<div class="skins-summary">${ap.map(p=>`
+  const cardsHTML=`<div class="skins-summary">${skinAp.map(p=>`
     <div class="skin-card${skinWins[p.id]>0?' skin-card-win':''}">
       <div class="skin-card-name">${esc(p.name)}</div>
       <div class="skin-card-count">${skinWins[p.id]}</div>
@@ -1665,7 +2339,7 @@ function fmtDate(d){const dt=new Date(d+'T12:00:00');return dt.toLocaleDateStrin
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 /* ===== LOCK / UNLOCK ===== */
-const GAME_SCREENS=['screen-scoring','screen-lb','screen-skins','screen-closies'];
+const GAME_SCREENS=['screen-scoring','screen-lb','screen-skins','screen-closies','screen-payouts','screen-info'];
 let isLocked=false;
 
 function toggleLock(){
@@ -1697,9 +2371,38 @@ function showLockToast(msg){
   t._timer=setTimeout(()=>t.classList.remove('show'),1600);
 }
 </script>
+<!-- Custom Score Pad -->
+<div id="score-pad">
+  <div id="score-pad-backdrop" onclick="closeScorePad()"></div>
+  <div id="score-pad-panel">
+    <div id="score-pad-hdr">
+      <div>
+        <div id="score-pad-name"></div>
+        <div id="score-pad-meta"></div>
+      </div>
+      <button id="score-pad-closebtn" onclick="closeScorePad()">✕ Close</button>
+    </div>
+    <div id="score-pad-disp"></div>
+    <div id="score-pad-keys">
+      <button class="sp-key" onclick="scorePadKey(1)">1</button>
+      <button class="sp-key" onclick="scorePadKey(2)">2</button>
+      <button class="sp-key" onclick="scorePadKey(3)">3</button>
+      <button class="sp-key" onclick="scorePadKey(4)">4</button>
+      <button class="sp-key" onclick="scorePadKey(5)">5</button>
+      <button class="sp-key" onclick="scorePadKey(6)">6</button>
+      <button class="sp-key" onclick="scorePadKey(7)">7</button>
+      <button class="sp-key" onclick="scorePadKey(8)">8</button>
+      <button class="sp-key" onclick="scorePadKey(9)">9</button>
+      <button class="sp-key sp-key-action" onclick="scorePadBackspace()">⌫</button>
+      <button class="sp-key sp-key-hidden" disabled aria-hidden="true"></button>
+      <button class="sp-key sp-key-action sp-key-save" onclick="scorePadManualSave()">✓</button>
+    </div>
+  </div>
+</div>
 <!-- Lock overlay & button (always in DOM, shown/hidden per screen) -->
 <div id="lock-overlay" onclick="onLockedTap()"></div>
 <button id="lock-btn" onclick="toggleLock()" title="Lock screen">🔒</button>
+<button id="end-round-btn" onclick="endRound()" title="End Round / Settings">⚙️</button>
 <div id="lock-toast"></div>
 </body>
 </html>
