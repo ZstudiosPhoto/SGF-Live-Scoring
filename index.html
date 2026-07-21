@@ -1194,6 +1194,7 @@ async function loadPlayersFromSheet(){
     // Parse players from SETUP.PLAYERS B13:I30, keeping the Group column (N13:N30) aligned by row index
     const rawPlayers=json.players||[];
     const rawGroups=json.groups||[];
+    console.log('SGF groups from sheet:', JSON.stringify(rawGroups));
     const playerEntries=rawPlayers.map((r,i)=>({row:r,group:rawGroups[i]})).filter(e=>e.row[0]&&String(e.row[0]).trim()&&
       !['player name','name','player'].includes(String(e.row[0]).trim().toLowerCase()));
     if(!playerEntries.length){showStatus(st,'No player names found in SETUP.PLAYERS.','err');document.getElementById('btn-load').disabled=false;return;}
@@ -1227,7 +1228,7 @@ async function loadPlayersFromSheet(){
           let siStart=0;
           for(let i=0;i<siRow.length;i++){const v=parseInt(siRow[i]);if(!isNaN(v)&&v>=1&&v<=18){siStart=i;break;}}
           const newSI=siRow.slice(siStart,siStart+18).map(v=>parseInt(v)||0);
-          if(newSI.length===18&&newSI.every(v=>v>=1&&v<=18)){strokeIndex=newSI;showStatus(st,`✅ Loaded ${players.length} players + pars + stroke index!`,'ok');}
+          if(newSI.length===18&&newSI.every(v=>v>=1&&v<=18)){const distinctGrps=[...new Set(players.map(p=>p.group))].sort();strokeIndex=newSI;showStatus(st,`✅ Loaded ${players.length} players + pars + stroke index! Groups: [${distinctGrps.join(',')}]`,'ok');}
           else showStatus(st,`✅ Loaded ${players.length} players + course pars!`,'ok');
         } else { showStatus(st,`✅ Loaded ${players.length} players + course pars! (No stroke index row found — add a "Handicap" row to SETUP.COURSE for net skins)`, 'ok'); }
       } else { showStatus(st,`✅ Loaded ${players.length} players with handicaps!`,'ok'); }
