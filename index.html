@@ -1745,7 +1745,12 @@ function updatePlayerPlayType(pid){
 function openManageGroups(){
   if(!isAdmin) return;
   const existing=document.getElementById('manage-groups-dialog');
-  if(existing) existing.remove();
+  let savedScroll=0;
+  if(existing){
+    const scroller=document.getElementById('manage-groups-scroll');
+    if(scroller) savedScroll=scroller.scrollTop;
+    existing.remove();
+  }
   const overlay=document.createElement('div');
   overlay.id='manage-groups-dialog';
   overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;';
@@ -1788,13 +1793,15 @@ function openManageGroups(){
     </div>`;
   }).join('');
   overlay.innerHTML=`
-    <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:400px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+    <div id="manage-groups-scroll" style="background:white;border-radius:16px;padding:24px;width:100%;max-width:400px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:#1a5518;letter-spacing:1px;margin-bottom:8px;">Manage Players</div>
       <div style="font-size:0.82rem;color:#4a7044;margin-bottom:16px;font-weight:600;">Group · No Show · Tee · HCP · Game Type — live on all devices.</div>
       <div>${rows}</div>
       <button id="btn-close-manage-groups" style="width:100%;padding:11px;margin-top:16px;background:transparent;color:#4a7044;border:2px solid #b8ddb5;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">Done</button>
     </div>`;
   document.body.appendChild(overlay);
+  const scroller=document.getElementById('manage-groups-scroll');
+  if(scroller&&savedScroll) scroller.scrollTop=savedScroll;
   document.getElementById('btn-close-manage-groups').onclick=()=>overlay.remove();
   overlay.onclick=(e)=>{if(e.target===overlay) overlay.remove();};
 }
@@ -2541,7 +2548,7 @@ function showLockToast(msg){
       <button class="sp-key" onclick="scorePadKey(7)">7</button>
       <button class="sp-key" onclick="scorePadKey(8)">8</button>
       <button class="sp-key" onclick="scorePadKey(9)">9</button>
-      <button class="sp-key sp-key-action" onclick="scorePadBackspace()">⌫</button>
+      <button class="sp-key sp-key-action" onclick="scorePadBackspace()" style="font-family:'Nunito',sans-serif;font-size:1rem;font-weight:900;letter-spacing:0.5px;">DEL</button>
       <button class="sp-key sp-key-hidden" disabled aria-hidden="true"></button>
       <button class="sp-key sp-key-action sp-key-save" onclick="scorePadManualSave()">✓</button>
     </div>
