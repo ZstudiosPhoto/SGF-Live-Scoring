@@ -1186,7 +1186,7 @@ async function loadPlayersFromSheet(){
   document.getElementById('btn-load').disabled=true;
   try{
     // Single call to Apps Script loadSetup — returns both players and full SETUP.COURSE data
-    const url=`${APPS_SCRIPT_URL}?action=loadSetup&token=${SGF_TOKEN}&sheetId=${encodeURIComponent(sheetId)}`;
+    const url=`${APPS_SCRIPT_URL}?action=loadSetup&token=${SGF_TOKEN}&sheetId=${encodeURIComponent(sheetId)}&t=${Date.now()}`;
     const resp=await fetch(url);
     const json=await resp.json();
     if(json.status!=='ok') throw new Error(json.message||'Setup load failed');
