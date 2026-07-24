@@ -2111,6 +2111,8 @@ async function pushToSheets(silent=false){
       const inTotal=backFilled?BACK.reduce((s,h)=>s+scores[p.id][h],0):'';
       return{
         name:p.name||`Player ${p.id}`,
+        hcp:p.hcp||0,
+        tee:p.tee||'',
         out:FRONT.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:'').join(','),
         in:BACK.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:'').join(','),
         outTotal,inTotal,
