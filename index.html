@@ -1802,7 +1802,22 @@ function openManageGroups(){
       <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:#1a5518;letter-spacing:1px;margin-bottom:8px;">Manage Players</div>
       <div style="font-size:0.82rem;color:#4a7044;margin-bottom:16px;font-weight:600;">Group · No Show · Tee · HCP · Game Type — live on all devices.</div>
       <div>${rows}</div>
-      <button id="btn-close-manage-groups" style="width:100%;padding:11px;margin-top:16px;background:transparent;color:#4a7044;border:2px solid #b8ddb5;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">Done</button>
+      <div style="margin-top:16px;padding-top:14px;border-top:2px dashed #b8ddb5;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.05rem;color:#1a5518;letter-spacing:1px;margin-bottom:10px;">+ Add Player</div>
+        <div style="display:flex;flex-direction:column;gap:7px;">
+          <input id="new-player-name" type="text" placeholder="Full name" autocomplete="off" style="padding:8px 10px;border:1.5px solid #b8ddb5;border-radius:6px;font-family:'Nunito',sans-serif;font-size:0.88rem;font-weight:700;width:100%;box-sizing:border-box;">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span style="font-size:0.65rem;font-weight:800;color:#4a7044;text-transform:uppercase;letter-spacing:0.5px;">Group</span>
+            <select id="new-player-group" style="padding:4px 8px;border:1.5px solid #b8ddb5;border-radius:5px;font-family:'Nunito',sans-serif;font-size:0.8rem;font-weight:700;">${[...distinctGroups,maxGroup+1].map(n=>`<option value="${n}">${n}</option>`).join('')}</select>
+            <span style="font-size:0.65rem;font-weight:800;color:#4a7044;text-transform:uppercase;letter-spacing:0.5px;margin-left:6px;">Tee</span>
+            <select id="new-player-tee" style="padding:4px 6px;border:1.5px solid #b8ddb5;border-radius:5px;font-family:'Nunito',sans-serif;font-size:0.8rem;font-weight:700;">${allTees.length?allTees.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join(''):'<option value="">—</option>'}</select>
+            <span style="font-size:0.65rem;font-weight:800;color:#4a7044;text-transform:uppercase;letter-spacing:0.5px;margin-left:6px;">HCP</span>
+            <input id="new-player-hcp" type="number" min="-10" max="54" value="0" style="width:52px;padding:4px 6px;border:1.5px solid #b8ddb5;border-radius:5px;font-family:'Nunito',sans-serif;font-size:0.8rem;font-weight:700;text-align:center;">
+          </div>
+          <button onclick="addPlayerMidRound()" style="width:100%;padding:10px;background:linear-gradient(135deg,#3aaa35,#1a5518);color:white;border:none;border-radius:8px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;margin-top:2px;">+ Add to Round</button>
+        </div>
+      </div>
+      <button id="btn-close-manage-groups" style="width:100%;padding:11px;margin-top:12px;background:transparent;color:#4a7044;border:2px solid #b8ddb5;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">Done</button>
     </div>`;
   document.body.appendChild(overlay);
   const scroller=document.getElementById('manage-groups-scroll');
@@ -1817,6 +1832,45 @@ function reassignGroup(pid, newGroup){
   if(p) p.group=newGroup;
   if(db) firebase.database().ref('sgf/activeRound/groups/'+pid).set(newGroup);
   buildTable();
+}
+
+async function addPlayerMidRound(){
+  const nameEl=document.getElementById('new-player-name');
+  const name=(nameEl?.value||'').trim();
+  if(!name){
+    if(nameEl){nameEl.style.borderColor='#e74c3c';nameEl.focus();}
+    return;
+  }
+  // Duplicate check
+  if(players.find(p=>p.name&&p.name.trim().toLowerCase()===name.toLowerCase())){
+    if(nameEl) nameEl.style.borderColor='#e74c3c';
+    showSync(`⚠️ ${name} is already in the round.`,false);
+    return;
+  }
+  const newId=Math.max(...players.map(p=>parseInt(p.id)||0),0)+1;
+  const group=parseInt(document.getElementById('new-player-group')?.value)||1;
+  const hcp=parseInt(document.getElementById('new-player-hcp')?.value)||0;
+  const tee=(document.getElementById('new-player-tee')?.value||'').trim().toUpperCase();
+  const newPlayer={id:newId,name,hcp,tee,group,playType:'full',closieOnly:false};
+  // Add to local array and initialize scores
+  players.push(newPlayer);
+  if(!scores[newId]) scores[newId]={};
+  HOLES.forEach(h=>{ scores[newId][h]=null; });
+  // Write to Firebase
+  if(db){
+    try{
+      await firebase.database().ref('sgf/activeRound/players').set(players);
+      await firebase.database().ref('sgf/activeRound/groups/'+newId).set(group);
+      const emptyScores={};
+      HOLES.forEach(h=>{ emptyScores[h]=null; });
+      await firebase.database().ref('sgf/activeRound/scores/'+newId).set(emptyScores);
+    }catch(e){
+      console.error('Error adding player to Firebase:',e);
+    }
+  }
+  buildTable();
+  document.getElementById('manage-groups-dialog')?.remove();
+  showSync(`✅ ${name} added! Other devices will see them after a page reload.`,true);
 }
 
 // ===== SAVE SCORE =====
