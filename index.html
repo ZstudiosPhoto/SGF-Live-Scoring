@@ -1448,6 +1448,15 @@ async function endRound(){
       const newCode = String(Math.floor(1000 + Math.random() * 9000));
       document.getElementById('inp-eventcode').value = newCode;
       alert('✅ Round ended! App reset for all players.\n\n🔑 New event code for next round: ' + newCode);
+    } else if(choice === 'reset'){
+      if(!confirm('Reset all scores? Player list and round setup will stay intact.')) return;
+      // Wipe scores in Firebase
+      await firebase.database().ref('sgf/activeRound/scores').remove();
+      // Clear local scores and re-render
+      scores={};
+      buildTable();
+      buildLB();
+      showSync('✅ All scores cleared. Round still active.',true);
     }
   }catch(e){
     alert('Error: '+e.message);
@@ -1469,12 +1478,17 @@ function showEndRoundDialog(){
           🔴 End Round<br><span style="font-size:0.75rem;font-weight:600;opacity:0.85;">Clears scorecard for all players</span>
         </button>
 
+        <button id="btn-reset-scores" style="width:100%;padding:13px;background:#e67e22;color:white;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.95rem;cursor:pointer;margin-bottom:10px;">
+          🔄 Reset Scores<br><span style="font-size:0.75rem;font-weight:600;opacity:0.85;">Clears all scores, keeps players &amp; round</span>
+        </button>
+
         <button id="btn-cancel-dialog" style="width:100%;padding:11px;background:transparent;color:#4a7044;border:2px solid #b8ddb5;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">
           Cancel
         </button>
       </div>`;
     document.body.appendChild(overlay);
     document.getElementById('btn-end-round').onclick=()=>{overlay.remove();resolve('end');};
+    document.getElementById('btn-reset-scores').onclick=()=>{overlay.remove();resolve('reset');};
 
     document.getElementById('btn-cancel-dialog').onclick=()=>{overlay.remove();resolve(null);};
     overlay.onclick=(e)=>{if(e.target===overlay){overlay.remove();resolve(null);}};
@@ -2104,7 +2118,7 @@ async function pushToSheets(silent=false){
     return;
   }
   try{
-    const payload={spreadsheetId:window.activeSheetId||'',players:players.map(p=>{
+    const payload={spreadsheetId:window.activeSheetId||'',players:players.filter(p=>!noShows[p.id]).map(p=>{
       const frontFilled=FRONT.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
       const backFilled=BACK.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
       const outTotal=frontFilled?FRONT.reduce((s,h)=>s+scores[p.id][h],0):'';
@@ -2244,7 +2258,7 @@ async function pushClosiesToSheet(){
 }
 
 function buildPayoutsView(){
-  const ap=players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name');
+  const ap=players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name'&&!noShows[p.id]);
   if(!ap.length){
     document.getElementById('payouts-content').innerHTML='<div class="skins-empty">No players loaded. Start a round first.</div>';
     return;
