@@ -1248,6 +1248,8 @@ async function loadPlayersFromSheet(){
           moneySetup.closiePerHole=Math.round(moneySetup.closiesPool/par3Count);
         }
         console.log('Money setup loaded:',moneySetup);
+        // Persist to Firebase so fresh page loads always read the correct value
+        try{ firebase.database().ref('sgf/activeRound/moneySetup').set(moneySetup); }catch(fe){}
       }
     }catch(me){ console.log('Money setup load skipped:',me.message); }
 
