@@ -1212,9 +1212,12 @@ async function loadPlayersFromSheet(){
       const dash=courseTee.lastIndexOf('-');
       const tee=dash>=0?courseTee.slice(dash+1):courseTee;
       // Col C (index 1) = Handicap Index — blank means Closie-Only player (no GHIN)
+      // Col O (index 13) = NO$ flag — "X" means exclude from ALL game pots, scores still tracked
       const hcpIndex=String(e.row[1]||'').trim();
       const isClosie=hcpIndex===''||hcpIndex.toLowerCase()==='n/a';
-      return{id:i+1,name:String(e.row[0]).trim(),hcp:e.row[7]?parseInt(e.row[7])||0:0,tee,group:parseInt(e.group)||1,closieOnly:isClosie,playType:isClosie?'closie':'full'};
+      const isNoGames=String(e.row[13]||'').trim().toUpperCase()==='X';
+      const pt=isNoGames?'guest':(isClosie?'closie':'full');
+      return{id:i+1,name:String(e.row[0]).trim(),hcp:e.row[7]?parseInt(e.row[7])||0:0,tee,group:parseInt(e.group)||1,closieOnly:pt!=='full',playType:pt};
     });
     nextId=players.length+1;
     // Build teeData map {TEE: {rating, slope, par}} for walk-on handicap calculation
@@ -1947,8 +1950,10 @@ async function addNewPlayersFromSheet(){
       const hcp=r[7]?parseInt(String(r[7]))||0:0;
       const hcpIndex=String(r[1]||'').trim();
       const isClosie=!hcpIndex||hcpIndex.startsWith('#')||hcpIndex.toLowerCase()==='n/a';
+      const isNoGames=String(r[13]||'').trim().toUpperCase()==='X';
+      const pt=isNoGames?'guest':(isClosie?'closie':'full');
       const newId=Math.max(...players.map(p=>parseInt(p.id)||0),0)+1;
-      const newPlayer={id:newId,name:String(r[0]).trim(),hcp,tee,group:1,playType:isClosie?'closie':'full',closieOnly:isClosie};
+      const newPlayer={id:newId,name:String(r[0]).trim(),hcp,tee,group:1,playType:pt,closieOnly:pt!=='full'};
       players.push(newPlayer);
       scores[newId]={};
       HOLES.forEach(h=>{scores[newId][h]=null;});
@@ -2229,9 +2234,10 @@ function buildLB(){
   // Helper: get a player's gross on a given hole (999 if not yet scored)
   function holeGross(pid,holeNum){return(scores[pid]&&scores[pid][holeNum]!=null)?scores[pid][holeNum]:999;}
 
-  // Only full-fee players compete in Low Net; closie-only players shown separately
+  // Only full-fee players compete in Low Net; closie-only and no-games players shown separately
   const competingPlayers=players.filter(p=>!p.closieOnly&&!noShows[p.id]);
-  const closieOnlyPlayers=players.filter(p=>p.closieOnly&&p.name&&p.name.trim()!=='');
+  const closieOnlyPlayers=players.filter(p=>p.closieOnly&&p.playType!=='guest'&&p.name&&p.name.trim()!=='');
+  const noGamesPlayers=players.filter(p=>p.playType==='guest'&&p.name&&p.name.trim()!=='');
 
   const ranked=competingPlayers.map(p=>{
     const hcp=p.hcp||0;
@@ -2305,8 +2311,15 @@ function buildLB(){
     const thru=done.length===18?'F':done.length>0?`Thru ${done.length}`:'No scores';
     return`<div class="lb-row" style="opacity:0.7;"><div class="lb-pos" style="font-size:0.9rem;color:#bbb;">—</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}<span class="lb-closie-badge">CLOSIES ONLY</span></div><div class="lb-holes">${thru}${gross!==null?' · Gross '+gross:''}</div></div><div class="lb-inc" style="font-size:0.82rem;color:#bbb;">${gross!==null?gross:'—'}</div></div>`;
   }).join('');
+  // Render no-games players (NO$ on sheet — scores tracked but not in any game pot)
+  const noGamesHTML=noGamesPlayers.map(p=>{
+    const done=HOLES.filter(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
+    const gross=done.length?done.reduce((s,h)=>s+scores[p.id][h],0):null;
+    const thru=done.length===18?'F':done.length>0?`Thru ${done.length}`:'No scores';
+    return`<div class="lb-row" style="opacity:0.6;"><div class="lb-pos" style="font-size:0.9rem;color:#bbb;">—</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}<span class="lb-closie-badge" style="background:#888;">SCORES ONLY</span></div><div class="lb-holes">${thru}${gross!==null?' · Gross '+gross:''}</div></div><div class="lb-inc" style="font-size:0.82rem;color:#bbb;">${gross!==null?gross:'—'}</div></div>`;
+  }).join('');
 
-  document.getElementById('lb-card').innerHTML=competingHTML+closieOnlyHTML;
+  document.getElementById('lb-card').innerHTML=competingHTML+closieOnlyHTML+noGamesHTML;
 }
 
 async function pushToSheets(silent=false){
@@ -2463,7 +2476,8 @@ function buildPayoutsView(){
   }
 
   const fullFeePlayers=ap.filter(p=>!p.closieOnly);
-  const closieOnlyPlayers=ap.filter(p=>p.closieOnly);
+  const closieOnlyPlayers=ap.filter(p=>p.closieOnly&&p.playType!=='guest');
+  const noGamesPlayers=ap.filter(p=>p.playType==='guest');
   const money=moneySetup||{};
   const totalPot=money.totalPot||0;
   const closiesPool=money.closiesPool||0;
@@ -2645,10 +2659,13 @@ function buildPayoutsView(){
     </div>`).join('')}
   </div>`;
 
-  // ── CLOSIE-ONLY NOTE ─────────────────────────────────────────────────────
+  // ── CLOSIE-ONLY / NO-GAMES NOTES ─────────────────────────────────────────
   let closieNote='';
   if(closieOnlyPlayers.length>0){
-    closieNote=`<div class="closie-only-note">📍 <strong>Closies-Only</strong> (not in Skins or Low Net): ${closieOnlyPlayers.map(p=>esc(p.name)).join(', ')}</div>`;
+    closieNote+=`<div class="closie-only-note">📍 <strong>Closies-Only</strong> (not in Skins or Low Net): ${closieOnlyPlayers.map(p=>esc(p.name)).join(', ')}</div>`;
+  }
+  if(noGamesPlayers.length>0){
+    closieNote+=`<div class="closie-only-note" style="background:#f0f0f0;border-color:#bbb;">🚫 <strong>Scores Only</strong> (not in any game): ${noGamesPlayers.map(p=>esc(p.name)).join(', ')}</div>`;
   }
 
   // ── NO MONEY DATA NOTICE ─────────────────────────────────────────────────
