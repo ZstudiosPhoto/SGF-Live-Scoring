@@ -13,7 +13,7 @@
     --sgf-green:#3aaa35;--sgf-green-dark:#2a8026;--sgf-green-darker:#1a5518;
     --sgf-green-light:#5cc957;--sgf-green-pale:#eaf7e9;--sgf-black:#111a10;
     --gold:#d4a843;--gold-light:#f0cc70;--text:#142010;--muted:#4a7044;
-    --border:#b8ddb5;--card-bg:#fff;--cream:#f6fcf5;
+    --border:#b8ddb5;--card-bg:#fff;--cream:#f6fcf5
     --eagle-bg:#e87722;--eagle-fg:#fff;--birdie-bg:#c0392b;--birdie-fg:#fff;
     --par-bg:#1a6bbf;--par-fg:#fff;--bogey-bg:#27ae60;--bogey-fg:#fff;
     --double-bg:#bdc3c7;--double-fg:#333;--triple-bg:#1a1a1a;--triple-fg:#fff;
@@ -2629,8 +2629,8 @@ function buildPayoutsView(){
   });
   netRanked.forEach((p,i)=>{p.rank=(i===0||netRanked[i-1].net!==p.net)?i+1:netRanked[i-1].rank;});
 
-  const lowNet1st=netRanked.find(p=>p.rank===1);
-  const lowNet2nd=netRanked.find(p=>p.rank===2);
+  const lowNet1st=netRanked.length>0?netRanked[0]:null;
+  const lowNet2nd=netRanked.length>1?netRanked[1]:null;
   // Reconcile Low Net prizes: if closies paid more than budgeted, Low Net pool shrinks
   // so the total always equals the exact pot.  Preserves the 1st/2nd ratio from SETUP.
   const setupLowTotal=lowNet1+lowNet2;
