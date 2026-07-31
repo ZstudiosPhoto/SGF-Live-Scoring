@@ -2498,7 +2498,7 @@ function buildPayoutsView(){
   });
   const closiesActualPaid=closieEntries.filter(e=>e.winner).length*(closiePerHole||0);
   // Reconciled Low Net pool = what's left after actual closies and skins
-  const actualLowNetPool=totalPot>0?totalPot-closiesActualPaid-skinsPool:lowNet1+lowNet2;
+  const actualLowNetPool=totalPot>0?totalPot-closiesPool-skinsPool:lowNet1+lowNet2;
 
   // ── POT SUMMARY ─────────────────────────────────────────────────────────
   let potHTML='';
