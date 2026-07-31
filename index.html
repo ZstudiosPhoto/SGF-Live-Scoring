@@ -1212,10 +1212,10 @@ async function loadPlayersFromSheet(){
       const dash=courseTee.lastIndexOf('-');
       const tee=dash>=0?courseTee.slice(dash+1):courseTee;
       // Col C (index 1) = Handicap Index — blank means Closie-Only player (no GHIN)
-      // Col O (index 13) = NO$ flag — "X" means exclude from ALL game pots, scores still tracked
+      // Col N (index 12) = NO$ flag — "X" means exclude from ALL game pots, scores still tracked
       const hcpIndex=String(e.row[1]||'').trim();
       const isClosie=hcpIndex===''||hcpIndex.toLowerCase()==='n/a';
-      const isNoGames=String(e.row[13]||'').trim().toUpperCase()==='X';
+      const isNoGames=String(e.row[12]||'').trim().toUpperCase()==='X';
       const pt=isNoGames?'guest':(isClosie?'closie':'full');
       return{id:i+1,name:String(e.row[0]).trim(),hcp:e.row[7]?parseInt(e.row[7])||0:0,tee,group:parseInt(e.group)||1,closieOnly:pt!=='full',playType:pt};
     });
@@ -1950,7 +1950,7 @@ async function addNewPlayersFromSheet(){
       const hcp=r[7]?parseInt(String(r[7]))||0:0;
       const hcpIndex=String(r[1]||'').trim();
       const isClosie=!hcpIndex||hcpIndex.startsWith('#')||hcpIndex.toLowerCase()==='n/a';
-      const isNoGames=String(r[13]||'').trim().toUpperCase()==='X';
+      const isNoGames=String(r[12]||'').trim().toUpperCase()==='X';
       const pt=isNoGames?'guest':(isClosie?'closie':'full');
       const newId=Math.max(...players.map(p=>parseInt(p.id)||0),0)+1;
       const newPlayer={id:newId,name:String(r[0]).trim(),hcp,tee,group:1,playType:pt,closieOnly:pt!=='full'};
@@ -2498,7 +2498,7 @@ function buildPayoutsView(){
   });
   const closiesActualPaid=closieEntries.filter(e=>e.winner).length*(closiePerHole||0);
   // Reconciled Low Net pool = what's left after actual closies and skins
-  const actualLowNetPool=totalPot>0?totalPot-closiesActualPaid-skinsPool:lowNet1+lowNet2;
+  const actualLowNetPool=totalPot>0?totalPot-closiesPool-skinsPool:lowNet1+lowNet2;
 
   // ── POT SUMMARY ─────────────────────────────────────────────────────────
   let potHTML='';
