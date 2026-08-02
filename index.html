@@ -34,6 +34,17 @@
   .hdr-btn:hover,.hdr-btn.active{background:var(--sgf-green);border-color:var(--sgf-green);}
   .live-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(58,170,53,0.2);border:1px solid var(--sgf-green);border-radius:12px;padding:2px 8px;font-size:0.65rem;font-weight:800;color:var(--sgf-green-light);text-transform:uppercase;letter-spacing:1px;}
   .live-dot{width:6px;height:6px;border-radius:50%;background:var(--sgf-green-light);animation:pulse 1.5s infinite;}
+  .live-badge.is-offline{background:rgba(224,160,32,0.18);border-color:#e0a020;color:#ffd98a;}
+  .live-badge.is-offline .live-dot{background:#e0a020;animation:none;}
+  .live-badge.is-dead{background:rgba(200,50,40,0.22);border-color:#e05545;color:#ffc9c2;}
+  .live-badge.is-dead .live-dot{background:#e05545;animation:none;}
+  #conn-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:30000;padding:8px 14px;
+    font-family:'Nunito',sans-serif;font-size:0.76rem;font-weight:800;text-align:center;line-height:1.35;
+    padding-top:calc(8px + env(safe-area-inset-top));}
+  #conn-banner.warn{display:block;background:#e0a020;color:#3a2a00;}
+  #conn-banner.dead{display:block;background:#c0392b;color:#fff;}
+  .conn-retry-btn{margin-top:16px;padding:11px 26px;border-radius:22px;border:2px solid var(--sgf-green);
+    background:var(--sgf-green);color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.92rem;cursor:pointer;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
   .setup-body{flex:1;padding:14px 13px 24px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
   .setup-card{background:var(--card-bg);border-radius:14px;padding:16px 15px;box-shadow:0 8px 32px rgba(0,0,0,0.22);border:1px solid rgba(58,170,53,0.2);margin-bottom:12px;}
@@ -494,6 +505,7 @@ try {
 </div>
 
 <!-- ===== LOADING SCREEN ===== -->
+<div id="conn-banner"></div>
 <div id="screen-loading" class="screen">
   <div class="app-header">
     <div class="sgf-logo"><img id="logo5" alt="SGF"></div>
@@ -811,17 +823,80 @@ window.addEventListener('DOMContentLoaded',()=>{
   applyAdminUI();
   try{
     if(!db) db=firebase.database();
+    watchConnection();
     checkForActiveRound();
   }catch(e){
     console.log('Firebase error:',e);
-    showScreen('screen-setup');
+    setConnState('dead');
+    showConnError('Could not start the connection to the scoring server. Tap to try again.');
   }
 });
+
+// ===== CONNECTION STATE =====
+// Three states: 'ok' (synced), 'offline' (SDK loaded, no signal - RTDB queues writes and
+// replays them on reconnect), 'dead' (SDK never initialised - nothing is being saved at all).
+let connState='ok';
+function setConnState(state){
+  connState=state;
+  document.querySelectorAll('.live-badge').forEach(b=>{
+    b.classList.toggle('is-offline',state==='offline');
+    b.classList.toggle('is-dead',state==='dead');
+    b.innerHTML='<div class="live-dot"></div>'+(state==='ok'?'LIVE':state==='offline'?'OFFLINE':'NOT SAVING');
+  });
+  const ban=document.getElementById('conn-banner');
+  if(!ban) return;
+  ban.className='';
+  if(state==='offline'){
+    ban.className='warn';
+    ban.textContent='No signal - you can keep scoring. Entries are held on this phone and sync when you reconnect. Do not close this tab.';
+  } else if(state==='dead'){
+    ban.className='dead';
+    ban.textContent='Not connected to the scoring server - scores are NOT being saved. Reload when you have signal.';
+  }
+}
+function watchConnection(){
+  if(!db){ setConnState('dead'); return; }
+  try{
+    firebase.database().ref('.info/connected').on('value',snap=>{
+      setConnState(snap.val()===true?'ok':'offline');
+    });
+  }catch(e){ console.log('connection watch failed:',e); }
+}
+
+// Replace the loading spinner with a readable error + retry.  Never dumps a player on the
+// admin Setup screen, and never claims "no round" when the truth is "no signal".
+function showConnError(msg){
+  showScreen('screen-loading');
+  const box=document.querySelector('#screen-loading .loading-screen');
+  if(!box) return;
+  box.innerHTML='<div style="font-size:2.8rem;margin-bottom:12px;">&#128246;</div>'
+    +'<div class="loading-text" style="max-width:320px;text-align:center;line-height:1.55;">'+esc(msg)+'</div>'
+    +'<button class="conn-retry-btn" onclick="retryConnect()">&#8635; Try Again</button>';
+}
+function retryConnect(){
+  const box=document.querySelector('#screen-loading .loading-screen');
+  if(box) box.innerHTML='<div class="spinner"></div><div class="loading-text">Connecting to live round...</div>';
+  try{
+    if(!db) db=firebase.database();
+    watchConnection();
+    checkForActiveRound();
+  }catch(e){
+    console.log('retry failed:',e);
+    showConnError('Still cannot reach the scoring server. Check your signal, then try again.');
+  }
+}
 
 function checkForActiveRound(){
   showScreen('screen-loading');
   const ref=firebase.database().ref('sgf/activeRound');
+  // A read that never settles used to leave a permanent spinner with no way out.
+  let settled=false;
+  const bail=setTimeout(()=>{
+    if(settled) return; settled=true;
+    showConnError('Still trying to reach the scoring server. This is almost always signal - move somewhere with a bar or two and try again.');
+  },12000);
   ref.once('value').then(snap=>{
+    if(settled) return; settled=true; clearTimeout(bail);
     const data=snap.val();
     if(data && data.active){
       // If this is a different round than the last one this device joined, clear stale
@@ -860,17 +935,12 @@ function checkForActiveRound(){
         showScreen('screen-welcome');
       }
     }
-  }).catch(()=>{
-    if(isAdmin){
-      showScreen('screen-setup');
-      applyAdminUI();
-      const codeField=document.getElementById('inp-eventcode');
-      if(!codeField.value.trim()){
-        codeField.value=String(Math.floor(1000+Math.random()*9000));
-      }
-    } else {
-      showScreen('screen-welcome');
-    }
+  }).catch(err=>{
+    if(settled) return; settled=true; clearTimeout(bail);
+    console.log('checkForActiveRound failed:',err);
+    // Do NOT send a player to the admin Setup screen, and do not claim there is no round -
+    // we genuinely do not know, because the read failed.
+    showConnError("Couldn't reach the scoring server. Your round may well be running - this is usually just signal.");
   });
 }
 
@@ -895,9 +965,18 @@ function joinAsSpectator(){
 function joinRound(){
   showScreen('screen-loading');
   roundRef=firebase.database().ref('sgf/activeRound');
+  let joined=false;
+  const bailJoin=setTimeout(()=>{
+    if(joined) return; joined=true;
+    showConnError('Could not load the round. Check your signal and try again.');
+  },12000);
   roundRef.once('value').then(snap=>{
+    if(joined) return; joined=true; clearTimeout(bailJoin);
     const data=snap.val();
-    if(!data) return showScreen('screen-setup');
+    if(!data){
+      if(isAdmin){ return showScreen('screen-setup'); }
+      return showConnError('That round is no longer running. Ask Chris if it was reset.');
+    }
     players=data.players||[];
     window.activeSheetId=data.sheetId||'';
     pars=data.pars||pars;
@@ -926,6 +1005,11 @@ function joinRound(){
     listenForPlayerOverrides();
     startAutoPush();
     afterRoundLoaded();
+    watchConnection();
+  }).catch(err=>{
+    if(joined) return; joined=true; clearTimeout(bailJoin);
+    console.log('joinRound failed:',err);
+    showConnError("Couldn't load the round - this is usually signal. Tap to try again.");
   });
 }
 
@@ -2172,12 +2256,19 @@ let padPid=null,padHole=null,padEntry='',padTimer=null,padReplaceNext=false;
 
 function getPadPlayers(){
   return players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name')
+    .filter(p=>!noShows[p.id])   // buildTable disables their cells; the pad must skip them too
     .filter(p=>myGroup===null||(parseInt(p.group)||1)===myGroup);
 }
 
 function openScorePad(pid,hole){
   if(isLocked)return;
   if(window.isSpectator)return; // spectators cannot enter scores
+  // 'dead' means the Firebase SDK never loaded - scoring would look like it worked while
+  // saving nothing anywhere.  Better to refuse than to lose 18 holes.
+  if(connState==='dead'||!db){
+    showLockToast('Not connected - scores would not be saved');
+    return;
+  }
   if(padTimer){clearTimeout(padTimer);padTimer=null;}
   padPid=pid;padHole=hole;
   const existing=scores[pid]&&scores[pid][hole]!=null?scores[pid][hole]:null;
@@ -2595,15 +2686,18 @@ function buildPayoutsView(){
   let _pStart=1;
   for(let s=1;s<=18;s++){if(_pAH(s)&&!_pAH(s===1?18:s-1)){_pStart=s;break;}}
   const _pOrder=Array.from({length:18},(_,i)=>((_pStart-1+i)%18)+1);
+  const _pPart=skinParticipation(skinCalcPlayers,_pOrder);
   let carryVal=1;const _pMap={};
   for(const hole of _pOrder){
     const i=hole-1,hsi=strokeIndex[i]||hole,par=pars[i]||4,val=carryVal;
-    const hd=skinCalcPlayers.map(p=>{
+    const _pos=_pOrder.indexOf(hole);
+    const _field=skinCalcPlayers.filter(p=>_pPart.inAt(p,_pos));
+    const hd=_field.map(p=>{
       const gross=(scores[p.id]&&scores[p.id][hole]!=null)?scores[p.id][hole]:null;
       const str=strokesToGive(p.hcp||0,hsi);
       return{p,gross,net:gross!==null?gross-str:null};
     });
-    const allScored=hd.every(h=>h.gross!==null);
+    const allScored=_field.length>=2&&hd.every(h=>h.gross!==null);
     let status='pending',winner=null;
     if(allScored){
       const minNet=Math.min(...hd.map(h=>h.net));
@@ -2653,6 +2747,7 @@ function buildPayoutsView(){
     skinsHTML+=`<div style="padding:8px 14px;background:#fff9e0;font-size:0.75rem;font-weight:700;color:#8a6d1f;border-top:1px solid #f0cc70;">
       ⚑ ${pendingCarry[0].val-1} skins carrying into Hole ${pendingCarry[0].hole}</div>`;
   }
+  skinsHTML+=skinStallNotice(_pPart,_pOrder);
   skinsHTML+=`</div>`;
 
   // ── LOW NET ───────────────────────────────────────────────────────────────
@@ -2814,16 +2909,19 @@ function buildSkinsView(){
   let _sStart=1;
   for(let s=1;s<=18;s++){if(_sAH(s)&&!_sAH(s===1?18:s-1)){_sStart=s;break;}}
   const _sOrder=Array.from({length:18},(_,i)=>((_sStart-1+i)%18)+1);
+  const _sPart=skinParticipation(skinAp,_sOrder);
   let carryVal=1;const _sMap={};
   for(const hole of _sOrder){
     const i=hole-1;
     const hsi=strokeIndex[i]||hole,par=pars[i]||4,val=carryVal;
-    const hd=skinAp.map(p=>{
+    const _spos=_sOrder.indexOf(hole);
+    const _sfield=skinAp.filter(p=>_sPart.inAt(p,_spos));
+    const hd=_sfield.map(p=>{
       const gross=(scores[p.id]&&scores[p.id][hole]!=null)?scores[p.id][hole]:null;
       const str=strokesToGive(p.hcp||0,hsi);
       return{p,gross,net:gross!==null?gross-str:null};
     });
-    const allScored=hd.every(h=>h.gross!==null);
+    const allScored=_sfield.length>=2&&hd.every(h=>h.gross!==null);
     let status='pending',winner=null;
     if(allScored){
       const minNet=Math.min(...hd.map(h=>h.net));
@@ -2851,12 +2949,51 @@ function buildSkinsView(){
   }).join('');
 
   document.getElementById('skins-content').innerHTML=cardsHTML+
+    skinStallNotice(_sPart,_sOrder,'border-radius:8px;margin-bottom:10px;border-top:none;border:1px solid #f0cc70;')+
     `<div class="lb-card" style="overflow:hidden;margin-bottom:20px;">
       <div class="skins-tbl-wrap"><table class="skins-tbl">
         <thead><tr><th>H</th><th>Par</th><th>SI</th><th>⚑</th><th style="text-align:left;padding-left:10px;">Result</th></tr></thead>
         <tbody>${rowsHTML}</tbody>
       </table></div></div>`;
 }
+// ===== SKINS FIELD PARTICIPATION =====
+// A net skin needs every player in the field to have scored the hole.  Previously ANYONE
+// with a single score anywhere stayed in that field forever - so one player whose battery
+// died on hole 3 left every later hole "pending" and nobody won a skin all day.
+//
+// A player is treated as STALLED once the field is SKIN_STALL_GAP holes past their last
+// entry, and is dropped from holes they never reached.  Holes they DID score still count
+// them.  This is recomputed on every render, so if they catch up they come straight back in.
+const SKIN_STALL_GAP = 4;
+function skinParticipation(playersArr, order){
+  const lastPos = {};
+  playersArr.forEach(p=>{
+    let lp = -1;
+    order.forEach((h,i)=>{ if(scores[p.id] && scores[p.id][h]!=null) lp = i; });
+    lastPos[p.id] = lp;
+  });
+  const vals = playersArr.map(p=>lastPos[p.id]);
+  const fieldMax = vals.length ? Math.max(...vals) : -1;
+  const stalled = playersArr.filter(p => (fieldMax - lastPos[p.id]) >= SKIN_STALL_GAP);
+  // in the field for the hole at play-order position i?
+  const inAt = (p,i) => lastPos[p.id] >= i || (fieldMax - lastPos[p.id]) < SKIN_STALL_GAP;
+  const holeOf = i => order[i];
+  return { lastPos, fieldMax, stalled, inAt, holeOf };
+}
+// Human-readable "who is holding up the skins" note. Returns '' when nobody is.
+function skinStallNotice(part, order, style){
+  if(!part.stalled.length) return '';
+  const names = part.stalled.map(p=>{
+    const lp = part.lastPos[p.id];
+    return esc((p.name||'').split(',')[0].trim()) + (lp>=0 ? ' (thru '+order[lp]+')' : ' (no scores)');
+  }).join(', ');
+  const thru = part.fieldMax>=0 ? order[part.fieldMax] : '-';
+  return '<div style="padding:9px 13px;background:#fff9e0;border-top:1px solid #f0cc70;'
+    + 'font-size:0.73rem;font-weight:700;color:#8a6d1f;line-height:1.45;'+(style||'')+'">'
+    + '&#9888; Skipped in skins: ' + names + ' &mdash; field is thru ' + thru + '. '
+    + 'Mark them No Show to make it permanent.</div>';
+}
+
 function fmtDate(d){const dt=new Date(d+'T12:00:00');return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
