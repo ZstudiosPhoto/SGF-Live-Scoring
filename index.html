@@ -2497,33 +2497,11 @@ function buildPayoutsView(){
     return{hole,winner};
   });
   const closiesActualPaid=closieEntries.filter(e=>e.winner).length*(closiePerHole||0);
-  // Reconciled Low Net pool = what's left after actual closies and skins
-  const actualLowNetPool=totalPot>0?totalPot-closiesPool-skinsPool:lowNet1+lowNet2;
 
-  // ── POT SUMMARY ─────────────────────────────────────────────────────────
+  // Pot summary is filled in LATER (after Net Skins + Low Net are computed),
+  // so Low Net can act as the plug that makes every bucket total the exact pot —
+  // exactly how the Google Sheet reconciles (SETUP vs ACTUAL awards).
   let potHTML='';
-  if(hasMoney){
-    potHTML=`<div class="pot-summary">
-      <div class="pot-total-row">
-        <span class="pot-total-label">TOTAL POT</span>
-        <span class="pot-total-amount">$${totalPot}</span>
-      </div>
-      <div class="pot-breakdown">
-        <div class="pot-bucket">
-          <div class="pot-bucket-label">CLOSIES</div>
-          <div class="pot-bucket-amount">$${closiesPool||closiesActualPaid}</div>
-        </div>
-        <div class="pot-bucket">
-          <div class="pot-bucket-label">NET SKINS</div>
-          <div class="pot-bucket-amount">$${skinsPool}</div>
-        </div>
-        <div class="pot-bucket">
-          <div class="pot-bucket-label">LOW NET</div>
-          <div class="pot-bucket-amount">$${actualLowNetPool||lowNet1+lowNet2}</div>
-        </div>
-      </div>
-    </div>`;
-  }
 
   const closiesHTML=`<div class="payout-section">
     <div class="payout-section-hdr">
@@ -2572,15 +2550,19 @@ function buildPayoutsView(){
   const skinResults=Array.from({length:18},(_,i)=>_pMap[i+1]);
 
   const totalSkinsWon=skinResults.filter(r=>r.status==='won').length;
-  // Flat per-skin payout (matches Google Sheet: pool ÷ total skins won)
-  const skinPerWin=totalSkinsWon>0&&skinsPool>0?Math.floor(skinsPool/totalSkinsWon):0;
-  const skinRemainder=skinsPool>0?skinsPool-(skinPerWin*totalSkinsWon):0;
+  // Flat per-skin payout, matches Google Sheet: round(pool ÷ skins), NO remainder.
+  const skinPerWin=totalSkinsWon>0&&skinsPool>0?Math.round(skinsPool/totalSkinsWon):0;
+  const skinRemainder=0;
+  const skinsActualPaid=skinPerWin*totalSkinsWon;
   const skinWinnersArr=skinCalcPlayers.filter(p=>skinWins[p.id]>0).sort((a,b)=>skinWins[b.id]-skinWins[a.id]);
+  // Reconciled Low Net pool = pot minus ACTUAL closies and ACTUAL skins.
+  // Low Net is the plug, so Closies + Skins + Low Net always == Total Pot.
+  const actualLowNetPool=totalPot>0?totalPot-closiesActualPaid-skinsActualPaid:lowNet1+lowNet2;
 
   let skinsHTML=`<div class="payout-section">
     <div class="payout-section-hdr">
       <span class="payout-section-title">🏌️ NET SKINS</span>
-      ${skinsPool>0?`<span class="payout-pool-badge">$${skinsPool} pool · ${totalSkinsWon>0?'$'+skinPerWin+'/skin':''}</span>`:''}
+      ${skinsPool>0?`<span class="payout-pool-badge">$${skinsActualPaid||skinsPool} pool · ${totalSkinsWon>0?'$'+skinPerWin+'/skin':''}</span>`:''}
     </div>`;
   if(skinWinnersArr.length===0){
     skinsHTML+=`<div class="skins-empty" style="padding:16px;">No skins won yet.</div>`;
@@ -2635,7 +2617,7 @@ function buildPayoutsView(){
   // so the total always equals the exact pot.  Preserves the 1st/2nd ratio from SETUP.
   const setupLowTotal=lowNet1+lowNet2;
   const ratio1=setupLowTotal>0?lowNet1/setupLowTotal:2/3;
-  const actualLowNet1=actualLowNetPool>0?Math.floor(actualLowNetPool*ratio1):lowNet1;
+  const actualLowNet1=actualLowNetPool>0?Math.round(actualLowNetPool*ratio1):lowNet1;
   const actualLowNet2=actualLowNetPool>0?actualLowNetPool-actualLowNet1:lowNet2;
   const places=[
     {icon:'🥇',label:'1st Place',player:lowNet1st,prize:actualLowNet1},
@@ -2658,6 +2640,32 @@ function buildPayoutsView(){
       ${e.player&&e.prize>0?`<div class="payout-amount">$${e.prize}</div>`:''}
     </div>`).join('')}
   </div>`;
+
+  // ── POT SUMMARY (built now that all ACTUAL payouts are known) ────────────
+  // Buckets show what's really paid out; they always sum to the Total Pot,
+  // matching the Google Sheet's ACTUAL awards row.
+  if(hasMoney){
+    potHTML=`<div class="pot-summary">
+      <div class="pot-total-row">
+        <span class="pot-total-label">TOTAL POT</span>
+        <span class="pot-total-amount">$${totalPot}</span>
+      </div>
+      <div class="pot-breakdown">
+        <div class="pot-bucket">
+          <div class="pot-bucket-label">CLOSIES</div>
+          <div class="pot-bucket-amount">$${closiesActualPaid||closiesPool}</div>
+        </div>
+        <div class="pot-bucket">
+          <div class="pot-bucket-label">NET SKINS</div>
+          <div class="pot-bucket-amount">$${skinsActualPaid||skinsPool}</div>
+        </div>
+        <div class="pot-bucket">
+          <div class="pot-bucket-label">LOW NET</div>
+          <div class="pot-bucket-amount">$${actualLowNetPool||lowNet1+lowNet2}</div>
+        </div>
+      </div>
+    </div>`;
+  }
 
   // ── CLOSIE-ONLY / NO-GAMES NOTES ─────────────────────────────────────────
   let closieNote='';
