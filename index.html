@@ -13,7 +13,7 @@
     --sgf-green:#3aaa35;--sgf-green-dark:#2a8026;--sgf-green-darker:#1a5518;
     --sgf-green-light:#5cc957;--sgf-green-pale:#eaf7e9;--sgf-black:#111a10;
     --gold:#d4a843;--gold-light:#f0cc70;--text:#142010;--muted:#4a7044;
-    --border:#b8ddb5;--card-bg:#fff;--cream:#f6fcf5
+    --border:#b8ddb5;--card-bg:#fff;--cream:#f6fcf5;
     --eagle-bg:#e87722;--eagle-fg:#fff;--birdie-bg:#c0392b;--birdie-fg:#fff;
     --par-bg:#1a6bbf;--par-fg:#fff;--bogey-bg:#27ae60;--bogey-fg:#fff;
     --double-bg:#bdc3c7;--double-fg:#333;--triple-bg:#1a1a1a;--triple-fg:#fff;
@@ -114,10 +114,27 @@
   .ns-badge{display:inline-block;font-size:0.6rem;font-weight:900;background:#aaa;color:#fff;border-radius:4px;padding:1px 4px;margin-left:4px;letter-spacing:0.5px;vertical-align:middle;}
   .ns-toggle-btn{font-size:0.72rem;padding:4px 9px;border-radius:6px;border:1.5px solid #ccc;background:#f5f5f5;color:#666;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:800;white-space:nowrap;}
   .ns-toggle-btn.is-ns{background:#ffe0e0;border-color:#e08080;color:#a00;}
-  .td-name{padding:3px 2px 3px 6px;white-space:nowrap;min-width:56px;max-width:70px;}
+  .td-name{padding:3px 2px 3px 5px;white-space:nowrap;min-width:64px;max-width:92px;}
   .td-name-last{font-size:0.77rem;font-weight:900;color:var(--text);line-height:1.15;overflow:hidden;text-overflow:ellipsis;max-width:66px;}
   .td-name-first{font-size:0.62rem;font-weight:700;color:var(--muted);line-height:1.15;overflow:hidden;text-overflow:ellipsis;max-width:66px;}
   .td-name-text{font-size:0.78rem;font-weight:800;color:var(--text);}
+  /* --- player meta chips: Index / Tee / Course Hcp --- */
+  .td-name-wrap{min-width:0;}
+  .td-name-block{min-width:0;}
+  .td-pmeta{display:flex;align-items:center;gap:2px;margin-top:3px;flex-wrap:nowrap;}
+  .pm-chip{font-size:0.55rem;font-weight:900;line-height:1;padding:2px 3px;border-radius:3px;white-space:nowrap;border:1px solid rgba(0,0,0,0.10);letter-spacing:0;}
+  .pm-idx{background:#eef3ee;color:#3f5c3d;}
+  .pm-hcp{background:var(--sgf-green);color:#fff;border-color:transparent;}
+  .pm-tee{color:#fff;border-color:transparent;}
+  .pm-tee-wht,.pm-tee-white,.pm-tee-w{background:#ececec;color:#333;border-color:#c9c9c9;}
+  .pm-tee-gld,.pm-tee-gold,.pm-tee-g{background:#c9a227;}
+  .pm-tee-blu,.pm-tee-blue,.pm-tee-b{background:#1565c0;}
+  .pm-tee-red,.pm-tee-r{background:#c62828;}
+  .pm-tee-sil,.pm-tee-silver,.pm-tee-s{background:#78909c;}
+  .pm-tee-blk,.pm-tee-black{background:#242424;}
+  .pm-tee-grn,.pm-tee-green{background:#2e7d32;}
+  .pm-tee-default{background:#5c6b5a;}
+  .no-show-row .pm-chip{filter:grayscale(1);}
   .td-score{padding:2px 0;text-align:center;}
   .score-btn{position:relative;width:36px;height:72px;display:inline-flex;align-items:center;justify-content:center;border:1.5px solid #cce0ca;border-radius:6px;font-size:0.95rem;font-family:'Nunito',sans-serif;font-weight:900;background:white;color:var(--text);cursor:pointer;transition:all 0.12s;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;overflow:hidden;}
   .score-btn.has-net::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom right,transparent calc(50% - 0.7px),currentColor calc(50% - 0.7px),currentColor calc(50% + 0.7px),transparent calc(50% + 0.7px));opacity:0.22;pointer-events:none;}
@@ -189,6 +206,13 @@
   .welcome-ham-item:active,.welcome-ham-item:hover{background:rgba(58,170,53,0.18);}
   .sgf-copyright{text-align:center;font-size:0.68rem;color:rgba(255,255,255,0.3);font-weight:600;letter-spacing:1px;padding:12px 0 16px;}
   @media(max-width:370px){.score-btn{width:32px;height:64px;font-size:0.85rem;}.header-brand{font-size:1.25rem;}}
+  @media(min-width:640px){
+    .td-name{max-width:250px;}
+    .td-name-last,.td-name-first{max-width:160px;}
+    .td-name-wrap{display:flex;align-items:center;gap:10px;}
+    .td-pmeta{margin-top:0;}
+    .pm-chip{font-size:0.62rem;padding:4px 6px;}
+  }
   @media(max-width:520px){
     .app-header{flex-wrap:wrap;align-items:flex-start;}
     .header-text{flex:1;min-width:0;}
@@ -1217,7 +1241,7 @@ async function loadPlayersFromSheet(){
       const isClosie=hcpIndex===''||hcpIndex.toLowerCase()==='n/a';
       const isNoGames=String(e.row[12]||'').trim().toUpperCase()==='X';
       const pt=isNoGames?'guest':(isClosie?'closie':'full');
-      return{id:i+1,name:String(e.row[0]).trim(),hcp:e.row[7]?parseInt(e.row[7])||0:0,tee,group:parseInt(e.group)||1,closieOnly:pt!=='full',playType:pt};
+      return{id:i+1,name:String(e.row[0]).trim(),index:hcpIndex,hcp:e.row[7]?parseInt(e.row[7])||0:0,tee,group:parseInt(e.group)||1,closieOnly:pt!=='full',playType:pt};
     });
     nextId=players.length+1;
     // Build teeData map {TEE: {rating, slope, par}} for walk-on handicap calculation
@@ -1530,12 +1554,41 @@ function strokesOnHole(hcp,hsi){
   if(!hcp||hcp<=0)return 0;
   return Math.floor(hcp/18)+(hcp%18>0&&hcp%18>=hsi?1:0);
 }
+// Strokes a player actually receives across a set of holes, using the FULL course handicap
+// (double pops above 18).  Summed over all 18 this equals the course handicap exactly, so a
+// finished round still nets to Gross - Hcp, matching LOW.NET.  Net Skins are unaffected -
+// they cap at 18 / one pop and are computed separately.
+function strokesUsedOn(hcp,holesPlayed){
+  if(!hcp||hcp<=0) return 0;
+  return holesPlayed.reduce((s,h)=>{
+    const hsi=strokeIndex[HOLES.indexOf(h)]||HOLES.indexOf(h)+1;
+    return s+strokesOnHole(hcp,hsi);
+  },0);
+}
+
 function scoreBtnInner(gross,hcp,hsi){
   if(gross===null||gross===undefined)return{html:'—',hasNet:false};
   if(!hcp||hcp<=0)return{html:String(gross),hasNet:false};
   const net=parseInt(gross)-strokesOnHole(hcp,hsi);
   return{html:`<span class="sb-gross">${gross}</span><span class="sb-net">${net}</span>`,hasNet:true};
 }
+// Index / Tee / Course-Handicap chips beside each player's name.
+// Index = SETUP.PLAYERS col C, tee = col E, course handicap = col I.
+function playerMetaHTML(p){
+  const idx=String(p.index===0||p.index?p.index:'').trim();
+  const tee=String(p.tee||'').trim();
+  const hcp=(p.hcp||p.hcp===0)?String(p.hcp):'';
+  if(!idx&&!tee&&!hcp) return '';
+  const teeKey=tee.toLowerCase().replace(/[^a-z]/g,'');
+  const known=['wht','white','w','gld','gold','g','blu','blue','b','red','r','sil','silver','s','blk','black','grn','green'];
+  const teeCls='pm-tee-'+(known.includes(teeKey)?teeKey:'default');
+  let h='<div class="td-pmeta">';
+  if(idx) h+='<span class="pm-chip pm-idx" title="Handicap Index">'+esc(idx)+'</span>';
+  if(tee) h+='<span class="pm-chip pm-tee '+teeCls+'" title="Tee played">'+esc(tee)+'</span>';
+  if(hcp) h+='<span class="pm-chip pm-hcp" title="Course Handicap">'+esc(hcp)+'</span>';
+  return h+'</div>';
+}
+
 function buildTable(){
   const holes=hSet(),ps=pSet(),tot=pTot(activeNine),lbl=activeNine==='front'?'Out':'In';
   const siVals=holes.map(h=>strokeIndex[h-1]||h);
@@ -1578,7 +1631,7 @@ function buildTable(){
     const nameHTML=commaIdx>-1
       ?`<div class="td-name-last ${nameCls}">${esc(rawName.slice(0,commaIdx).trim())}${excludedBadge}${nsBadge}</div><div class="td-name-first">${esc(rawName.slice(commaIdx+1).trim())}</div>`
       :(()=>{const parts=rawName.trim().split(' ');return parts.length>1?`<div class="td-name-last ${nameCls}">${esc(parts.slice(1).join(' '))}${excludedBadge}${nsBadge}</div><div class="td-name-first">${esc(parts[0])}</div>`:`<div class="td-name-last ${nameCls}">${esc(rawName)}${excludedBadge}${nsBadge}</div>`;})();
-    tr.innerHTML=`<td class="td-name">${nameHTML}</td>`+
+    tr.innerHTML=`<td class="td-name"><div class="td-name-wrap"><div class="td-name-block">${nameHTML}</div>${playerMetaHTML(p)}</div></td>`+
       holes.map((h,i)=>{
         const sv=scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined?scores[p.id][h]:'';
         const svNum=sv!==''?parseInt(sv):null;
@@ -1896,7 +1949,7 @@ async function addPlayerMidRound(){
   const idxVal=parseFloat(document.getElementById('new-player-hcp')?.value)||0;
   const tee=(document.getElementById('new-player-tee')?.value||'').trim().toUpperCase();
   const hcp=calcCourseHandicap(idxVal,tee);
-  const newPlayer={id:newId,name,hcp,tee,group,playType:'full',closieOnly:false};
+  const newPlayer={id:newId,name,index:idxVal?String(idxVal):'',hcp,tee,group,playType:'full',closieOnly:false};
   // Add to local array and initialize scores
   players.push(newPlayer);
   if(!scores[newId]) scores[newId]={};
@@ -1953,7 +2006,7 @@ async function addNewPlayersFromSheet(){
       const isNoGames=String(r[12]||'').trim().toUpperCase()==='X';
       const pt=isNoGames?'guest':(isClosie?'closie':'full');
       const newId=Math.max(...players.map(p=>parseInt(p.id)||0),0)+1;
-      const newPlayer={id:newId,name:String(r[0]).trim(),hcp,tee,group:1,playType:pt,closieOnly:pt!=='full'};
+      const newPlayer={id:newId,name:String(r[0]).trim(),index:hcpIndex,hcp,tee,group:1,playType:pt,closieOnly:pt!=='full'};
       players.push(newPlayer);
       scores[newId]={};
       HOLES.forEach(h=>{scores[newId][h]=null;});
@@ -2070,7 +2123,7 @@ async function confirmAddWalkOn() {
   const playType = document.getElementById('wo-playtype')?.value||'full';
   const hcp = calcCourseHandicap(idx, tee);
   const newId = Math.max(...players.map(p=>parseInt(p.id)||0),0)+1;
-  const newPlayer = {id:newId,name,hcp,tee,group,playType,closieOnly:playType!=='full'};
+  const newPlayer = {id:newId,name,index:idx?String(idx):'',hcp,tee,group,playType,closieOnly:playType!=='full'};
   players.push(newPlayer);
   if(!scores[newId]) scores[newId]={};
   HOLES.forEach(h=>{ scores[newId][h]=null; });
@@ -2144,7 +2197,8 @@ function updatePadUI(){
   const p=players.find(pl=>pl.id===padPid);
   const par=pars[HOLES.indexOf(padHole)];
   document.getElementById('score-pad-name').textContent=p?p.name:'';
-  document.getElementById('score-pad-meta').textContent=`Hole ${padHole}  ·  Par ${par}`;
+  document.getElementById('score-pad-meta').textContent=`Hole ${padHole}  ·  Par ${par}`
+    +(padEntry==='1'?'   ·   tap ✓ for 1, or a 2nd digit for 10-19':'');
   const disp=document.getElementById('score-pad-disp');
   disp.textContent=padEntry||'—';
   disp.className=padEntry?'has-val':'';
@@ -2152,13 +2206,18 @@ function updatePadUI(){
 
 function scorePadKey(n){
   if(padTimer){clearTimeout(padTimer);padTimer=null;}
+  const d=String(n);
   if(padReplaceNext||padEntry===''){
-    padEntry=String(n);padReplaceNext=false;
+    if(n===0) return;              // a score can't start with 0
+    padEntry=d;padReplaceNext=false;
   } else if(padEntry.length===1){
-    const two=parseInt(padEntry+n);
-    padEntry=(two>=10&&two<=20)?String(two):String(n);
+    const two=parseInt(padEntry+d);
+    if(two>=10&&two<=20){ padEntry=String(two); }
+    else if(n===0){ return; }      // e.g. 3 then 0 = 30, not a golf score - ignore
+    else { padEntry=d; }
   } else {
-    padEntry=String(n);
+    if(n===0) return;
+    padEntry=d;
   }
   updatePadUI();
   // Flash the tapped key
@@ -2166,8 +2225,11 @@ function scorePadKey(n){
   const key=allKeys.find(k=>k.textContent.trim()===String(n)&&!k.classList.contains('sp-key-action'));
   if(key){key.classList.add('sp-key-flash');setTimeout(()=>key.classList.remove('sp-key-flash'),130);}
   // Auto-save after pause (gives time to type a 2nd digit for scores 10-20)
+  // A lone "1" is NEVER auto-saved: every score from 10-19 starts with it, so committing on
+  // a hesitation recorded a 1 and slid the pad to the next player, putting the second digit
+  // on the wrong man.  A 1 needs the tick.
   const val=parseInt(padEntry);
-  if(!isNaN(val)&&val>=1&&val<=20){
+  if(!isNaN(val)&&val>=1&&val<=20&&padEntry!=='1'){
     padTimer=setTimeout(()=>{padTimer=null;scorePadCommit();},600);
   }
 }
@@ -2245,15 +2307,19 @@ function buildLB(){
     const hp=done.length;
     if(hp===0)return{...p,gross:null,net:null,hcp,vp:null,hp};
     const gross=done.reduce((s,h)=>s+scores[p.id][h],0);
-    // Match LOW.NET sheet: Net = Gross minus FULL course handicap (all strokes applied immediately)
-    const net=gross-hcp;
     const completedPar=done.reduce((s,h)=>s+pars[HOLES.indexOf(h)],0);
-    const vp=gross-completedPar; // gross vs par over holes played (scoring pace pill)
-    return{...p,gross,net,hcp,vp,hp};
+    // Running net: subtract only the strokes earned on holes actually PLAYED.  Over a full 18
+    // this is identical to Gross - full course handicap (LOW.NET sheet), but mid-round it stops
+    // a group thru 4 from "leading" a group thru 14 by 40 shots.
+    const pops=strokesUsedOn(hcp,done);
+    const net=gross-pops;
+    const netToPar=net-completedPar; // ranking key - comparable across different hole counts
+    return{...p,gross,net,hcp,pops,vp:netToPar,netToPar,hp};
   }).sort((a,b)=>{
     if(a.hp===0&&b.hp===0)return 0;
     if(a.hp===0)return 1;if(b.hp===0)return -1;
-    if(a.net!==b.net)return a.net-b.net;
+    if(a.netToPar!==b.netToPar)return a.netToPar-b.netToPar;
+    if(a.hp!==b.hp)return b.hp-a.hp; // further round the course breaks a tie
     // Cascade tiebreaker: compare gross hole by hole in HCP difficulty order
     // (SI=1 first, then SI=2, SI=3 … SI=18) — matches the LOW.NET sheet logic
     for(let si=1;si<=18;si++){
@@ -2268,13 +2334,13 @@ function buildLB(){
 
   // Assign proper shared ranks: tied net scores share the same position
   ranked.forEach((p,i)=>{
-    p.rank=(i===0||p.hp===0||ranked[i-1].net!==p.net)?i+1:ranked[i-1].rank;
+    p.rank=(i===0||p.hp===0||ranked[i-1].netToPar!==p.netToPar)?i+1:ranked[i-1].rank;
   });
 
   // Mark tiebreaker winner and find the deciding hole for each tie group
   ranked.forEach((p)=>{
     if(p.hp===0){p.tbWinner=false;p.tbHole=null;return;}
-    const grp=ranked.filter(q=>q.hp>0&&q.net===p.net);
+    const grp=ranked.filter(q=>q.hp>0&&q.netToPar===p.netToPar);
     if(grp.length>1&&grp[0].id===p.id){
       p.tbWinner=true;
       // Find first SI hole where this player beats the next tied player
@@ -2299,7 +2365,7 @@ function buildLB(){
       const rowCls=p.rank===1?'top1':p.tbWinner?'tb-winner':'';
       const tbNote=p.tbWinner?` · TB: Low H${p.tbHole||''}`:'' ;
       const teeStr=p.tee?` · ${p.tee}`:'';
-      return`<div class="lb-row ${rowCls}"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">Net ${p.net} · Gross ${p.gross} · Hcp ${p.hcp}${teeStr} · ${thru}${tbNote}</div></div><div class="lb-net">${p.net}</div><div class="lb-vp ${vc}">${vs}</div></div>`;
+      return`<div class="lb-row ${rowCls}"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">Net ${p.net} · Gross ${p.gross} · Hcp ${p.hcp} · Pops ${p.pops}${teeStr} · ${thru}${tbNote}</div></div><div class="lb-net">${p.net}</div><div class="lb-vp ${vc}" title="Net vs par over holes played">${vs}</div></div>`;
     }
     return`<div class="lb-row"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">No scores · Hcp ${p.hcp||0}</div></div><div class="lb-inc">—</div></div>`;
   }).join('');
@@ -2597,10 +2663,13 @@ function buildPayoutsView(){
     const hp=done.length;
     if(hp===0)return{...p,gross:null,net:null,hcp,hp};
     const gross=done.reduce((s,h)=>s+scores[p.id][h],0);
-    const net=gross-hcp;
-    return{...p,gross,net,hcp,hp};
+    const completedPar=done.reduce((s,h)=>s+pars[HOLES.indexOf(h)],0);
+    const net=gross-strokesUsedOn(hcp,done);   // full hcp for Low Net, pro-rated to holes played
+    const netToPar=net-completedPar;
+    return{...p,gross,net,hcp,netToPar,hp};
   }).filter(p=>p.hp>0).sort((a,b)=>{
-    if(a.net!==b.net)return a.net-b.net;
+    if(a.netToPar!==b.netToPar)return a.netToPar-b.netToPar;
+    if(a.hp!==b.hp)return b.hp-a.hp;
     for(let si=1;si<=18;si++){
       const idx=strokeIndex.indexOf(si);if(idx<0)continue;
       const h=HOLES[idx];
@@ -2609,7 +2678,7 @@ function buildPayoutsView(){
     }
     return 0;
   });
-  netRanked.forEach((p,i)=>{p.rank=(i===0||netRanked[i-1].net!==p.net)?i+1:netRanked[i-1].rank;});
+  netRanked.forEach((p,i)=>{p.rank=(i===0||netRanked[i-1].netToPar!==p.netToPar)?i+1:netRanked[i-1].rank;});
 
   const lowNet1st=netRanked.length>0?netRanked[0]:null;
   const lowNet2nd=netRanked.length>1?netRanked[1]:null;
@@ -2847,7 +2916,7 @@ function showLockToast(msg){
       <button class="sp-key" onclick="scorePadKey(8)">8</button>
       <button class="sp-key" onclick="scorePadKey(9)">9</button>
       <button class="sp-key sp-key-action" onclick="scorePadBackspace()" style="font-family:'Nunito',sans-serif;font-size:1rem;font-weight:900;letter-spacing:0.5px;">DEL</button>
-      <button class="sp-key sp-key-hidden" disabled aria-hidden="true"></button>
+      <button class="sp-key" onclick="scorePadKey(0)">0</button>
       <button class="sp-key sp-key-action sp-key-save" onclick="scorePadManualSave()">✓</button>
     </div>
   </div>
