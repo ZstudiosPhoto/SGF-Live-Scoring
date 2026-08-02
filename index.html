@@ -252,7 +252,7 @@
   #floating-btns{position:fixed;bottom:70px;right:12px;z-index:10000;display:none;flex-direction:row;align-items:center;gap:8px;}
   #lock-btn{width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,0.25);background:rgba(0,0,0,0.55);color:#fff;font-size:1.15rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,0.45);transition:background 0.2s,border-color 0.2s;}
   #lock-btn.locked{background:rgba(192,57,43,0.85);border-color:rgba(255,100,80,0.5);}
-  #admin-gear-float{width:42px;height:42px;border-radius:50%;border:2px solid rgba(192,57,43,0.5);background:rgba(192,57,43,0.3);color:#fff;font-size:1.15rem;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,0.45);}
+  #admin-gear-float{margin-right:26px;width:42px;height:42px;border-radius:50%;border:2px solid rgba(192,57,43,0.5);background:rgba(192,57,43,0.3);color:#fff;font-size:1.15rem;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,0.45);}
   /* ===== CUSTOM SCORE PAD ===== */
   #score-pad{position:fixed;inset:0;z-index:20000;display:none;}
   #score-pad.open{display:block;}
@@ -785,6 +785,28 @@ function getDeviceId(){
     if(taps>=5){
       taps=0;
       if(!isAdmin){
+        // Gate the shortcut behind the same PIN the menu login uses.  Without this, any
+        // player could tap the logo 5 times and reach End Round.
+        (async ()=>{
+          try{
+            if(!db) db=firebase.database();
+            const pinSnap=await firebase.database().ref('sgf/adminPin').once('value');
+            const existingPin=pinSnap.val();
+            if(existingPin){
+              const entered=await showEnterPinDialog('Admin Access','Enter the admin PIN to unlock admin tools.');
+              if(entered===null) return;
+              if(entered!==existingPin){ alert('Incorrect PIN.'); return; }
+            }
+          }catch(e){ /* Firebase not ready - fall through, same as the menu login */ }
+          unlockAdmin();
+        })();
+      }
+    } else {
+      tapTimer=setTimeout(()=>{ taps=0; },800);
+    }
+  }
+  function unlockAdmin(){
+      {
         isAdmin=true;
         localStorage.setItem('sgf_isAdminDevice','true');
         applyAdminUI();
@@ -794,10 +816,8 @@ function getDeviceId(){
         document.body.appendChild(t);
         setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),600); },1800);
       }
-    } else {
-      tapTimer=setTimeout(()=>{ taps=0; },800);
-    }
   }
+  window.unlockAdmin=unlockAdmin;
   document.addEventListener('click',e=>{
     if(e.target.closest('.header-brand,.sgf-logo')) handleTap();
   });
@@ -1552,6 +1572,14 @@ async function endRound(){
   if(!choice) return;
   try{
     if(choice === 'end'){
+      // Wiping a live round for the whole field deserves more than one tap.  The 'reset'
+      // branch already confirms; this one never did.
+      const liveCount=players.filter(p=>p.name&&p.name.trim()).length;
+      const scoredCount=Object.keys(scores||{}).filter(id=>
+        HOLES.some(h=>scores[id]&&scores[id][h]!=null)).length;
+      if(!confirm('End the round for ALL '+liveCount+' players?\n\n'
+        +scoredCount+' player(s) have scores. They will be archived to Past Rounds, the live '
+        +'card will be cleared, and everyone will be bounced out.\n\nThis cannot be undone.')) return;
       stopAutoPush();
       if(scoresRef){ scoresRef.off('value'); scoresRef=null; }
       // Back up course/date/Sheet ID before wiping the round, so it's recoverable later.
