@@ -386,7 +386,10 @@
 <body>
 <script>
 const SGF_LOGO="sgf-logo.jpg";
-const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycby3vL-jy9ZiVhHIfQURGv_OC_bpi6XpJHxlk-AuDEyejoE_-WxgQRYyk7WlN5AKLc15/exec';
+// SGF Live Scoring API - standalone Apps Script under chris@zstudios.com (deployed Aug 4, 2026).
+// To update the script: Deploy > Manage deployments > pencil > New version. NEVER "New
+// deployment" - that mints a different URL and this constant stops matching.
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbz38Xeg1sCUuWx6tqxQNEQBJmwwYG0BVtyVau1MPKZEP6l6seHnm6_JbWJzehFrFjwg/exec';
 const SGF_TOKEN='SGF-LIVE-2026';
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyAA0EGLpcVvEIDwDtfyPIJttvQT_lfLlNM",
@@ -590,7 +593,7 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
       <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
       <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰</button>
-      <button class="hdr-btn settle-nav" onclick="showScreen('screen-settle')" style="background:rgba(120,190,255,0.22);border-color:rgba(120,190,255,0.5);color:#bfe2ff;">🧾</button>
+      <button class="hdr-btn settle-nav" onclick="showScreen('screen-settle')" style="background:rgba(120,190,255,0.22);border-color:rgba(120,190,255,0.5);color:#bfe2ff;">🧾 Settle</button>
       <button class="hdr-btn" onclick="showScreen('screen-info')">ℹ️</button>
       <button class="hdr-btn" id="btn-manage-groups" onclick="openManageGroups()">👥 Groups</button>
     </div>
@@ -760,6 +763,11 @@ try {
   </div>
   <div class="lb-body" id="settle-content">
     <div class="skins-empty">Start a round to settle up.</div>
+  </div>
+  <div class="sync-bar" id="settle-sync-bar" style="display:none;">
+    <button class="sync-btn btn-sheets" onclick="pushSettleToSheet(false)">📊 Save to Sheet</button>
+    <button class="sync-btn btn-sheets" onclick="pushSettleToSheet(true)">✉️ Save + Email Me</button>
+    <div id="settle-sync-result" class="sync-result" style="display:none;"></div>
   </div>
 </div>
 
@@ -1722,10 +1730,13 @@ function setPayMethod(pid,field,method){
 function buildSettleView(){
   const box=document.getElementById('settle-content');
   if(!box) return;
+  const bar=document.getElementById('settle-sync-bar');
   if(!isAdmin||window.isSpectator){
     box.innerHTML='<div class="skins-empty">🔒 Settle Up is only on the device that started the round.</div>';
+    if(bar) bar.style.display='none';
     return;
   }
+  if(bar) bar.style.display='';
   const ap=players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name'&&!noShows[p.id]);
   if(!ap.length){ box.innerHTML='<div class="skins-empty">No players loaded yet.</div>'; return; }
 
@@ -1786,6 +1797,51 @@ function buildSettleView(){
   });
 
   box.innerHTML=html;
+}
+
+// Write the settle-up record to a PAYMENTS tab on the event sheet, and optionally
+// email it to golf@zstudios.com.  Belt and braces on top of the Firebase copy: the
+// whole reason this feature exists is that the one record we had was somebody's memory.
+async function pushSettleToSheet(sendEmail){
+  const el=document.getElementById('settle-sync-result');
+  const show=(msg,ok)=>{el.style.display='block';
+    el.style.color=ok===true?'#7dcea0':ok===false?'#f08080':'#aac8e0';
+    el.textContent=msg; if(ok===true) setTimeout(()=>{el.style.display='none';},9000);};
+  if(!isAdmin||window.isSpectator){ show('Only the round admin can do this.',false); return; }
+  const sheetId=window.activeSheetId||'';
+  if(!sheetId){ show('No Sheet ID for this round — start it from Setup with the sheet linked.',false); return; }
+
+  const ap=players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name'&&!noShows[p.id]);
+  if(!ap.length){ show('No players loaded.',false); return; }
+  let totals={};
+  try{ buildPayoutsView(); totals=window.__payoutTotals||{}; }catch(e){}
+
+  const ordered=ap.slice().sort((a,b)=>((a.group||1)-(b.group||1))||(a.id-b.id));
+  const payload={
+    type:'settle',
+    spreadsheetId:sheetId,
+    course:(document.getElementById('hdr-course')||{}).textContent||'',
+    date:(document.getElementById('hdr-date')||{}).textContent||'',
+    totalPot:(moneySetup&&moneySetup.totalPot)?moneySetup.totalPot:0,
+    email:!!sendEmail,
+    rows:ordered.map(p=>{
+      const pay=payments[p.id]||{};
+      return{name:p.name, won:totals[p.id]||0,
+             paidIn:pay.in?methodLabel(pay.in):'', paidBack:pay.out?methodLabel(pay.out):''};
+    })
+  };
+
+  show(sendEmail?'Saving and emailing…':'Saving to your sheet…',null);
+  const res=await postToScript(payload);
+  if(res.confirmed&&res.ok){
+    let msg='✅ '+(res.data.message||'Saved');
+    if(res.data.stillOwed>0) msg+='  ⚠️ '+res.data.stillOwed+' still to pay';
+    show(msg,true);
+  }else if(res.confirmed){
+    show('❌ '+(res.data.message||'The script rejected it'),false);
+  }else{
+    show('📤 '+res.reason,null);
+  }
 }
 
 // ── PLAYER PAYMENT SHEET (printable) ─────────────────────────────────────────
@@ -2802,6 +2858,40 @@ function buildLB(){
   document.getElementById('lb-card').innerHTML=competingHTML+closieOnlyHTML+noGamesHTML;
 }
 
+// Every POST to the Apps Script goes through here.
+//
+// The old code used mode:'no-cors', which makes the response opaque - it resolves
+// on a 403, a 500, a wrong Sheet ID or a quota error exactly as it does on success.
+// The app cheerfully reported "Scores pushed to your sheet!" for a year without ever
+// once knowing whether that was true.  It now sends a REAL cross-origin request and
+// reads the JSON back, so a failure is a failure.
+//
+// Apps Script /exec 302-redirects to googleusercontent.com, which does send
+// Access-Control-Allow-Origin: *, so this works.  If some future browser or policy
+// blocks it, we fall back to the old opaque send and say plainly that we could not
+// confirm it - never a tick we have not earned.
+async function postToScript(payload){
+  const body=JSON.stringify(Object.assign({token:SGF_TOKEN},payload));
+  try{
+    const r=await fetch(APPS_SCRIPT_URL,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},   // simple request: no preflight
+      body, redirect:'follow'
+    });
+    const t=await r.text();
+    let data=null; try{ data=JSON.parse(t); }catch(pe){}
+    if(data&&data.status) return {confirmed:true, ok:data.status!=='error', data};
+    return {confirmed:false, ok:false, reason:'The script replied with something that was not JSON (HTTP '+r.status+')'};
+  }catch(e){
+    try{
+      await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body});
+      return {confirmed:false, ok:false, reason:'Sent, but the browser would not let us read the reply - open the sheet to check'};
+    }catch(e2){
+      return {confirmed:false, ok:false, reason:'Could not reach the script: '+e2.message};
+    }
+  }
+}
+
 async function pushToSheets(silent=false){
   if(!silent) showSync('Pushing scores to Google Sheets…',null);
   if(!players||players.length===0){
@@ -2824,19 +2914,22 @@ async function pushToSheets(silent=false){
         holes:HOLES.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:'')
       };
     })};
-    await fetch(APPS_SCRIPT_URL, {
-      method:'POST',
-      mode:'no-cors',
-      headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify(payload)
-    });
-    // mode:'no-cors' makes the response opaque - this resolves even on a 403, a 500, a wrong
-    // Sheet ID or an Apps Script quota error.  We genuinely cannot tell whether it landed, so
-    // do not show a tick that says we can.
+    const res=await postToScript(payload);
     const stamp=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
     window.lastSheetPushAt=stamp;
-    if(!silent) showSync('📤 Sent to the sheet at '+stamp+' — open the sheet to confirm',true);
-    else console.log('Auto-push sent (delivery unconfirmed) at '+stamp);
+    if(res.confirmed&&res.ok){
+      if(!silent) showSync('✅ '+(res.data.message||'Scores written to your sheet')+' ('+stamp+')',true);
+      else console.log('Auto-push confirmed at '+stamp+': '+res.data.message);
+      if(res.data.notFound&&res.data.notFound.length&&!silent){
+        showSync('⚠️ '+res.data.message,false);
+      }
+    }else if(res.confirmed){
+      showSync('❌ Sheet rejected it: '+(res.data.message||'unknown error'),false);
+      console.log('Auto-push REJECTED: '+(res.data.message||''));
+    }else{
+      if(!silent) showSync('📤 '+res.reason,null);
+      console.log('Auto-push unconfirmed: '+res.reason);
+    }
   }catch(e){
     if(!silent) showSync(`Network error: ${e.message}`,false);
     else console.log('Auto-push error:',e.message);
@@ -2955,13 +3048,10 @@ async function pushClosiesToSheet(){
         return{hole, name:p?p.name:''};
       })
     };
-    await fetch(APPS_SCRIPT_URL, {
-      method:'POST',
-      mode:'no-cors',
-      headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify(payload)
-    });
-    show('✅ Closies pushed to your sheet!',true);
+    const res=await postToScript(payload);
+    if(res.confirmed&&res.ok) show('✅ '+(res.data.message||'Closies written to your sheet'),true);
+    else if(res.confirmed) show('❌ Sheet rejected it: '+(res.data.message||'unknown error'),false);
+    else show('📤 '+res.reason,null);
   }catch(e){
     show(`Network error: ${e.message}`,false);
   }
