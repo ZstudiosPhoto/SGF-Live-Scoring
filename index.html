@@ -822,6 +822,7 @@ let teeData={}; // {TEE: {rating, slope, par}} — built during loadPlayersFromS
 let scores={}, closies={}, activeNine='front', nextId=2, db=null, roundRef=null, isAdmin=(localStorage.getItem('sgf_isAdminDevice')==='true');
 let activeEventCode=null; // set when checkForActiveRound reads the round
 let myGroup=null, viewMode='myFoursome', groupsRef=null; // foursome isolation state
+let playerOrder={}, orderRef=null;  // {pid: n} - display order WITHIN a group
 let noShows={}, noShowRef=null; // no-show tracking {pid: true}
 let payments={}, paymentsRef=null; // settle-up: {pid:{in:'venmo',out:'cash'}}
 let moneySetup=null; // loaded from SETUP.MONEY tab, stored in Firebase with round
@@ -885,7 +886,13 @@ function applyAdminUI(){
   const manageBtn=document.getElementById('btn-manage-groups');
   const floatGear=document.getElementById('admin-gear-float');
   if(setupBtn) setupBtn.style.display=isAdmin?'':'none';
-  if(manageBtn) manageBtn.style.display=isAdmin?'':'none';
+  // Players need this too now - it is how they match the printed scorecard order.
+  // Non-admins get a name-order-only view (see openManageGroups); spectators get nothing.
+  if(manageBtn){
+    const canOpen = !window.isSpectator && (isAdmin || myGroup!==null);
+    manageBtn.style.display = canOpen ? '' : 'none';
+    manageBtn.textContent = isAdmin ? '👥 Groups' : '↕ Order';
+  }
   if(floatGear) floatGear.style.display=isAdmin?'flex':'none';
   // Settle Up holds who-paid-whom-how.  Admin device only; never spectators.
   const showSettle = isAdmin && !window.isSpectator;
@@ -1084,6 +1091,7 @@ function joinRound(){
     listenForGroupUpdates();
     listenForNoShowUpdates();
     listenForPaymentUpdates();
+    listenForOrderUpdates();
     listenForPlayerOverrides();
     startAutoPush();
     afterRoundLoaded();
@@ -1301,6 +1309,7 @@ async function startRound(){
       sheetId:sheetIdVal,
       moneySetup: moneySetup||null,
       payments: {},
+      order: {},
       lcp, adminNotes,
       startedAt:Date.now(),
       adminDeviceId:getDeviceId()
@@ -1311,6 +1320,7 @@ async function startRound(){
     listenForGroupUpdates();
     listenForNoShowUpdates();
     listenForPaymentUpdates();
+    listenForOrderUpdates();
     listenForPlayerOverrides();
   }
   startAutoPush();
@@ -1671,7 +1681,7 @@ async function endRound(){
         }
       }catch(e){ console.log('Backup before end round failed:',e); }
       await firebase.database().ref('sgf/activeRound').remove();
-      players=[];scores={};payments={};
+      players=[];scores={};payments={};playerOrder={};
       renderPlayerList();
       showScreen('screen-setup');
       applyAdminUI();
@@ -1745,7 +1755,7 @@ function buildSettleView(){
   catch(e){ console.log('Settle Up: payouts not ready —',e.message); }
   const scored=Object.keys(totals).some(id=>totals[id]>0);
 
-  const ordered=ap.slice().sort((a,b)=>((a.group||1)-(b.group||1))||(a.id-b.id));
+  const ordered=sortPlayers(ap);
   const paidIn=ordered.filter(p=>(payments[p.id]||{}).in).length;
   const winners=ordered.filter(p=>(totals[p.id]||0)>0);
   const paidOut=winners.filter(p=>(payments[p.id]||{}).out).length;
@@ -1816,7 +1826,7 @@ async function pushSettleToSheet(sendEmail){
   let totals={};
   try{ buildPayoutsView(); totals=window.__payoutTotals||{}; }catch(e){}
 
-  const ordered=ap.slice().sort((a,b)=>((a.group||1)-(b.group||1))||(a.id-b.id));
+  const ordered=sortPlayers(ap);
   const payload={
     type:'settle',
     spreadsheetId:sheetId,
@@ -1865,7 +1875,7 @@ function printPaymentSheet(){
   const pot=(moneySetup&&moneySetup.totalPot)?moneySetup.totalPot:0;
 
   // Keep the app's group order and drop a divider between tee groups.
-  const ordered=ap.slice().sort((a,b)=>((a.group||1)-(b.group||1))||(a.id-b.id));
+  const ordered=sortPlayers(ap);
   const MIN_ROWS=12;
   let bodyHTML='',n=0,lastGroup=null;
   ordered.forEach(p=>{
@@ -2074,8 +2084,8 @@ function buildTable(){
   const tbody=document.getElementById('score-tbody');
   tbody.innerHTML='';
   const readOnly=viewMode==='wholeField';
-  const visiblePlayers=players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name')
-    .filter(p=> readOnly ? true : (myGroup===null || (parseInt(p.group)||1)===myGroup) );
+  const visiblePlayers=sortPlayers(players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name')
+    .filter(p=> readOnly ? true : (myGroup===null || (parseInt(p.group)||1)===myGroup) ));
   visiblePlayers.forEach(p=>{
     const tr=document.createElement('tr');
     const isNS=!!(noShows[p.id]);
@@ -2303,7 +2313,12 @@ function updatePlayerPlayType(pid){
 }
 
 function openManageGroups(){
-  if(!isAdmin) return;
+  // Admin sees everyone and every control. A player sees ONLY his own foursome and
+  // ONLY the reorder arrows - so he can match the printed scorecard without being
+  // able to change groups, handicaps, tees or No Shows.
+  if(window.isSpectator) return;
+  const viewOnlyOrder = !isAdmin;
+  if(viewOnlyOrder && myGroup===null) return;
   const existing=document.getElementById('manage-groups-dialog');
   let savedScroll=0;
   if(existing){
@@ -2319,8 +2334,30 @@ function openManageGroups(){
   const distinctGroups=Array.from({length:maxGroup},(_,i)=>i+1);
   // Collect unique tee values across all loaded players for the dropdown
   const allTees=[...new Set(activePlayers.filter(p=>p.tee&&p.tee.trim()).map(p=>p.tee.trim()))].sort();
-  const rows=players.filter(p=>p.name&&p.name.trim()!=='').map(p=>{
+  const listed=sortPlayers(players.filter(p=>p.name&&p.name.trim()!==''
+    && (!viewOnlyOrder || (parseInt(p.group)||1)===myGroup)));
+  // Arrow buttons: disabled at the ends of each group so you cannot push a name out of it.
+  const groupOf={}; listed.forEach(p=>{ const g=parseInt(p.group)||1; (groupOf[g]=groupOf[g]||[]).push(p.id); });
+  function arrows(p){
     const g=parseInt(p.group)||1;
+    if(!canReorder(g)) return '';
+    const arr=groupOf[g]||[], i=arr.indexOf(p.id);
+    const btn=(dir,glyph,off)=>`<button onclick="movePlayer(${p.id},${dir})" ${off?'disabled':''} title="Move ${dir<0?'up':'down'}"
+      style="width:30px;height:30px;padding:0;border-radius:7px;border:1.5px solid ${off?'#e0e0e0':'#b8ddb5'};
+      background:${off?'#f7f7f7':'#fff'};color:${off?'#ccc':'#1a5518'};font-size:0.9rem;font-weight:900;
+      cursor:${off?'default':'pointer'};line-height:1;flex-shrink:0;">${glyph}</button>`;
+    return `<div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;">
+      ${btn(-1,'&#9650;', i<=0)}${btn(1,'&#9660;', i<0||i>=arr.length-1)}</div>`;
+  }
+  const rows=listed.map(p=>{
+    const g=parseInt(p.group)||1;
+    if(viewOnlyOrder){
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #eee;">
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:#8a938a;min-width:18px;">${(groupOf[g]||[]).indexOf(p.id)+1}</span>
+        <span style="font-weight:800;font-size:0.95rem;color:#142010;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.name.trim())}</span>
+        ${arrows(p)}
+      </div>`;
+    }
     const grpOpts=distinctGroups.map(n=>`<option value="${n}" ${n===g?'selected':''}>${n}</option>`).join('');
     const isNS=!!(noShows[p.id]);
     const nsBtnCls=isNS?'ns-toggle-btn is-ns':'ns-toggle-btn';
@@ -2337,6 +2374,7 @@ function openManageGroups(){
     return `<div style="padding:9px 0;border-bottom:1px solid #eee;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
         <span style="font-weight:800;font-size:0.9rem;color:#142010;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.name.trim())}</span>
+        ${arrows(p)}
         <select onchange="reassignGroup(${p.id},this.value)" style="padding:5px 8px;border-radius:6px;border:1.5px solid #b8ddb5;font-weight:800;flex-shrink:0;font-size:0.82rem;" title="Group">${grpOpts}</select>
         <button class="${nsBtnCls}" onclick="toggleNoShow(${p.id})" style="flex-shrink:0;" title="No Show">${nsBtnTxt}</button>
       </div>
@@ -2354,14 +2392,16 @@ function openManageGroups(){
   }).join('');
   overlay.innerHTML=`
     <div id="manage-groups-scroll" style="background:white;border-radius:16px;padding:24px;width:100%;max-width:400px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:#1a5518;letter-spacing:1px;margin-bottom:8px;">Manage Players</div>
-      <div style="font-size:0.82rem;color:#4a7044;margin-bottom:16px;font-weight:600;">Group · No Show · Tee · HCP · Game Type — live on all devices.</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:#1a5518;letter-spacing:1px;margin-bottom:8px;">${viewOnlyOrder?'Your Group Order':'Manage Players'}</div>
+      <div style="font-size:0.82rem;color:#4a7044;margin-bottom:16px;font-weight:600;">${viewOnlyOrder
+        ? 'Put these in the same order as your printed scorecard. Everyone sees the change.'
+        : 'Order · Group · No Show · Tee · HCP · Game Type — live on all devices.'}</div>
       <div>${rows}</div>
-      <div style="margin-top:14px;padding-top:12px;border-top:2px dashed #b8ddb5;">
+      <div style="margin-top:14px;padding-top:12px;border-top:2px dashed #b8ddb5;display:${viewOnlyOrder?'none':'block'};">
         <button onclick="addNewPlayersFromSheet()" style="width:100%;padding:11px;background:linear-gradient(135deg,#1a6ea8,#0d3d5e);color:white;border:none;border-radius:9px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">🔄 Sync New Players from Sheet</button>
         <div style="font-size:0.68rem;color:#888;font-weight:700;text-align:center;margin-top:5px;">Adds players in SETUP.PLAYERS not yet in this round</div>
       </div>
-      <div style="margin-top:16px;padding-top:14px;border-top:2px dashed #b8ddb5;">
+      <div style="margin-top:16px;padding-top:14px;border-top:2px dashed #b8ddb5;display:${viewOnlyOrder?'none':'block'};">
         <div style="font-family:'Bebas Neue',sans-serif;font-size:1.05rem;color:#1a5518;letter-spacing:1px;margin-bottom:10px;">🚶 Add Walk-on Player</div>
         <div style="display:flex;flex-direction:column;gap:7px;">
           <input id="new-player-name" type="text" placeholder="Full name" autocomplete="off" style="padding:8px 10px;border:1.5px solid #b8ddb5;border-radius:6px;font-family:'Nunito',sans-serif;font-size:0.88rem;font-weight:700;width:100%;box-sizing:border-box;">
@@ -2384,6 +2424,67 @@ function openManageGroups(){
   if(scroller&&savedScroll) scroller.scrollTop=savedScroll;
   document.getElementById('btn-close-manage-groups').onclick=()=>overlay.remove();
   overlay.onclick=(e)=>{if(e.target===overlay) overlay.remove();};
+}
+
+// ── PLAYER ORDER WITHIN A GROUP ──────────────────────────────────────────────
+// Sunset Hills, Aug 2026: the course pre-printed scorecards with our logo, and on a
+// couple of groups the printed name order did not match the order loaded from the
+// sheet.  You only find that out standing on the first tee, so the fix has to be in
+// the app.  Order is cosmetic - it changes the display and the order the score pad
+// walks players, and nothing else.  Handicaps, skins, closies, money and the sheet
+// push are all keyed on player id or name, never on position.
+//
+// Stored as sgf/activeRound/order/{pid} rather than by reordering the players array,
+// for the same reason groups are: a whole-array write would clobber a concurrent
+// edit from another phone, and there is a listener on this node so a reorder shows
+// up on everyone's device.
+function orderKey(p){
+  const v=playerOrder[p.id];
+  // Unordered players fall back to id, which the sheet load assigns in sheet order.
+  return (v===undefined||v===null||v==='') ? 9000+(parseInt(p.id)||0) : (parseInt(v)||0);
+}
+function sortPlayers(list){
+  return list.slice().sort((a,b)=>
+    ((parseInt(a.group)||1)-(parseInt(b.group)||1))
+    || (orderKey(a)-orderKey(b))
+    || ((parseInt(a.id)||0)-(parseInt(b.id)||0)));
+}
+function canReorder(group){
+  if(window.isSpectator) return false;
+  if(isAdmin) return true;
+  return myGroup!==null && (parseInt(group)||1)===myGroup;   // your own foursome only
+}
+function movePlayer(pid,dir){
+  pid=parseInt(pid);
+  const me=players.find(x=>x.id===pid);
+  if(!me) return;
+  const g=parseInt(me.group)||1;
+  if(!canReorder(g)) return;
+  const grp=sortPlayers(players.filter(x=>x.name&&x.name.trim()!==''&&(parseInt(x.group)||1)===g));
+  const i=grp.findIndex(x=>x.id===pid);
+  const j=i+(dir<0?-1:1);
+  if(i<0||j<0||j>=grp.length) return;                        // already top or bottom
+  grp.splice(j,0,grp.splice(i,1)[0]);
+  // Renumber the whole group so the values stay tidy and 0-based.
+  const writes={};
+  grp.forEach((x,k)=>{ playerOrder[x.id]=k; writes[x.id]=k; });
+  if(db){
+    try{ firebase.database().ref('sgf/activeRound/order').update(writes); }
+    catch(e){ console.log('Order write failed: '+e.message); }
+  }
+  buildTable();
+  if(document.getElementById('manage-groups-dialog')) openManageGroups();
+}
+function listenForOrderUpdates(){
+  if(!db) return;
+  if(orderRef) orderRef.off('value');
+  orderRef=firebase.database().ref('sgf/activeRound/order');
+  orderRef.on('value', snap=>{
+    playerOrder=snap.val()||{};
+    if(document.getElementById('screen-scoring').classList.contains('active')) buildTable();
+    if(document.getElementById('manage-groups-dialog')) openManageGroups();
+    if(document.getElementById('screen-settle').classList.contains('active')) buildSettleView();
+  });
 }
 
 function reassignGroup(pid, newGroup){
@@ -2634,9 +2735,10 @@ function saveScore(pid,hole,val){
 let padPid=null,padHole=null,padEntry='',padTimer=null,padReplaceNext=false;
 
 function getPadPlayers(){
-  return players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name')
+  // sortPlayers so the pad walks players in the same order the scorecard is written
+  return sortPlayers(players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name')
     .filter(p=>!noShows[p.id])   // buildTable disables their cells; the pad must skip them too
-    .filter(p=>myGroup===null||(parseInt(p.group)||1)===myGroup);
+    .filter(p=>myGroup===null||(parseInt(p.group)||1)===myGroup));
 }
 
 function openScorePad(pid,hole){
