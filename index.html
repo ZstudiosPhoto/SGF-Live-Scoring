@@ -355,6 +355,32 @@
   /* Past results on welcome */
   .welcome-past-btn{display:block;width:100%;max-width:280px;margin:12px auto 0;padding:12px 20px;background:transparent;border:2px solid rgba(58,170,53,0.4);border-radius:12px;color:#b8e6b5;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;letter-spacing:0.3px;}
   .welcome-past-btn:active{background:rgba(58,170,53,0.12);}
+  /* ── SETTLE-UP (payment tracker) ─────────────────────────────────── */
+  .settle-summary{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:11px 13px;margin-bottom:11px;}
+  .settle-stats{display:flex;gap:9px;flex-wrap:wrap;}
+  .settle-stat{flex:1;min-width:104px;background:#f2f6f1;border-radius:9px;padding:8px 10px;text-align:center;}
+  .settle-stat b{display:block;font-size:0.58rem;font-weight:900;letter-spacing:0.7px;color:#5a6a5a;text-transform:uppercase;margin-bottom:3px;}
+  .settle-stat i{font-style:normal;font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:1px;color:#1a5518;line-height:1;}
+  .settle-stat.warn{background:#fff5e0;}
+  .settle-stat.warn i{color:#b07d1a;}
+  .settle-todo{margin-top:9px;background:#fff9e0;border:1px solid #f0cc70;border-radius:9px;padding:8px 11px;font-size:0.76rem;font-weight:800;color:#8a6d1f;line-height:1.5;}
+  .settle-done{margin-top:9px;background:#e9f6e7;border:1px solid #a9d9a4;border-radius:9px;padding:8px 11px;font-size:0.76rem;font-weight:800;color:#2c6b26;}
+  .settle-row{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:9px 11px 10px;margin-bottom:9px;}
+  .settle-row.owed{border-color:#e8b84b;box-shadow:0 0 0 2px rgba(232,184,75,0.18);}
+  .settle-hdr{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+  .settle-name{flex:1;font-weight:800;font-size:0.94rem;color:#20321f;}
+  .settle-won{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:0.5px;color:#1a5518;}
+  .settle-won.zero{color:#b9c2b8;font-size:0.9rem;font-family:'Nunito',sans-serif;font-weight:700;}
+  .settle-line{display:flex;align-items:center;gap:5px;margin-top:5px;}
+  .settle-lbl{font-size:0.55rem;font-weight:900;letter-spacing:0.7px;color:#7d887c;text-transform:uppercase;min-width:58px;line-height:1.2;}
+  .mchip{font-family:'Nunito',sans-serif;font-weight:800;font-size:0.73rem;padding:7px 4px;min-height:36px;border-radius:8px;
+    border:1.5px solid #cfd8ce;background:#fbfdfb;color:#5c6a5b;cursor:pointer;flex:1;min-width:0;}
+  .mchip:active{transform:scale(0.97);}
+  .mchip.on{background:linear-gradient(135deg,#1a4a1a,#2d6a2d);border-color:#1a4a1a;color:#fff;}
+  .mchip.on.back{background:linear-gradient(135deg,#1a6ea8,#0d3d5e);border-color:#0d3d5e;}
+  .settle-hint{font-size:0.7rem;font-weight:800;color:#8a6d1f;background:#fff9e0;border:1px solid #f0cc70;
+    border-radius:7px;padding:5px 8px;margin-top:6px;line-height:1.45;}
+  .settle-hint.ok{color:#2c6b26;background:#e9f6e7;border-color:#a9d9a4;}
 </style>
 </head>
 <body>
@@ -564,6 +590,7 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
       <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
       <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰</button>
+      <button class="hdr-btn settle-nav" onclick="showScreen('screen-settle')" style="background:rgba(120,190,255,0.22);border-color:rgba(120,190,255,0.5);color:#bfe2ff;">🧾</button>
       <button class="hdr-btn" onclick="showScreen('screen-info')">ℹ️</button>
       <button class="hdr-btn" id="btn-manage-groups" onclick="openManageGroups()">👥 Groups</button>
     </div>
@@ -708,10 +735,31 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
       <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
       <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
+      <button class="hdr-btn settle-nav" onclick="showScreen('screen-settle')" style="background:rgba(120,190,255,0.22);border-color:rgba(120,190,255,0.5);color:#bfe2ff;">🧾 Settle</button>
     </div>
   </div>
   <div class="lb-body" id="payouts-content">
     <div class="skins-empty">Start a round to view payouts.</div>
+  </div>
+</div>
+
+<!-- ===== SETTLE-UP SCREEN (admin only) ===== -->
+<div id="screen-settle" class="screen">
+  <div class="app-header">
+    <div class="sgf-logo"><img id="logo-settle" alt="SGF"></div>
+    <div class="header-text">
+      <div class="header-brand">🧾 Settle Up</div>
+      <div class="header-sub" id="settle-sub">Who paid how</div>
+    </div>
+    <div class="header-actions">
+      <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+      <button class="hdr-btn" onclick="showScreen('screen-scoring')">Scores</button>
+      <button class="hdr-btn" onclick="showScreen('screen-payouts')">💰</button>
+      <button class="hdr-btn" onclick="printPaymentSheet()">🖨️</button>
+    </div>
+  </div>
+  <div class="lb-body" id="settle-content">
+    <div class="skins-empty">Start a round to settle up.</div>
   </div>
 </div>
 
@@ -767,6 +815,7 @@ let scores={}, closies={}, activeNine='front', nextId=2, db=null, roundRef=null,
 let activeEventCode=null; // set when checkForActiveRound reads the round
 let myGroup=null, viewMode='myFoursome', groupsRef=null; // foursome isolation state
 let noShows={}, noShowRef=null; // no-show tracking {pid: true}
+let payments={}, paymentsRef=null; // settle-up: {pid:{in:'venmo',out:'cash'}}
 let moneySetup=null; // loaded from SETUP.MONEY tab, stored in Firebase with round
 
 // ── Device ID for persistent admin detection ──────────────────────────────
@@ -830,10 +879,13 @@ function applyAdminUI(){
   if(setupBtn) setupBtn.style.display=isAdmin?'':'none';
   if(manageBtn) manageBtn.style.display=isAdmin?'':'none';
   if(floatGear) floatGear.style.display=isAdmin?'flex':'none';
+  // Settle Up holds who-paid-whom-how.  Admin device only; never spectators.
+  const showSettle = isAdmin && !window.isSpectator;
+  document.querySelectorAll('.settle-nav').forEach(b=>{ b.style.display = showSettle ? '' : 'none'; });
 }
 
 window.addEventListener('DOMContentLoaded',()=>{
-  ['logo1','logo2','logo3','logo4','logo5','logo-skins','logo-closies','logo-payouts','logo-info','logo-grouppick','logo-history','logo-history2','logo-welcome','logo-welcome-big'].forEach(id=>{
+  ['logo1','logo2','logo3','logo4','logo5','logo-skins','logo-closies','logo-payouts','logo-settle','logo-info','logo-grouppick','logo-history','logo-history2','logo-welcome','logo-welcome-big'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.src=SGF_LOGO;
   });
   document.getElementById('inp-date').value=new Date().toISOString().slice(0,10);
@@ -1016,12 +1068,14 @@ function joinRound(){
     document.getElementById('skins-sub').textContent=data.course||'SGF Live Scoring';
     document.getElementById('closies-sub').textContent=data.course||'SGF Live Scoring';
     document.getElementById('payouts-sub').textContent=data.course||'Round Results';
+    document.getElementById('settle-sub').textContent=data.course||'Who paid how';
     // Remember this round so we can detect a new one next visit
     localStorage.setItem('sgf_lastRoundStart',String(data.startedAt||''));
     listenForScoreUpdates();
     listenForClosieUpdates();
     listenForGroupUpdates();
     listenForNoShowUpdates();
+    listenForPaymentUpdates();
     listenForPlayerOverrides();
     startAutoPush();
     afterRoundLoaded();
@@ -1224,6 +1278,7 @@ async function startRound(){
   document.getElementById('skins-sub').textContent=course;
   document.getElementById('closies-sub').textContent=course;
   document.getElementById('payouts-sub').textContent=course;
+  document.getElementById('settle-sub').textContent=course;
   const sheetIdVal=extractSheetId(document.getElementById('inp-sheetid').value.trim());
   localStorage.setItem('sgf_sheetId',sheetIdVal);
   window.activeSheetId=sheetIdVal;
@@ -1237,6 +1292,7 @@ async function startRound(){
       code:(document.getElementById('inp-eventcode').value.trim()||''),
       sheetId:sheetIdVal,
       moneySetup: moneySetup||null,
+      payments: {},
       lcp, adminNotes,
       startedAt:Date.now(),
       adminDeviceId:getDeviceId()
@@ -1246,6 +1302,7 @@ async function startRound(){
     listenForClosieUpdates();
     listenForGroupUpdates();
     listenForNoShowUpdates();
+    listenForPaymentUpdates();
     listenForPlayerOverrides();
   }
   startAutoPush();
@@ -1593,7 +1650,8 @@ async function endRound(){
         if(data){
           await firebase.database().ref('sgf/endedRounds').push({
             course:data.course||'', date:data.date||'', sheetId:data.sheetId||'', code:data.code||'', endedAt:Date.now(),
-            players:data.players||[], scores:data.scores||{}, pars:data.pars||[], strokeIndex:data.strokeIndex||[]
+            players:data.players||[], scores:data.scores||{}, pars:data.pars||[], strokeIndex:data.strokeIndex||[],
+            closies:data.closies||{}, moneySetup:data.moneySetup||null, payments:data.payments||{}
           });
           const histSnap=await firebase.database().ref('sgf/endedRounds').once('value');
           const hist=histSnap.val()||{};
@@ -1605,7 +1663,7 @@ async function endRound(){
         }
       }catch(e){ console.log('Backup before end round failed:',e); }
       await firebase.database().ref('sgf/activeRound').remove();
-      players=[];scores={};
+      players=[];scores={};payments={};
       renderPlayerList();
       showScreen('screen-setup');
       applyAdminUI();
@@ -1626,6 +1684,108 @@ async function endRound(){
   }catch(e){
     alert('Error: '+e.message);
   }
+}
+
+// ── SETTLE UP ────────────────────────────────────────────────────────────────
+// The on-course version of the printed payment sheet.  After Las Posas, Chris paid
+// everyone in cash but Joe Fiano had paid his entry by Venmo; neither of them could
+// remember afterwards whether Joe got paid, and nothing was written down.  This is the
+// written-down part — and because it lives in Firebase it survives closing the app,
+// queues while you are out of signal, and gets archived with the round.
+const PAY_METHODS=[{k:'cash',l:'Cash'},{k:'venmo',l:'Venmo'},{k:'zelle',l:'Zelle'},{k:'apple',l:'Apple'}];
+function methodLabel(k){ const m=PAY_METHODS.find(x=>x.k===k); return m?m.l:''; }
+
+function listenForPaymentUpdates(){
+  if(!db) return;
+  if(paymentsRef) paymentsRef.off('value');
+  paymentsRef=firebase.database().ref('sgf/activeRound/payments');
+  paymentsRef.on('value', snap=>{
+    payments=snap.val()||{};
+    if(document.getElementById('screen-settle').classList.contains('active')) buildSettleView();
+  });
+}
+
+// Tap a chip to set it, tap the same chip again to clear it.
+function setPayMethod(pid,field,method){
+  if(!isAdmin||window.isSpectator) return;
+  const cur=(payments[pid]||{})[field]||null;
+  const val=(cur===method)?null:method;
+  if(!payments[pid]) payments[pid]={};
+  if(val===null) delete payments[pid][field]; else payments[pid][field]=val;
+  buildSettleView();                      // repaint now; Firebase confirms behind it
+  if(db){
+    try{ firebase.database().ref('sgf/activeRound/payments/'+pid+'/'+field).set(val); }
+    catch(e){ console.log('Payment write failed:',e.message); }
+  }
+}
+
+function buildSettleView(){
+  const box=document.getElementById('settle-content');
+  if(!box) return;
+  if(!isAdmin||window.isSpectator){
+    box.innerHTML='<div class="skins-empty">🔒 Settle Up is only on the device that started the round.</div>';
+    return;
+  }
+  const ap=players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name'&&!noShows[p.id]);
+  if(!ap.length){ box.innerHTML='<div class="skins-empty">No players loaded yet.</div>'; return; }
+
+  let totals={};
+  try{ buildPayoutsView(); totals=window.__payoutTotals||{}; }
+  catch(e){ console.log('Settle Up: payouts not ready —',e.message); }
+  const scored=Object.keys(totals).some(id=>totals[id]>0);
+
+  const ordered=ap.slice().sort((a,b)=>((a.group||1)-(b.group||1))||(a.id-b.id));
+  const paidIn=ordered.filter(p=>(payments[p.id]||{}).in).length;
+  const winners=ordered.filter(p=>(totals[p.id]||0)>0);
+  const paidOut=winners.filter(p=>(payments[p.id]||{}).out).length;
+  const owed=winners.filter(p=>!(payments[p.id]||{}).out);
+
+  let html='<div class="settle-summary"><div class="settle-stats">'
+    +'<div class="settle-stat"><b>Paid for games</b><i>'+paidIn+' / '+ordered.length+'</i></div>'
+    +'<div class="settle-stat'+(owed.length?' warn':'')+'"><b>Winners paid back</b><i>'
+      +(scored?paidOut+' / '+winners.length:'&mdash;')+'</i></div>'
+    +'</div>';
+  if(!scored){
+    html+='<div class="settle-todo">Winnings appear here once the round is scored. Tick how each guy paid for the games now &mdash; that part does not change.</div>';
+  }else if(owed.length){
+    html+='<div class="settle-todo">Still to pay: '+owed.map(p=>{
+      const how=(payments[p.id]||{}).in;
+      return esc((p.name||'').split(',')[0].trim())+' $'+totals[p.id]+(how?' ('+methodLabel(how)+')':'');
+    }).join(' &middot; ')+'</div>';
+  }else if(winners.length){
+    html+='<div class="settle-done">&#9989; Everyone who won has been paid back.</div>';
+  }
+  html+='</div>';
+
+  ordered.forEach(p=>{
+    const pay=payments[p.id]||{};
+    const won=totals[p.id]||0;
+    const owes=won>0&&!pay.out;
+    const showBack=won>0||!!pay.out;
+    html+='<div class="settle-row'+(owes?' owed':'')+'">'
+      +'<div class="settle-hdr"><div class="settle-name">'+esc(p.name)+'</div>'
+      +'<div class="settle-won'+(won>0?'':' zero')+'">'+(won>0?'$'+won:(scored?'&mdash;':''))+'</div></div>'
+      +'<div class="settle-line"><span class="settle-lbl">Paid in</span>'
+      +PAY_METHODS.map(m=>'<button class="mchip'+(pay.in===m.k?' on':'')+'" onclick="setPayMethod('+p.id+',\'in\',\''+m.k+'\')">'+m.l+'</button>').join('')
+      +'</div>';
+    if(showBack){
+      html+='<div class="settle-line"><span class="settle-lbl">Paid back</span>'
+        +PAY_METHODS.map(m=>'<button class="mchip back'+(pay.out===m.k?' on':'')+'" onclick="setPayMethod('+p.id+',\'out\',\''+m.k+'\')">'+m.l+'</button>').join('')
+        +'</div>';
+      if(owes&&pay.in){
+        html+='<div class="settle-hint">He paid by '+methodLabel(pay.in)+' &mdash; send his $'+won+' back the same way.</div>';
+      }else if(owes){
+        html+='<div class="settle-hint">Owed $'+won+' &mdash; nothing ticked yet.</div>';
+      }else if(pay.out&&pay.in&&pay.out!==pay.in){
+        html+='<div class="settle-hint">Paid in by '+methodLabel(pay.in)+', paid back in '+methodLabel(pay.out)+'.</div>';
+      }else if(pay.out){
+        html+='<div class="settle-hint ok">&#9989; Paid back in '+methodLabel(pay.out)+'.</div>';
+      }
+    }
+    html+='</div>';
+  });
+
+  box.innerHTML=html;
 }
 
 // ── PLAYER PAYMENT SHEET (printable) ─────────────────────────────────────────
@@ -1658,18 +1818,17 @@ function printPaymentSheet(){
     lastGroup=g;
     n++;
     const won=totals[p.id]>0?('$'+totals[p.id]):'';
+    // Anything already ticked in Settle Up prints as a filled box, so the paper copy
+    // is a record of what you did rather than a blank form.
+    const pay=payments[p.id]||{};
+    const cell=(field,method,edge)=>'<td class="c-box'+(edge?' '+edge:'')+'"><span class="tick'
+      +(pay[field]===method?' ticked':'')+'">'+(pay[field]===method?'&#10003;':'')+'</span></td>';
     bodyHTML+='<tr'+(n%2===0?' class="alt"':'')+'>'
       +'<td class="c-num">'+n+'</td>'
       +'<td class="c-name">'+esc(p.name)+'</td>'
-      +'<td class="c-box grp-edge"><span class="tick"></span></td>'
-      +'<td class="c-box"><span class="tick"></span></td>'
-      +'<td class="c-box"><span class="tick"></span></td>'
-      +'<td class="c-box"><span class="tick"></span></td>'
+      +cell('in','cash','grp-edge')+cell('in','venmo')+cell('in','zelle')+cell('in','apple')
       +'<td class="c-won">'+won+'</td>'
-      +'<td class="c-box"><span class="tick"></span></td>'
-      +'<td class="c-box"><span class="tick"></span></td>'
-      +'<td class="c-box"><span class="tick"></span></td>'
-      +'<td class="c-box grp-edge-r"><span class="tick"></span></td>'
+      +cell('out','cash')+cell('out','venmo')+cell('out','zelle')+cell('out','apple','grp-edge-r')
       +'<td class="c-notes"></td></tr>';
   });
   for(let extra=n;extra<MIN_ROWS;extra++){
@@ -1707,7 +1866,9 @@ function printPaymentSheet(){
     +'td.c-num{text-align:center;font-size:.72rem;font-weight:800;color:#8a938a;}'
     +'td.c-name{padding:0 8px;font-size:.9rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}'
     +'td.c-box{text-align:center;vertical-align:middle;}'
-    +'.tick{display:inline-block;width:16px;height:16px;border:1.7px solid var(--box);border-radius:3px;background:#fff;}'
+    +'.tick{display:inline-block;width:16px;height:16px;border:1.7px solid var(--box);border-radius:3px;background:#fff;'
+    +'line-height:14px;font-size:13px;font-weight:900;color:var(--gd);text-align:center;}'
+    +'.tick.ticked{background:#dfeedd;border-color:var(--gd);}'
     +'td.c-won{border-left:2px solid var(--box);border-right:2px solid var(--box);text-align:center;font-size:.95rem;font-weight:900;color:var(--gd);}'
     +'td.c-notes{border-left:2px solid var(--box);}'
     +'tbody tr.alt td{background:#f7f9f7;}'
@@ -2731,12 +2892,17 @@ function showScreen(id){
   if(id==='screen-skins')buildSkinsView();
   if(id==='screen-closies')buildClosiesView();
   if(id==='screen-payouts')buildPayoutsView();
+  if(id==='screen-settle')buildSettleView();
   // Show floating buttons on game screens; auto-unlock when leaving them
   const floatContainer=document.getElementById('floating-btns');
   if(floatContainer){
     if(GAME_SCREENS.includes(id)){
       floatContainer.style.display='flex';
       applyAdminUI();
+      // Settle Up is wall-to-wall tap targets — the fixed ⚙️/🔒 sit right on top of the
+      // rightmost chips, so a tap meant for "Apple" would hit the gear.  Hide them here;
+      // the header already links to Scores, Payouts and the printable sheet.
+      if(id==='screen-settle') floatContainer.style.display='none';
     } else {
       floatContainer.style.display='none';
       if(isLocked) toggleLock();
@@ -3215,7 +3381,7 @@ function fmtDate(d){const dt=new Date(d+'T12:00:00');return dt.toLocaleDateStrin
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 /* ===== LOCK / UNLOCK ===== */
-const GAME_SCREENS=['screen-scoring','screen-lb','screen-skins','screen-closies','screen-payouts','screen-info'];
+const GAME_SCREENS=['screen-scoring','screen-lb','screen-skins','screen-closies','screen-payouts','screen-settle','screen-info'];
 let isLocked=false;
 
 function toggleLock(){
