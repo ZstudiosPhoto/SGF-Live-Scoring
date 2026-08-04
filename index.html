@@ -2485,7 +2485,7 @@ async function addNewPlayersFromSheet(){
     buildTable();
     // Refresh the manage dialog so the new player shows immediately
     document.getElementById('manage-groups-dialog')?.remove();
-    showManageGroups();
+    openManageGroups();   // was showManageGroups() - no such function; threw after adding a player
     showSync(`✅ Added ${newRows.length} new player(s) from sheet! Set their group in Manage Players.`,true);
   }catch(e){showSync('Error: '+e.message,false);}
 }
