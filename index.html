@@ -1565,12 +1565,16 @@ function viewRoundHistory(idx){
 
 async function endRound(){
   if(!isAdmin){
-    alert('Only the device that started this round can end it. Ask the round admin (whoever clicked "Start Live Round") to end it from their device.');
+    alert('Admin options are only available on the device that started this round. Ask the round admin (whoever clicked "Start Live Round") to do it from their device.');
     return;
   }
   const choice = await showEndRoundDialog();
   if(!choice) return;
   try{
+    if(choice === 'payment'){
+      printPaymentSheet();
+      return;
+    }
     if(choice === 'end'){
       // Wiping a live round for the whole field deserves more than one tap.  The 'reset'
       // branch already confirms; this one never did.
@@ -1624,6 +1628,130 @@ async function endRound(){
   }
 }
 
+// ── PLAYER PAYMENT SHEET (printable) ─────────────────────────────────────────
+// One sheet per round for tracking who paid for the games how, and — the part that
+// actually bit us — how each winner got paid BACK.  If a guy Venmos the entry fee he
+// gets his winnings back by Venmo, and that only works if it's written down.
+// Prints from the live round, so the names are always right.  The Won $ column fills
+// itself in if the payouts have been computed, so the same sheet works printed on the
+// first tee (blank) or after results (pre-filled).
+function printPaymentSheet(){
+  const ap=players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name'&&!noShows[p.id]);
+  if(!ap.length){ alert('No players loaded yet — load the players from your sheet first.'); return; }
+
+  let totals={};
+  try{ buildPayoutsView(); totals=window.__payoutTotals||{}; }
+  catch(e){ console.log('Payment sheet: payouts not available yet —',e.message); }
+  const anyWinnings=Object.keys(totals).some(id=>totals[id]>0);
+
+  const course=(document.getElementById('hdr-course')||{}).textContent||'SGF Live Round';
+  const dateTxt=(document.getElementById('hdr-date')||{}).textContent||'';
+  const pot=(moneySetup&&moneySetup.totalPot)?moneySetup.totalPot:0;
+
+  // Keep the app's group order and drop a divider between tee groups.
+  const ordered=ap.slice().sort((a,b)=>((a.group||1)-(b.group||1))||(a.id-b.id));
+  const MIN_ROWS=12;
+  let bodyHTML='',n=0,lastGroup=null;
+  ordered.forEach(p=>{
+    const g=p.group||1;
+    if(lastGroup!==null&&g!==lastGroup) bodyHTML+='<tr class="sep"><td colspan="12"></td></tr>';
+    lastGroup=g;
+    n++;
+    const won=totals[p.id]>0?('$'+totals[p.id]):'';
+    bodyHTML+='<tr'+(n%2===0?' class="alt"':'')+'>'
+      +'<td class="c-num">'+n+'</td>'
+      +'<td class="c-name">'+esc(p.name)+'</td>'
+      +'<td class="c-box grp-edge"><span class="tick"></span></td>'
+      +'<td class="c-box"><span class="tick"></span></td>'
+      +'<td class="c-box"><span class="tick"></span></td>'
+      +'<td class="c-box"><span class="tick"></span></td>'
+      +'<td class="c-won">'+won+'</td>'
+      +'<td class="c-box"><span class="tick"></span></td>'
+      +'<td class="c-box"><span class="tick"></span></td>'
+      +'<td class="c-box"><span class="tick"></span></td>'
+      +'<td class="c-box grp-edge-r"><span class="tick"></span></td>'
+      +'<td class="c-notes"></td></tr>';
+  });
+  for(let extra=n;extra<MIN_ROWS;extra++){
+    n++;
+    bodyHTML+='<tr'+(n%2===0?' class="alt"':'')+'>'
+      +'<td class="c-num">'+n+'</td><td class="c-name"></td>'
+      +'<td class="c-box grp-edge"><span class="tick"></span></td><td class="c-box"><span class="tick"></span></td>'
+      +'<td class="c-box"><span class="tick"></span></td><td class="c-box"><span class="tick"></span></td>'
+      +'<td class="c-won"></td>'
+      +'<td class="c-box"><span class="tick"></span></td><td class="c-box"><span class="tick"></span></td>'
+      +'<td class="c-box"><span class="tick"></span></td><td class="c-box grp-edge-r"><span class="tick"></span></td>'
+      +'<td class="c-notes"></td></tr>';
+  }
+
+  const doc='<!DOCTYPE html><html><head><meta charset="utf-8"><title>SGF Payment Sheet — '+esc(course)+'</title><style>'
+    +':root{--gd:#1a4a1a;--g:#2d6a2d;--rule:#b9b9b9;--soft:#dcdcdc;--box:#5a5a5a;}'
+    +'*{box-sizing:border-box}html,body{margin:0;padding:0}'
+    +'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#1c1c1c;background:#eceee9;'
+    +'-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
+    +'.bar{background:linear-gradient(135deg,var(--gd),var(--g));color:#fff;padding:11px 16px;display:flex;gap:12px;align-items:center;font-weight:800;font-size:.9rem;}'
+    +'.bar button{font:inherit;font-weight:800;font-size:.82rem;padding:8px 16px;border:none;border-radius:7px;background:#fff;color:var(--gd);cursor:pointer;}'
+    +'.bar span{opacity:.9;font-weight:600;font-size:.76rem;}'
+    +'.sheet{max-width:1080px;margin:16px auto 40px;background:#fff;padding:22px 24px 18px;box-shadow:0 2px 10px rgba(0,0,0,.1);}'
+    +'.hdr{display:flex;align-items:flex-end;gap:16px;border-bottom:2.5px solid var(--gd);padding-bottom:9px;}'
+    +'.title{font-size:1.42rem;font-weight:900;letter-spacing:.6px;color:var(--gd);line-height:1.1;}'
+    +'.title span{display:block;font-size:.66rem;font-weight:800;letter-spacing:2.6px;color:var(--g);margin-bottom:3px;}'
+    +'.meta{margin-left:auto;text-align:right;font-size:.86rem;line-height:1.55;}'
+    +'.meta .c{font-size:1.02rem;font-weight:800;color:var(--gd);}'
+    +'.note{font-size:.7rem;font-weight:700;color:#7a5f1f;background:#fdf6e0;border:1px solid #ecd28c;border-radius:5px;padding:5px 9px;margin:9px 0 10px;}'
+    +'table{width:100%;border-collapse:collapse;table-layout:fixed;border:1.8px solid var(--box);}'
+    +'thead th{font-size:.6rem;font-weight:900;letter-spacing:.9px;text-transform:uppercase;color:#fff;background:var(--gd);padding:5px 3px;border:1px solid var(--gd);vertical-align:middle;}'
+    +'thead tr.sub th{background:#e7ede7;color:#2f4a2f;font-size:.55rem;letter-spacing:.7px;border:1px solid var(--rule);padding:3px 2px;font-weight:800;}'
+    +'thead th.grp{border-left:2px solid #fff;border-right:2px solid #fff;}'
+    +'tbody td{border:1px solid var(--soft);padding:0;height:34px;}'
+    +'td.c-num{text-align:center;font-size:.72rem;font-weight:800;color:#8a938a;}'
+    +'td.c-name{padding:0 8px;font-size:.9rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}'
+    +'td.c-box{text-align:center;vertical-align:middle;}'
+    +'.tick{display:inline-block;width:16px;height:16px;border:1.7px solid var(--box);border-radius:3px;background:#fff;}'
+    +'td.c-won{border-left:2px solid var(--box);border-right:2px solid var(--box);text-align:center;font-size:.95rem;font-weight:900;color:var(--gd);}'
+    +'td.c-notes{border-left:2px solid var(--box);}'
+    +'tbody tr.alt td{background:#f7f9f7;}'
+    +'tbody tr.sep td{height:9px;background:#e2e6e2 !important;border-color:var(--rule);}'
+    +'.grp-edge{border-left:2px solid var(--box) !important;}.grp-edge-r{border-right:2px solid var(--box) !important;}'
+    +'.totals{display:flex;gap:12px;margin-top:12px;}'
+    +'.tbox{flex:1;border:1.6px solid var(--box);border-radius:5px;padding:6px 10px 9px;}'
+    +'.tbox b{display:block;font-size:.58rem;font-weight:900;letter-spacing:.9px;text-transform:uppercase;color:#4a554a;margin-bottom:9px;}'
+    +'.tline{border-bottom:1.4px solid var(--box);height:17px;font-size:.95rem;font-weight:900;color:var(--gd);text-align:center;}'
+    +'.foot{display:flex;gap:18px;margin-top:11px;font-size:.66rem;color:#6a736a;font-weight:700;align-items:flex-end;}'
+    +'.foot .sig{flex:1;border-bottom:1.3px solid var(--box);height:20px;}'
+    +'@page{size:letter landscape;margin:.38in;}'
+    +'@media print{body{background:#fff}.bar{display:none !important}.sheet{max-width:none;margin:0;padding:0;box-shadow:none}tbody tr,thead tr{page-break-inside:avoid}}'
+    +'</style></head><body>'
+    +'<div class="bar"><button onclick="window.print()">&#128424; Print</button>'
+    +'<span>Landscape, letter. If the print dialog did not open, tap Print.</span></div>'
+    +'<div class="sheet"><div class="hdr">'
+    +'<div class="title"><span>SATURDAY GOLF FRIENDS</span>PLAYER PAYMENT SHEET</div>'
+    +'<div class="meta"><div class="c">'+esc(course)+'</div><div><b>'+esc(dateTxt)+'</b></div></div></div>'
+    +'<div class="note">&#9888; If a player paid electronically, pay his winnings back <u>the same way</u> &mdash; and tick the box the moment you send it.</div>'
+    +'<table><thead><tr>'
+    +'<th style="width:3.2%" rowspan="2">#</th><th style="width:16.5%" rowspan="2">Player</th>'
+    +'<th class="grp" colspan="4">Paid for Games</th>'
+    +'<th style="width:8.5%" rowspan="2">Won $</th>'
+    +'<th class="grp" colspan="4">Winnings Paid Back</th>'
+    +'<th style="width:23%" rowspan="2">Notes</th></tr>'
+    +'<tr class="sub"><th style="width:5.6%">Cash</th><th style="width:5.6%">Venmo</th><th style="width:5.6%">Zelle</th><th style="width:5.6%">Apple</th>'
+    +'<th style="width:5.6%">Cash</th><th style="width:5.6%">Venmo</th><th style="width:5.6%">Zelle</th><th style="width:5.6%">Apple</th></tr></thead>'
+    +'<tbody>'+bodyHTML+'</tbody></table>'
+    +'<div class="totals">'
+    +'<div class="tbox"><b>Total collected for games</b><div class="tline"></div></div>'
+    +'<div class="tbox"><b>Total pot</b><div class="tline">'+(pot>0?'$'+pot:'')+'</div></div>'
+    +'<div class="tbox"><b>Total winnings paid out</b><div class="tline">'+(anyWinnings&&pot>0?'$'+pot:'')+'</div></div>'
+    +'<div class="tbox"><b>Left over / short</b><div class="tline"></div></div></div>'
+    +'<div class="foot"><span>Everyone settled up &mdash; initials</span><span class="sig"></span>'
+    +'<span>Date settled</span><span class="sig" style="max-width:120px"></span></div>'
+    +'</div><script>setTimeout(function(){try{window.focus();window.print();}catch(e){}},600);<\/script>'
+    +'</body></html>';
+
+  const w=window.open('','_blank');
+  if(!w){ alert('Your browser blocked the print window.\n\nAllow pop-ups for this site, then tap Print Payment Sheet again.'); return; }
+  w.document.open(); w.document.write(doc); w.document.close();
+}
+
 function showEndRoundDialog(){
   return new Promise(resolve=>{
     const existing=document.getElementById('end-round-dialog');
@@ -1635,6 +1763,11 @@ function showEndRoundDialog(){
       <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
         <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:#1a5518;letter-spacing:1px;margin-bottom:8px;">Round Options</div>
         <div style="font-size:0.85rem;color:#4a7044;margin-bottom:20px;font-weight:600;">What would you like to do?</div>
+
+        <button id="btn-payment-sheet" style="width:100%;padding:13px;background:linear-gradient(135deg,#1a4a1a,#2d6a2d);color:white;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.95rem;cursor:pointer;margin-bottom:10px;">
+          🖨️ Print Payment Sheet<br><span style="font-size:0.75rem;font-weight:600;opacity:0.85;">Who paid how &amp; how they got paid back</span>
+        </button>
+
         <button id="btn-end-round" style="width:100%;padding:13px;background:#c0392b;color:white;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.95rem;cursor:pointer;margin-bottom:10px;">
           🔴 End Round<br><span style="font-size:0.75rem;font-weight:600;opacity:0.85;">Clears scorecard for all players</span>
         </button>
@@ -1648,6 +1781,7 @@ function showEndRoundDialog(){
         </button>
       </div>`;
     document.body.appendChild(overlay);
+    document.getElementById('btn-payment-sheet').onclick=()=>{overlay.remove();resolve('payment');};
     document.getElementById('btn-end-round').onclick=()=>{overlay.remove();resolve('end');};
     document.getElementById('btn-reset-scores').onclick=()=>{overlay.remove();resolve('reset');};
 
@@ -2931,6 +3065,7 @@ function buildPayoutsView(){
 
   // ── PER-PLAYER TOTALS ("Total $ to Give Out") ────────────────────────────
   let playerTotalsHTML='';
+  window.__payoutTotals={};   // read by printPaymentSheet() to fill in the Won $ column
   if(hasMoney){
     const totals={};
     ap.forEach(p=>{totals[p.id]=0;});
@@ -2946,6 +3081,7 @@ function buildPayoutsView(){
     if(lowNet1st&&actualLowNet1>0) totals[lowNet1st.id]=(totals[lowNet1st.id]||0)+actualLowNet1;
     if(lowNet2nd&&actualLowNet2>0) totals[lowNet2nd.id]=(totals[lowNet2nd.id]||0)+actualLowNet2;
 
+    window.__payoutTotals=totals;
     const winners=ap.filter(p=>totals[p.id]>0).sort((a,b)=>totals[b.id]-totals[a.id]);
     const grandTotal=winners.reduce((s,p)=>s+totals[p.id],0);
     if(winners.length>0){
