@@ -2535,8 +2535,13 @@ async function pushToSheets(silent=false){
       headers:{'Content-Type':'text/plain'},
       body:JSON.stringify(payload)
     });
-    if(!silent) showSync('✅ Scores pushed to your sheet!',true);
-    else console.log('Auto-push successful');
+    // mode:'no-cors' makes the response opaque - this resolves even on a 403, a 500, a wrong
+    // Sheet ID or an Apps Script quota error.  We genuinely cannot tell whether it landed, so
+    // do not show a tick that says we can.
+    const stamp=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    window.lastSheetPushAt=stamp;
+    if(!silent) showSync('📤 Sent to the sheet at '+stamp+' — open the sheet to confirm',true);
+    else console.log('Auto-push sent (delivery unconfirmed) at '+stamp);
   }catch(e){
     if(!silent) showSync(`Network error: ${e.message}`,false);
     else console.log('Auto-push error:',e.message);
@@ -2545,12 +2550,21 @@ async function pushToSheets(silent=false){
 
 let autoPushInterval = null;
 function startAutoPush(){
-  if(autoPushInterval) clearInterval(autoPushInterval);
+  if(autoPushInterval){ clearInterval(autoPushInterval); autoPushInterval=null; }
+  // Only ONE device may auto-write the sheet.  Previously every joined phone - spectators
+  // included - POSTed the WHOLE field every 2 minutes from its own local snapshot.  With a
+  // dozen phones that is a dozen full overwrites, and one coming back from a dead zone would
+  // happily replace good scores with its stale copy.  Firebase is built for many writers;
+  // a Google Sheet is not.  Everyone else still syncs normally through Firebase.
+  if(!isAdmin || window.isSpectator){
+    console.log('Auto-push not started - this device is not the round admin');
+    return;
+  }
   autoPushInterval = setInterval(()=>{
     console.log('Auto-pushing scores to Google Sheets...');
     pushToSheets(true);
   }, 2 * 60 * 1000);
-  console.log('Auto-push started — every 2 minutes');
+  console.log('Auto-push started (admin device) - every 2 minutes');
 }
 function stopAutoPush(){
   if(autoPushInterval){ clearInterval(autoPushInterval); autoPushInterval=null; }
@@ -2681,26 +2695,15 @@ function buildPayoutsView(){
     const winner=ap.find(p=>p.id===winnerId);
     return{hole,winner};
   });
-  const closiesActualPaid=closieEntries.filter(e=>e.winner).length*(closiePerHole||0);
+  const closiesWon=closieEntries.filter(e=>e.winner).length;
 
   // Pot summary is filled in LATER (after Net Skins + Low Net are computed),
   // so Low Net can act as the plug that makes every bucket total the exact pot —
   // exactly how the Google Sheet reconciles (SETUP vs ACTUAL awards).
   let potHTML='';
-
-  const closiesHTML=`<div class="payout-section">
-    <div class="payout-section-hdr">
-      <span class="payout-section-title">📍 CLOSIES</span>
-      ${closiesPool>0?`<span class="payout-pool-badge">${closiePerHole>0?'$'+closiePerHole+'/hole':'$'+closiesPool+' pool'}</span>`:''}
-    </div>
-    ${closieEntries.length===0?'<div class="skins-empty" style="padding:16px;">No Par 3 holes configured.</div>':
-      closieEntries.map(e=>`
-      <div class="payout-row">
-        <div class="payout-hole">Hole ${e.hole}</div>
-        <div class="${e.winner?'payout-name':'payout-name-empty'}">${e.winner?esc(e.winner.name):'No winner yet'}</div>
-        ${e.winner&&closiePerHole>0?`<div class="payout-amount">$${closiePerHole}</div>`:e.winner?'':'<div class="payout-amount-pending">—</div>'}
-      </div>`).join('')}
-  </div>`;
+  // closiesHTML / closieAward / closiesActualPaid are computed AFTER the skins block —
+  // see "CLOSIE AWARD" below for why.
+  let closiesHTML='',closieAward=closiePerHole,closiesActualPaid=0;
 
   // ── NET SKINS ─────────────────────────────────────────────────────────────
   function strokesToGive(hcp,hsi){if(!hcp||hcp<=0)return 0;return Math.min(hcp,18)>=hsi?1:0;}
@@ -2743,9 +2746,6 @@ function buildPayoutsView(){
   const skinRemainder=0;
   const skinsActualPaid=skinPerWin*totalSkinsWon;
   const skinWinnersArr=skinCalcPlayers.filter(p=>skinWins[p.id]>0).sort((a,b)=>skinWins[b.id]-skinWins[a.id]);
-  // Reconciled Low Net pool = pot minus ACTUAL closies and ACTUAL skins.
-  // Low Net is the plug, so Closies + Skins + Low Net always == Total Pot.
-  const actualLowNetPool=totalPot>0?totalPot-closiesActualPaid-skinsActualPaid:lowNet1+lowNet2;
 
   let skinsHTML=`<div class="payout-section">
     <div class="payout-section-hdr">
@@ -2778,6 +2778,52 @@ function buildPayoutsView(){
   skinsHTML+=skinStallNotice(_pPart,_pOrder);
   skinsHTML+=`</div>`;
 
+  // ── CLOSIE AWARD ──────────────────────────────────────────────────────────
+  // The Google Sheet divides the closie pool by the number of closies ACTUALLY won:
+  // $90 / 4 winners = $22.50 -> $23 each.  The app used to pay a FIXED $/hole, so at
+  // Las Posas (Aug 3, 2026) the un-won hole 9 left $18 sitting in the pot.  That $18
+  // silently fell through into the Low Net plug and made six players' payouts disagree
+  // with the sheet by $5-$10 each.  Now we redistribute the same way the sheet does.
+  //
+  // Mid-round we must NOT divide on partial data, or one closie recorded on hole 2 would
+  // briefly read "$90/hole".  So a par 3 the field is still playing is ASSUMED to produce
+  // a winner and keeps its slot in the denominator; only a par 3 the field has finished
+  // with nobody inside shrinks it.  Start of round: 0 won + 5 open = 5 -> $18, unchanged.
+  function par3Settled(hole){
+    const pos=_pOrder.indexOf(hole);
+    if(pos<0) return false;
+    const field=skinCalcPlayers.filter(p=>_pPart.inAt(p,pos));   // stall-aware, same as skins
+    if(field.length===0) return true;                            // nobody left to play it
+    return field.every(p=>scores[p.id]&&scores[p.id][hole]!=null);
+  }
+  const closiesStillOpen=closieEntries.filter(e=>!e.winner&&!par3Settled(e.hole)).length;
+  const closiesExpected=closiesWon+closiesStillOpen;
+  if(closiesPool>0&&closiesExpected>0) closieAward=Math.round(closiesPool/closiesExpected);
+  closiesActualPaid=closiesWon*(closieAward||0);
+  const closiesUnclaimed=closieEntries.length-closiesExpected;
+
+  closiesHTML=`<div class="payout-section">
+    <div class="payout-section-hdr">
+      <span class="payout-section-title">📍 CLOSIES</span>
+      ${closiesPool>0?`<span class="payout-pool-badge">${closieAward>0?'$'+closieAward+'/hole':'$'+closiesPool+' pool'}</span>`:''}
+    </div>
+    ${closieEntries.length===0?'<div class="skins-empty" style="padding:16px;">No Par 3 holes configured.</div>':
+      closieEntries.map(e=>`
+      <div class="payout-row">
+        <div class="payout-hole">Hole ${e.hole}</div>
+        <div class="${e.winner?'payout-name':'payout-name-empty'}">${e.winner?esc(e.winner.name):(par3Settled(e.hole)?'Nobody inside':'No winner yet')}</div>
+        ${e.winner&&closieAward>0?`<div class="payout-amount">$${closieAward}</div>`:e.winner?'':'<div class="payout-amount-pending">—</div>'}
+      </div>`).join('')}
+    ${closiesUnclaimed>0&&closiesPool>0&&closiesExpected>0?`<div style="padding:9px 13px;background:#fff9e0;border-top:1px solid #f0cc70;font-size:0.73rem;font-weight:700;color:#8a6d1f;line-height:1.45;">
+      &#9888; ${closiesUnclaimed} closie${closiesUnclaimed!==1?'s':''} not won &mdash; the $${closiesPool} pool is split ${closiesExpected} ways instead of ${closieEntries.length}, so each is $${closieAward} rather than $${closiePerHole}.</div>`:''}
+    ${closiesPool>0&&closiesExpected===0&&closieEntries.length>0?`<div style="padding:9px 13px;background:#fff9e0;border-top:1px solid #f0cc70;font-size:0.73rem;font-weight:700;color:#8a6d1f;line-height:1.45;">
+      &#9888; No closies won &mdash; the whole $${closiesPool} closie pool rolls into Low Net.</div>`:''}
+  </div>`;
+
+  // Reconciled Low Net pool = pot minus ACTUAL closies and ACTUAL skins.
+  // Low Net is the plug, so Closies + Skins + Low Net always == Total Pot.
+  const actualLowNetPool=totalPot>0?totalPot-closiesActualPaid-skinsActualPaid:lowNet1+lowNet2;
+
   // ── LOW NET ───────────────────────────────────────────────────────────────
   function holeGrossFF(pid,holeNum){return(scores[pid]&&scores[pid][holeNum]!=null)?scores[pid][holeNum]:999;}
   const netRanked=fullFeePlayers.map(p=>{
@@ -2805,12 +2851,19 @@ function buildPayoutsView(){
 
   const lowNet1st=netRanked.length>0?netRanked[0]:null;
   const lowNet2nd=netRanked.length>1?netRanked[1]:null;
-  // Reconcile Low Net prizes: if closies paid more than budgeted, Low Net pool shrinks
-  // so the total always equals the exact pot.  Preserves the 1st/2nd ratio from SETUP.
+  // Reconcile Low Net prizes: if closies or skins paid more than budgeted, the Low Net
+  // pool shrinks so the total always equals the exact pot.
+  // The sheet holds 2ND PLACE at its SETUP value and gives 1st whatever is left, so all
+  // the rounding noise lands in exactly one place ("This is a fixed amount; The #1 award
+  // takes into account any rounding errors" — SETUP.MONEY).  The app used to split the
+  // pool on the SETUP ratio, which spread the difference across both places and put 2nd
+  // $5 off the sheet.  Match the sheet.
   const setupLowTotal=lowNet1+lowNet2;
-  const ratio1=setupLowTotal>0?lowNet1/setupLowTotal:2/3;
-  const actualLowNet1=actualLowNetPool>0?Math.round(actualLowNetPool*ratio1):lowNet1;
-  const actualLowNet2=actualLowNetPool>0?actualLowNetPool-actualLowNet1:lowNet2;
+  const ratio2=setupLowTotal>0?lowNet2/setupLowTotal:1/3;
+  const actualLowNet2=actualLowNetPool<=0?lowNet2
+    :(lowNet2>0&&actualLowNetPool>lowNet2)?lowNet2            // normal case: 2nd is fixed
+    :Math.round(actualLowNetPool*ratio2);                     // pool too small — fall back to ratio
+  const actualLowNet1=actualLowNetPool>0?actualLowNetPool-actualLowNet2:lowNet1;
   const places=[
     {icon:'🥇',label:'1st Place',player:lowNet1st,prize:actualLowNet1},
     {icon:'🥈',label:'2nd Place',player:lowNet2nd,prize:actualLowNet2}
@@ -2845,11 +2898,11 @@ function buildPayoutsView(){
       <div class="pot-breakdown">
         <div class="pot-bucket">
           <div class="pot-bucket-label">CLOSIES</div>
-          <div class="pot-bucket-amount">$${closiesActualPaid||closiesPool}</div>
+          <div class="pot-bucket-amount">$${totalPot>0?closiesActualPaid:(closiesActualPaid||closiesPool)}</div>
         </div>
         <div class="pot-bucket">
           <div class="pot-bucket-label">NET SKINS</div>
-          <div class="pot-bucket-amount">$${skinsActualPaid||skinsPool}</div>
+          <div class="pot-bucket-amount">$${totalPot>0?skinsActualPaid:(skinsActualPaid||skinsPool)}</div>
         </div>
         <div class="pot-bucket">
           <div class="pot-bucket-label">LOW NET</div>
@@ -2883,7 +2936,7 @@ function buildPayoutsView(){
     ap.forEach(p=>{totals[p.id]=0;});
     // Add closies
     closieEntries.forEach(e=>{
-      if(e.winner&&closiePerHole>0) totals[e.winner.id]=(totals[e.winner.id]||0)+closiePerHole;
+      if(e.winner&&closieAward>0) totals[e.winner.id]=(totals[e.winner.id]||0)+closieAward;
     });
     // Add skins (flat per-win)
     skinWinnersArr.forEach((p,idx)=>{
