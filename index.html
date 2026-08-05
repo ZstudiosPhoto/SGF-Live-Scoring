@@ -381,6 +381,13 @@
   .settle-hint{font-size:0.7rem;font-weight:800;color:#8a6d1f;background:#fff9e0;border:1px solid #f0cc70;
     border-radius:7px;padding:5px 8px;margin-top:6px;line-height:1.45;}
   .settle-hint.ok{color:#2c6b26;background:#e9f6e7;border-color:#a9d9a4;}
+  /* Amount paid for the games.  Sits on its own line under the method chips. */
+  .amt-sel{font-family:'Nunito',sans-serif;font-weight:800;font-size:0.8rem;padding:7px 8px;min-height:36px;
+    border-radius:8px;border:1.5px solid #cfd8ce;background:#fbfdfb;color:#2c4a2b;cursor:pointer;flex:1;min-width:0;
+    -webkit-appearance:none;appearance:none;text-align:center;}
+  .amt-sel.set{background:linear-gradient(135deg,#eaf5e8,#dcefd9);border-color:#7fae7a;color:#1a4a1a;}
+  .amt-box{font-family:'Nunito',sans-serif;font-weight:800;font-size:0.8rem;padding:7px 8px;min-height:36px;
+    border-radius:8px;border:1.5px solid #7fae7a;background:#fff;color:#1a4a1a;flex:1;min-width:0;text-align:center;}
 </style>
 </head>
 <body>
@@ -1713,12 +1720,53 @@ async function endRound(){
 const PAY_METHODS=[{k:'cash',l:'Cash'},{k:'venmo',l:'Venmo'},{k:'zelle',l:'Zelle'},{k:'apple',l:'Apple'}];
 function methodLabel(k){ const m=PAY_METHODS.find(x=>x.k===k); return m?m.l:''; }
 
+// What each guy actually handed over for the games.  $30 is the normal buy-in; $40 when
+// Chris donates his service fee into the pot instead of keeping it; $10 is the
+// closies-only buy-in for a non-GHIN guest.  "Other" opens a box for anything else --
+// a $15-fee course, a partial payment, somebody covering a buddy.
+const PAY_AMOUNTS=['30.00','40.00','10.00'];
+const DEFAULT_PAY_AMOUNT='30.00';
+let amtOther={};   // pid -> true while the manual box is open for that player
+
+// The dropdown SHOWS $30 before anything is stored, but nothing is written until it is
+// touched.  That keeps an untouched player from silently reading as "paid $30".
+function payAmountOf(pid){
+  const a=(payments[pid]||{}).amt;
+  return (a===undefined||a===null||a==='')?DEFAULT_PAY_AMOUNT:String(a);
+}
+
+function setPayAmount(pid,raw){
+  if(!isAdmin||window.isSpectator) return;
+  let val=String(raw==null?'':raw).replace(/[^0-9.]/g,'');
+  if(val!==''){ const n=parseFloat(val); val=(isFinite(n)&&n>=0)?n.toFixed(2):''; }
+  if(!payments[pid]) payments[pid]={};
+  if(val===''){ delete payments[pid].amt; } else { payments[pid].amt=val; }
+  buildSettleView();                      // repaint now; Firebase confirms behind it
+  if(db){
+    try{ firebase.database().ref('sgf/activeRound/payments/'+pid+'/amt').set(val===''?null:val); }
+    catch(e){ console.log('Amount write failed:',e.message); }
+  }
+}
+
+function onAmtSelect(pid,v){
+  if(v==='__other'){
+    amtOther[pid]=true; buildSettleView();
+    const el=document.getElementById('amtbox-'+pid); if(el) el.focus();
+    return;
+  }
+  delete amtOther[pid];
+  setPayAmount(pid,v);
+}
+
 function listenForPaymentUpdates(){
   if(!db) return;
   if(paymentsRef) paymentsRef.off('value');
   paymentsRef=firebase.database().ref('sgf/activeRound/payments');
   paymentsRef.on('value', snap=>{
     payments=snap.val()||{};
+    // A repaint mid-typing would blow away the manual amount box, so hold off while it has focus.
+    const ae=document.activeElement;
+    if(ae&&ae.classList&&ae.classList.contains('amt-box')) return;
     if(document.getElementById('screen-settle').classList.contains('active')) buildSettleView();
   });
 }
@@ -1757,12 +1805,16 @@ function buildSettleView(){
 
   const ordered=sortPlayers(ap);
   const paidIn=ordered.filter(p=>(payments[p.id]||{}).in).length;
+  // Only count money from guys whose payment method is ticked -- an amount sitting in a
+  // dropdown nobody confirmed is not cash in hand.
+  const collected=ordered.reduce((t,p)=>t+((payments[p.id]||{}).in?parseFloat(payAmountOf(p.id))||0:0),0);
   const winners=ordered.filter(p=>(totals[p.id]||0)>0);
   const paidOut=winners.filter(p=>(payments[p.id]||{}).out).length;
   const owed=winners.filter(p=>!(payments[p.id]||{}).out);
 
   let html='<div class="settle-summary"><div class="settle-stats">'
     +'<div class="settle-stat"><b>Paid for games</b><i>'+paidIn+' / '+ordered.length+'</i></div>'
+    +'<div class="settle-stat"><b>Collected</b><i>$'+collected.toFixed(2)+'</i></div>'
     +'<div class="settle-stat'+(owed.length?' warn':'')+'"><b>Winners paid back</b><i>'
       +(scored?paidOut+' / '+winners.length:'&mdash;')+'</i></div>'
     +'</div>';
@@ -1788,6 +1840,17 @@ function buildSettleView(){
       +'<div class="settle-won'+(won>0?'':' zero')+'">'+(won>0?'$'+won:(scored?'&mdash;':''))+'</div></div>'
       +'<div class="settle-line"><span class="settle-lbl">Paid in</span>'
       +PAY_METHODS.map(m=>'<button class="mchip'+(pay.in===m.k?' on':'')+'" onclick="setPayMethod('+p.id+',\'in\',\''+m.k+'\')">'+m.l+'</button>').join('')
+      +'</div>';
+    // How much he handed over.  Preset amounts in the dropdown, "Other" reveals a box.
+    const amt=payAmountOf(p.id);
+    const isPreset=PAY_AMOUNTS.indexOf(amt)>=0;
+    const showBox=!!amtOther[p.id]||!isPreset;
+    html+='<div class="settle-line"><span class="settle-lbl">Amount</span>'
+      +'<select class="amt-sel'+(pay.amt?' set':'')+'" onchange="onAmtSelect('+p.id+',this.value)">'
+      +PAY_AMOUNTS.map(a=>'<option value="'+a+'"'+((!showBox&&amt===a)?' selected':'')+'>$'+a+'</option>').join('')
+      +'<option value="__other"'+(showBox?' selected':'')+'>Other&hellip;</option>'
+      +'</select>'
+      +(showBox?'<input id="amtbox-'+p.id+'" class="amt-box" type="text" inputmode="decimal" placeholder="0.00" value="'+(isPreset?'':esc(amt))+'" onchange="setPayAmount('+p.id+',this.value)">':'')
       +'</div>';
     if(showBack){
       html+='<div class="settle-line"><span class="settle-lbl">Paid back</span>'
@@ -1836,7 +1899,10 @@ async function pushSettleToSheet(sendEmail){
     email:!!sendEmail,
     rows:ordered.map(p=>{
       const pay=payments[p.id]||{};
+      // Send the amount only when it means something: he explicitly picked one, or his
+      // payment method is ticked (in which case the $30 default is the real figure).
       return{name:p.name, won:totals[p.id]||0,
+             amount:(pay.amt||pay.in)?payAmountOf(p.id):'',
              paidIn:pay.in?methodLabel(pay.in):'', paidBack:pay.out?methodLabel(pay.out):''};
     })
   };
