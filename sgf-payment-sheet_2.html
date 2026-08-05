@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SGF Player Payment Sheet</title>
+<style>
+  :root{
+    --sgf-green:#2d6a2d;
+    --sgf-green-dark:#1a4a1a;
+    --ink:#1c1c1c;
+    --rule:#b9b9b9;
+    --rule-soft:#dcdcdc;
+    --box:#5a5a5a;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    background:#eceee9;color:var(--ink);
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;
+  }
+
+  /* ─────────────── SET-UP PANEL (never prints) ─────────────── */
+  .controls{
+    max-width:1080px;margin:22px auto 8px;background:#fff;border-radius:12px;
+    box-shadow:0 2px 10px rgba(0,0,0,.10);overflow:hidden;
+  }
+  .controls-hdr{
+    background:linear-gradient(135deg,var(--sgf-green-dark),var(--sgf-green));
+    color:#fff;padding:13px 18px;font-size:1.02rem;font-weight:800;letter-spacing:.4px;
+  }
+  .controls-hdr small{display:block;font-weight:600;opacity:.85;font-size:.74rem;margin-top:3px;letter-spacing:.2px;}
+  .controls-body{padding:16px 18px 18px;}
+  .field-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
+  .field{display:flex;flex-direction:column;gap:5px;flex:1 1 190px;min-width:150px;}
+  .field label{font-size:.68rem;font-weight:800;letter-spacing:.7px;color:#5a6a5a;text-transform:uppercase;}
+  .field input,.field textarea{
+    font:inherit;font-size:.9rem;padding:8px 10px;border:1.5px solid #cdd4cd;border-radius:7px;
+    background:#fcfdfc;color:var(--ink);
+  }
+  .field input:focus,.field textarea:focus{outline:none;border-color:var(--sgf-green);background:#fff;}
+  .field textarea{min-height:150px;resize:vertical;line-height:1.5;font-size:.88rem;}
+  .hint{font-size:.72rem;color:#6f7a6f;line-height:1.5;margin-top:4px;}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  button{
+    font:inherit;font-weight:800;font-size:.85rem;letter-spacing:.4px;padding:10px 20px;
+    border-radius:8px;border:none;cursor:pointer;
+  }
+  .btn-print{background:linear-gradient(135deg,var(--sgf-green-dark),var(--sgf-green));color:#fff;}
+  .btn-print:hover{filter:brightness(1.1);}
+  .btn-ghost{background:#fff;color:#485848;border:1.5px solid #cdd4cd;}
+  .btn-ghost:hover{background:#f4f6f4;}
+  .count-note{font-size:.76rem;font-weight:700;color:#5a6a5a;margin-left:auto;}
+
+  /* ─────────────── THE PRINTABLE SHEET ─────────────── */
+  .sheet{
+    max-width:1080px;margin:0 auto 40px;background:#fff;padding:22px 24px 18px;
+    box-shadow:0 2px 10px rgba(0,0,0,.10);border-radius:4px;
+  }
+  .sheet-hdr{display:flex;align-items:flex-end;gap:16px;border-bottom:2.5px solid var(--sgf-green-dark);padding-bottom:9px;margin-bottom:4px;}
+  .sheet-title{font-size:1.42rem;font-weight:900;letter-spacing:.6px;color:var(--sgf-green-dark);line-height:1.1;}
+  .sheet-title span{display:block;font-size:.66rem;font-weight:800;letter-spacing:2.6px;color:var(--sgf-green);margin-bottom:3px;}
+  .sheet-meta{margin-left:auto;text-align:right;font-size:.86rem;line-height:1.55;}
+  .sheet-meta b{font-weight:800;}
+  .sheet-meta .m-course{font-size:1.02rem;font-weight:800;color:var(--sgf-green-dark);}
+
+  .rule-note{
+    font-size:.7rem;font-weight:700;color:#7a5f1f;background:#fdf6e0;border:1px solid #ecd28c;
+    border-radius:5px;padding:5px 9px;margin:9px 0 10px;
+  }
+
+  table{width:100%;border-collapse:collapse;table-layout:fixed;border:1.8px solid var(--box);}
+  thead th{
+    font-size:.6rem;font-weight:900;letter-spacing:.9px;text-transform:uppercase;
+    color:#fff;background:var(--sgf-green-dark);padding:5px 3px;border:1px solid var(--sgf-green-dark);
+    vertical-align:middle;
+  }
+  thead tr.sub th{
+    background:#e7ede7;color:#2f4a2f;font-size:.55rem;letter-spacing:.7px;
+    border:1px solid var(--rule);padding:3px 2px;font-weight:800;
+  }
+  thead th.grp{border-left:2px solid #fff;border-right:2px solid #fff;}
+  tbody td{border:1px solid var(--rule-soft);padding:0;height:34px;}
+  tbody tr td.c-num{
+    text-align:center;font-size:.72rem;font-weight:800;color:#8a938a;
+  }
+  tbody td.c-name{
+    padding:0 8px;font-size:.9rem;font-weight:700;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;
+  }
+  tbody td.c-name.empty{color:#c8cec8;}
+  tbody td.c-box{text-align:center;vertical-align:middle;}
+  .tick{display:inline-block;width:16px;height:16px;border:1.7px solid var(--box);border-radius:3px;background:#fff;}
+  tbody td.c-won{border-left:2px solid var(--box);border-right:2px solid var(--box);}
+  tbody td.c-notes{border-left:2px solid var(--box);}
+  tbody tr.alt td{background:#f7f9f7;}
+  tbody tr.sep td{height:9px;background:#e2e6e2 !important;border-color:var(--rule);}
+  .grp-edge{border-left:2px solid var(--box) !important;}
+  .grp-edge-r{border-right:2px solid var(--box) !important;}
+
+  .totals{display:flex;gap:12px;margin-top:12px;align-items:stretch;}
+  .tbox{
+    flex:1;border:1.6px solid var(--box);border-radius:5px;padding:6px 10px 9px;
+  }
+  .tbox b{display:block;font-size:.58rem;font-weight:900;letter-spacing:.9px;text-transform:uppercase;color:#4a554a;margin-bottom:9px;}
+  .tline{border-bottom:1.4px solid var(--box);height:17px;}
+  .sheet-foot{
+    display:flex;gap:18px;margin-top:11px;font-size:.66rem;color:#6a736a;font-weight:700;
+    letter-spacing:.3px;align-items:flex-end;
+  }
+  .sheet-foot .sig{flex:1;border-bottom:1.3px solid var(--box);height:20px;}
+
+  /* ─────────────── PRINT ─────────────── */
+  @page{size:letter landscape;margin:0.38in;}
+  @media print{
+    body{background:#fff;}
+    .controls,.no-print{display:none !important;}
+    .sheet{max-width:none;margin:0;padding:0;box-shadow:none;border-radius:0;}
+    tbody tr,thead tr{page-break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ SET-UP (screen only) ══════════════ -->
+<div class="controls no-print">
+  <div class="controls-hdr">
+    SGF Player Payment Sheet
+    <small>Fill in the round details, paste your player names, then hit Print. Nothing is saved &mdash; the paper is the record.</small>
+  </div>
+  <div class="controls-body">
+    <div class="field-row">
+      <div class="field">
+        <label for="f-course">Course / Event</label>
+        <input id="f-course" type="text" placeholder="Las Posas Country Club">
+      </div>
+      <div class="field">
+        <label for="f-date">Date</label>
+        <input id="f-date" type="date">
+      </div>
+      <div class="field">
+        <label for="f-fee">Entry fee per player</label>
+        <input id="f-fee" type="text" placeholder="$30">
+      </div>
+      <div class="field">
+        <label for="f-blanks">Extra blank rows</label>
+        <input id="f-blanks" type="number" min="0" max="12" value="2">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field" style="flex:1 1 100%;">
+        <label for="f-names">Players &mdash; one per line</label>
+        <textarea id="f-names" placeholder="Paste your players here — one name per line.&#10;&#10;Leave a blank line wherever you want a divider between tee groups.&#10;&#10;(This grey text is just a reminder — it disappears as soon as you start typing, and it never prints.)"></textarea>
+        <div class="hint">
+          Paste a whole column straight out of the Google Sheet &mdash; it drops the extra columns and keeps just the names.
+          <b>A blank line puts a divider between tee groups.</b>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-print" onclick="window.print()">&#128424;&nbsp; Print Sheet</button>
+      <button class="btn-ghost" onclick="loadSample()">Load sample</button>
+      <button class="btn-ghost" onclick="clearAll()">Clear</button>
+      <span class="count-note" id="count-note">0 players</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ THE SHEET ══════════════ -->
+<div class="sheet" id="sheet">
+  <div class="sheet-hdr">
+    <div class="sheet-title"><span>SATURDAY GOLF FRIENDS</span>PLAYER PAYMENT SHEET</div>
+    <div class="sheet-meta">
+      <div class="m-course" id="o-course">&nbsp;</div>
+      <div><b id="o-date">&nbsp;</b> <span id="o-fee"></span></div>
+    </div>
+  </div>
+
+  <div class="rule-note">
+    &#9888; If a player paid electronically, pay his winnings back <u>the same way</u> &mdash; and tick the box the moment you send it.
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:3.2%;" rowspan="2">#</th>
+        <th style="width:16.5%;" rowspan="2">Player</th>
+        <th class="grp" colspan="4">Paid for Games</th>
+        <th style="width:8.5%;" rowspan="2">Won&nbsp;$</th>
+        <th class="grp" colspan="4">Winnings Paid Back</th>
+        <th style="width:23%;" rowspan="2">Notes</th>
+      </tr>
+      <tr class="sub">
+        <th style="width:5.6%;">Cash</th><th style="width:5.6%;">Venmo</th><th style="width:5.6%;">Zelle</th><th style="width:5.6%;">Apple</th>
+        <th style="width:5.6%;">Cash</th><th style="width:5.6%;">Venmo</th><th style="width:5.6%;">Zelle</th><th style="width:5.6%;">Apple</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <div class="totals">
+    <div class="tbox"><b>Total collected for games</b><div class="tline"></div></div>
+    <div class="tbox"><b>Total pot (from the app)</b><div class="tline"></div></div>
+    <div class="tbox"><b>Total winnings paid out</b><div class="tline"></div></div>
+    <div class="tbox"><b>Left over / short</b><div class="tline"></div></div>
+  </div>
+
+  <div class="sheet-foot">
+    <span>Everyone settled up &mdash; initials</span><span class="sig"></span>
+    <span>Date settled</span><span class="sig" style="max-width:120px;"></span>
+  </div>
+</div>
+
+<script>
+(function(){
+  var MIN_ROWS = 12;   // always print a full-looking sheet
+
+  function names(){
+    var raw = document.getElementById('f-names').value.replace(/\r/g,'');
+    var out = [], blankRun = 0;
+    raw.split('\n').forEach(function(line){
+      // a pasted spreadsheet row arrives tab-separated; keep the first non-empty cell
+      var cell = line.split('\t').map(function(c){return c.trim();}).filter(Boolean)[0] || '';
+      if(cell === ''){ blankRun++; return; }
+      if(blankRun > 0 && out.length > 0) out.push(null);   // null = group divider
+      blankRun = 0;
+      out.push(cell);
+    });
+    return out;
+  }
+
+  function esc(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function tick(cls){ return '<td class="c-box '+(cls||'')+'"><span class="tick"></span></td>'; }
+
+  function render(){
+    var list = names();
+    var real = list.filter(function(n){return n !== null;}).length;
+    var blanks = Math.max(0, parseInt(document.getElementById('f-blanks').value, 10) || 0);
+    var rows = list.slice();
+    for(var b = 0; b < blanks; b++) rows.push('');
+    while(rows.filter(function(n){return n !== null;}).length < MIN_ROWS) rows.push('');
+
+    var html = '', n = 0;
+    rows.forEach(function(name){
+      if(name === null){ html += '<tr class="sep"><td colspan="12"></td></tr>'; return; }
+      n++;
+      html += '<tr' + (n % 2 === 0 ? ' class="alt"' : '') + '>'
+        + '<td class="c-num">' + n + '</td>'
+        + '<td class="c-name' + (name ? '' : ' empty') + '">' + esc(name) + '</td>'
+        + tick('grp-edge') + tick() + tick() + tick('')
+        + '<td class="c-won"></td>'
+        + tick() + tick() + tick() + tick('grp-edge-r')
+        + '<td class="c-notes"></td>'
+        + '</tr>';
+    });
+    document.getElementById('rows').innerHTML = html;
+    document.getElementById('count-note').textContent =
+      real + ' player' + (real === 1 ? '' : 's') + ' · ' + n + ' rows on the sheet';
+
+    var course = document.getElementById('f-course').value.trim();
+    document.getElementById('o-course').textContent = course || ' ';
+
+    var d = document.getElementById('f-date').value;
+    var dateOut = ' ';
+    if(d){
+      var p = d.split('-');
+      dateOut = new Date(+p[0], +p[1]-1, +p[2]).toLocaleDateString('en-US',
+                 {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+    }
+    document.getElementById('o-date').textContent = dateOut;
+
+    var fee = document.getElementById('f-fee').value.trim();
+    document.getElementById('o-fee').textContent = fee ? ' ·  Entry ' + fee + ' per player' : '';
+  }
+
+  window.loadSample = function(){
+    document.getElementById('f-course').value = 'Las Posas Country Club';
+    document.getElementById('f-fee').value = '$30';
+    document.getElementById('f-names').value =
+      'Zsarnay, Chris\nFiano, Joe\nJames, David\nMangone, Richard\n\n' +
+      'Hanna, Tom\nTape, Ryan\nWilliams, Bob\nMunoz, Ed\n\n' +
+      'Stahlberg, Ron\nSouth, Charles\nColon, Cris\nColon, Chloe';
+    render();
+  };
+  window.clearAll = function(){
+    ['f-course','f-fee','f-names'].forEach(function(id){ document.getElementById(id).value = ''; });
+    document.getElementById('f-blanks').value = 2;
+    render();
+  };
+
+  ['f-course','f-date','f-fee','f-blanks','f-names'].forEach(function(id){
+    var el = document.getElementById(id);
+    el.addEventListener('input', render);
+    el.addEventListener('change', render);
+  });
+
+  // default the date to today, in local time (not toISOString, which is UTC)
+  var now = new Date();
+  document.getElementById('f-date').value =
+    now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+
+  render();
+})();
+</script>
+</body>
+</html>
