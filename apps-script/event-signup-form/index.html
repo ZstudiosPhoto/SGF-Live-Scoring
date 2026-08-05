@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SGF Saturday Golf Friends &mdash; Sign Up</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      background: #f1f8e9;
+      color: #222;
+      min-height: 100vh;
+    }
+
+
+    /* Header */
+.site-header {
+      background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+      color: #fff;
+      text-align: center;
+      padding: 22px 20px 18px;
+    }
+    .site-header .logo { display:block; width:150px; height:84px; margin:0 auto 8px; }
+    .site-header h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: 0.4px; }
+    .site-header p  { font-size: 0.82rem; opacity: 0.82; margin-top: 3px; }
+
+    /* Calendar card */
+    .cal-card {
+      max-width: 600px;
+      margin: 20px auto 0;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.13);
+      overflow: hidden;
+    }
+
+    /* Month nav */
+    .cal-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #2e7d32;
+      color: #fff;
+      padding: 13px 16px;
+    }
+    .cal-nav h2 { font-size: 1.05rem; font-weight: 700; }
+    .cal-nav-center { display:flex; flex-direction:column; align-items:center; gap:2px; }
+
+    .nav-btn {
+      background: rgba(255,255,255,0.18);
+      border: none; color: #fff;
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.18s;
+      line-height: 1;
+    }
+    .nav-btn:hover { background: rgba(255,255,255,0.32); }
+
+    /* Day-of-week labels */
+    .day-headers {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      background: #e8f5e9;
+      border-bottom: 1px solid #c8e6c9;
+    }
+    .day-headers span {
+      text-align: center;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #2e7d32;
+      padding: 7px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    /* Calendar grid */
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+    }
+
+    /* Day cell */
+    .day-cell {
+      min-height: 52px;
+      overflow: hidden;
+      padding: 3px 2px;
+      border-right: 1px solid #f0f0f0;
+      border-bottom: 1px solid #f0f0f0;
+      position: relative;
+      vertical-align: top;
+    }
+    .day-cell:nth-child(7n) { border-right: none; }
+    .day-cell.other-month  { background: #fafafa; }
+    .day-num {
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: #9e9e9e;
+      width: 22px; height: 22px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%;
+      margin-bottom: 2px;
+    }
+    .day-cell:not(.other-month) .day-num { color: #424242; }
+    .day-cell.today .day-num {
+      background: #2e7d32;
+      color: #fff;
+    }
+
+    /* Event day */
+    .day-cell.has-event {
+      cursor: pointer;
+      background: #f1f8e9;
+    }
+    .day-cell.has-event:hover { background: #dcedc8; }
+    .day-cell.has-event.selected { background: #c5e1a5; }
+
+    .event-badge {
+      background: #2e7d32;
+      color: #fff;
+      border-radius: 4px;
+      padding: 2px 3px;
+      font-size: 0.58rem;
+      font-weight: 600;
+      line-height: 1.3;
+      text-align: center;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .event-badge .badge-icon  { font-size: 0.82rem; display: block; }
+    .event-badge .badge-name  {
+      display: block;
+      white-space: normal;
+      word-break: break-word;
+      line-height: 1.25;
+      overflow-wrap: break-word;
+    }
+    .event-badge .badge-hint  {
+      display: block;
+      font-size: 0.52rem;
+      opacity: 0.82;
+      font-weight: 400;
+    }
+
+    /* Event signup panel — modal overlay */
+    .panel-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.52);
+      z-index: 999;
+    }
+    .event-panel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 92%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      z-index: 1000;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+    }
+    .ep-header {
+      background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+      color: #fff;
+      padding: 16px 20px;
+      position: relative;
+    }
+    .ep-header h3 { font-size: 1.1rem; font-weight: 700; padding-right: 36px; }
+    .ep-header .ep-meta { font-size: 0.8rem; opacity: 0.86; margin-top: 4px; }
+    .ep-header .ep-note { font-size: 0.7rem; opacity: 0.7; margin-top: 4px; font-style: italic; }
+    .ep-header .ep-cost { font-size: 0.78rem; margin-top: 6px; background: rgba(255,255,255,0.15); border-radius: 6px; padding: 5px 8px; }
+    .ep-close {
+      position: absolute;
+      top: 14px; right: 16px;
+      background: rgba(255,255,255,0.2);
+      border: none; color: #fff;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      font-size: 1rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ep-close:hover { background: rgba(255,255,255,0.35); }
+
+    /* Tee groups inside event panel */
+    .tee-group {
+      border-bottom: 1px solid #f0f0f0;
+      padding: 12px 18px;
+    }
+    .tee-group:last-child { border-bottom: none; }
+    .tee-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #2e7d32;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .slot-list { display: flex; flex-direction: column; gap: 6px; }
+
+    .slot {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.87rem;
+    }
+    .slot.filled   { background: #f5f5f5; }
+    .slot.open-slot {
+      background: #e8f5e9;
+      border: 1px dashed #81c784;
+      cursor: pointer;
+    }
+    .slot.open-slot:hover { background: #c8e6c9; }
+    .slot-icon  { font-size: 1rem; flex-shrink: 0; }
+    .slot-name  { flex: 1; font-weight: 500; }
+    .slot-hcp   { font-size: 0.73rem; color: #757575; }
+    .btn-signup {
+      margin-left: auto;
+      background: #2e7d32;
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      padding: 5px 13px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .btn-signup:hover { background: #1b5e20; }
+
+    /* Refresh */
+    .btn-refresh {
+      display: block;
+      margin: 14px auto 4px;
+      background: #eee;
+      color: #555;
+      border: none;
+      padding: 7px 18px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .btn-refresh:hover { background: #e0e0e0; }
+
+    /* Totals pills */
+    .ep-totals { display: flex; gap: 8px; padding: 10px 18px 0; flex-wrap: wrap; }
+    .pill {
+      font-size: 0.75rem;
+      padding: 3px 11px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+    .pill.signed { background: #d4edda; color: #155724; }
+    .pill.open   { background: #fff3cd; color: #856404; }
+    .pill.full   { background: #ffecb3; color: #e65100; }
+
+    /* Waitlist banner */
+    .waitlist-banner { background: #fff8e1; border-top: 1px solid #ffe082; padding: 14px 18px; text-align: center; }
+    .waitlist-banner p { font-size: 0.85rem; color: #555; margin-bottom: 10px; }
+    .waitlist-count { font-size: 0.78rem; color: #f57c00; font-weight: 600; margin-bottom: 8px; }
+    .btn-waitlist { background: #e65100; color: #fff; border: none; border-radius: 20px; padding: 9px 22px; font-size: 0.88rem; font-weight: 700; cursor: pointer; }
+    .btn-waitlist:hover { background: #bf360c; }
+
+    /* Empty state */
+    .empty-panel {
+      text-align: center;
+      padding: 36px 20px;
+      color: #757575;
+    }
+    .empty-panel .empty-icon { font-size: 2rem; margin-bottom: 10px; }
+
+    /* Signup modal */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.52);
+      z-index: 1100;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 14px;
+      max-width: 420px;
+      width: 100%;
+      overflow: hidden;
+      box-shadow: 0 16px 56px rgba(0,0,0,0.28);
+      animation: popIn 0.18s ease-out;
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.94); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .modal-head {
+      background: #2e7d32;
+      color: #fff;
+      padding: 16px 20px;
+    }
+    .modal-head h3 { font-size: 1rem; font-weight: 700; }
+    .modal-head p  { font-size: 0.79rem; opacity: 0.86; margin-top: 3px; }
+    .modal-body { padding: 20px; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 5px;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 10px 13px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      transition: border-color 0.15s;
+    }
+    .form-group input:focus { outline: none; border-color: #2e7d32; }
+    .form-group small { font-size: 0.72rem; color: #888; margin-top: 4px; display: block; }
+    .modal-actions {
+      display: flex; gap: 10px;
+      padding: 0 20px 20px;
+    }
+    .btn-cancel {
+      flex: 1; padding: 10px;
+      border: 1.5px solid #ddd;
+      background: #fff;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .btn-cancel:hover { background: #f5f5f5; }
+    .btn-submit {
+      flex: 2; padding: 10px;
+      background: #2e7d32; color: #fff;
+      border: none; border-radius: 8px;
+      font-size: 0.9rem; font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-submit:hover:not(:disabled) { background: #1b5e20; }
+    .btn-submit:disabled { background: #9e9e9e; cursor: not-allowed; }
+    .msg-err  { color: #c62828; font-size: 0.8rem; margin-top: 8px; }
+    .msg-ok   { text-align: center; padding: 24px 20px; }
+    .msg-ok .ok-icon { font-size: 2.4rem; display: block; margin-bottom: 10px; }
+    .msg-ok p { font-size: 0.95rem; color: #2e7d32; font-weight: 600; }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      font-size: 0.72rem;
+      color: #aaa;
+      padding: 16px;
+    }
+
+    @media (max-width: 380px) {
+      .event-badge .badge-hint { display: none; }
+      .site-header h1 { font-size: 1.15rem; }
+    }
+
+    /* Hide GAS RPC debug overlay */
+    body > div[style*="position: fixed"][style*="bottom"],
+    body > div[style*="position:fixed"][style*="bottom"] {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="site-header">
+  <img class="logo" src="data:image/png;base64,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" alt="SGF Logo">
+  <h1>Saturday Golf Friends</h1>
+  <p>Tap an event date to sign up</p>
+</header>
+
+<!-- Calendar -->
+<div class="cal-card">
+  <div class="cal-nav">
+    <button class="nav-btn" id="prevMonth" aria-label="Previous month">&#8249;</button>
+    <div class="cal-nav-center">
+      <h2 id="monthTitle"></h2>
+    </div>
+    <button class="nav-btn" id="nextMonth" aria-label="Next month">&#8250;</button>
+  </div>
+  <div class="day-headers">
+    <span>Sun</span><span>Mon</span><span>Tue</span>
+    <span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+  </div>
+  <div class="cal-grid" id="calGrid"></div>
+</div>
+
+<!-- Event panel backdrop + panel -->
+<div class="panel-backdrop" id="panelBackdrop" style="display:none" onclick="closePanel()"></div>
+<div class="event-panel" id="eventPanel" style="display:none"></div>
+
+<!-- Signup modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalBox" role="dialog" aria-modal="true"></div>
+</div>
+
+<footer>SGF Golf Tracker &middot; Saturday Golf Friends</footer>
+
+<script>
+// Data embedded server-side
+var EVENTS = <?!= initialData ?>;
+var APP_URL = 'https://script.google.com/macros/s/AKfycbwwBV8dC_mowNmGcyc0ZUrXd_-X2vGl93AzLA3cKs_p2MtizyvJNNr-xNu_OI-5k2-R/exec';
+
+// State
+var viewYear, viewMonth;
+var selectedIdx   = -1;
+var pendingSignup = null;
+var pendingWaitlist = null;
+
+// Month names (ASCII only)
+var MONTH_NAMES = ['January','February','March','April','May','June',
+                   'July','August','September','October','November','December'];
+
+// Init
+(function init() {
+  var now = new Date();
+  viewYear  = now.getFullYear();
+  viewMonth = now.getMonth();
+
+  // If first event is in a future month, jump there
+  if (Array.isArray(EVENTS) && EVENTS.length > 0) {
+    var first = new Date(EVENTS[0].isoDate + 'T12:00:00');
+    if (!isNaN(first.getTime())) {
+      var firstKey = first.getFullYear() * 12 + first.getMonth();
+      var nowKey   = viewYear * 12 + viewMonth;
+      if (firstKey > nowKey) {
+        viewYear  = first.getFullYear();
+        viewMonth = first.getMonth();
+      }
+    }
+  }
+
+  renderCalendar();
+
+  document.getElementById('prevMonth').addEventListener('click', function() {
+    if (--viewMonth < 0) { viewMonth = 11; viewYear--; }
+    closePanel();
+    renderCalendar();
+  });
+  document.getElementById('nextMonth').addEventListener('click', function() {
+    if (++viewMonth > 11) { viewMonth = 0; viewYear++; }
+    closePanel();
+    renderCalendar();
+  });
+
+  document.getElementById('modalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeModal();
+  });
+})();
+
+// Calendar rendering
+function renderCalendar() {
+  var titleEl = document.getElementById('monthTitle');
+  if (titleEl) titleEl.textContent = MONTH_NAMES[viewMonth] + ' ' + viewYear;
+
+  var grid = document.getElementById('calGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  var firstDOW    = new Date(viewYear, viewMonth, 1).getDay();
+  var daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  var daysInPrev  = new Date(viewYear, viewMonth, 0).getDate();
+  var today       = toISO(new Date());
+
+  // Build event lookup: isoDate -> index
+  var evtMap = {};
+  if (Array.isArray(EVENTS)) {
+    for (var i = 0; i < EVENTS.length; i++) {
+      if (EVENTS[i] && EVENTS[i].isoDate) {
+        evtMap[EVENTS[i].isoDate] = i;
+      }
+    }
+  }
+
+  // Trailing days from previous month
+  for (var d = firstDOW - 1; d >= 0; d--) {
+    grid.appendChild(buildCell(daysInPrev - d, true, false, false, null, -1));
+  }
+
+  // Current month days
+  for (var day = 1; day <= daysInMonth; day++) {
+    var iso    = viewYear + '-' + pad2(viewMonth + 1) + '-' + pad2(day);
+    var evtIdx = (iso in evtMap) ? evtMap[iso] : -1;
+    grid.appendChild(buildCell(
+      day,
+      false,
+      iso === today,
+      evtIdx !== -1 && evtIdx === selectedIdx,
+      evtIdx >= 0 ? EVENTS[evtIdx] : null,
+      evtIdx
+    ));
+  }
+
+  // Leading days for next month
+  var filled = grid.children.length;
+  var remain = filled % 7 === 0 ? 0 : 7 - (filled % 7);
+  for (var e = 1; e <= remain; e++) {
+    grid.appendChild(buildCell(e, true, false, false, null, -1));
+  }
+}
+
+function buildCell(day, otherMonth, isToday, isSelected, event, evtIdx) {
+  var cell = document.createElement('div');
+  var cls  = 'day-cell';
+  if (otherMonth)  cls += ' other-month';
+  if (isToday)     cls += ' today';
+  if (event)       cls += ' has-event';
+  if (isSelected)  cls += ' selected';
+  cell.className = cls;
+
+  var numDiv = document.createElement('div');
+  numDiv.className = 'day-num';
+  numDiv.textContent = String(day);
+  cell.appendChild(numDiv);
+
+  if (event) {
+    var badge = document.createElement('div');
+    badge.className = 'event-badge';
+
+    var iconSpan = document.createElement('span');
+    iconSpan.className = 'badge-icon';
+    iconSpan.textContent = '\u26F3';
+    badge.appendChild(iconSpan);
+
+    var nameSpan = document.createElement('span');
+    nameSpan.className = 'badge-name';
+    nameSpan.textContent = event.course || '';
+    badge.appendChild(nameSpan);
+
+    var hintSpan = document.createElement('span');
+    hintSpan.className = 'badge-hint';
+    hintSpan.textContent = 'Tap to sign up';
+    badge.appendChild(hintSpan);
+
+    cell.appendChild(badge);
+
+    (function(idx) {
+      cell.addEventListener('click', function() { selectEvent(idx); });
+    })(evtIdx);
+  }
+
+  return cell;
+}
+
+// Event panel
+function selectEvent(idx) {
+  selectedIdx = idx;
+  renderCalendar();
+  renderPanel(EVENTS[idx]);
+}
+
+function closePanel() {
+  selectedIdx = -1;
+  var panel = document.getElementById('eventPanel');
+  var backdrop = document.getElementById('panelBackdrop');
+  if (panel) panel.style.display = 'none';
+  if (backdrop) backdrop.style.display = 'none';
+}
+
+function renderPanel(event) {
+  var panel = document.getElementById('eventPanel');
+  if (!panel) return;
+  panel.style.display = 'block';
+  var backdrop = document.getElementById('panelBackdrop');
+  if (backdrop) backdrop.style.display = 'block';
+
+  // Group player rows by tee time (or by pairing group for shotgun events)
+  var groups = {}, order = [];
+  var rows = event.playerRows || [];
+
+  // Detect shotgun start: same explicit tee time appears on multiple rows
+  var groupStartCount = 0, uniqueTimes = {};
+  rows.forEach(function(r) { if (r.groupStart) { groupStartCount++; uniqueTimes[r.teeTime] = true; } });
+  var timeKeys = Object.keys(uniqueTimes);
+  var isShotgun = timeKeys.length === 1 && groupStartCount > 1;
+  var shotgunTime = isShotgun ? timeKeys[0] : null;
+
+  if (isShotgun) {
+    var pairingNum = 0;
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      if (r.groupStart || pairingNum === 0) {
+        pairingNum++;
+        var key = 'Pairing ' + pairingNum;
+        groups[key] = [];
+        order.push(key);
+      }
+      groups['Pairing ' + pairingNum].push(r);
+    }
+  } else {
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      if (!groups[r.teeTime]) { groups[r.teeTime] = []; order.push(r.teeTime); }
+      groups[r.teeTime].push(r);
+    }
+  }
+
+  var signed = rows.filter(function(r) { return !r.isOpen; }).length;
+  var open   = rows.filter(function(r) { return  r.isOpen; }).length;
+  var isFull = open === 0 && signed > 0;
+  var waitlistCount = (event.waitlist || []).length;
+
+  var metaParts = [event.formattedDate || ''];
+  if (isShotgun)      metaParts.push('Shotgun Start: ' + shotgunTime);
+  if (event.deadline) metaParts.push(event.deadline);
+  if (event.games)    metaParts.push(event.games);
+
+  // Build cost breakdown HTML
+  var costHtml = '';
+  var payStr = String(event.payRequired || '').trim();
+  if (payStr) {
+    var payNum = parseFloat(payStr.replace(/[^0-9.]/g, ''));
+    if (!isNaN(payNum) && payNum > 0) {
+      var sf = event.serviceFee || 10;
+      var total = payNum + 30 + sf;
+      costHtml = '<div class="ep-cost">' +
+        '\uD83D\uDCB0 Green fee: $' + payNum.toFixed(0) +
+        ' &nbsp;+&nbsp; SGF Games: $30' +
+        ' &nbsp;+&nbsp; Service fee: $' + sf.toFixed(0) +
+        ' &nbsp;= &nbsp;<strong>Total: $' + total.toFixed(0) + '</strong>' +
+        '</div>';
+    }
+  }
+
+  // Build all HTML in one string, set innerHTML once to avoid re-parse issues
+  var html =
+    '<div class="ep-header">' +
+      '<button class="ep-close" onclick="closePanel()" aria-label="Close">\u2715</button>' +
+      '<h3>\u26F3 ' + esc(event.course) + '</h3>' +
+      '<div class="ep-meta">' + metaParts.map(esc).join(' \u00B7 ') + '</div>' +
+      costHtml +
+      '<div class="ep-note">Pairings may change prior to the event.</div>' +
+    '</div>';
+
+  // TBD events \u2014 show locked message, no signup
+  if (event.tbd) {
+    html +=
+      '<div class="empty-panel">' +
+        '<div class="empty-icon">\uD83D\uDD12</div>' +
+        '<p><strong>Course TBD</strong></p>' +
+        '<p style="font-size:14px;color:#666;">Signup will open once the course is confirmed. Check back soon!</p>' +
+      '</div>';
+    panel.innerHTML = html;
+    return;
+  }
+
+  html +=
+    '<div class="ep-totals">' +
+      '<span class="pill signed">&#x2705; ' + signed + ' signed up</span>' +
+      (isFull
+        ? '<span class="pill full">Event Full</span>'
+        : '<span class="pill open">' + open + ' open spot' + (open !== 1 ? 's' : '') + '</span>'
+      ) +
+    '</div>';
+
+  if (order.length === 0) {
+    html +=
+      '<div class="empty-panel">' +
+        '<div class="empty-icon">\u26F3</div>' +
+        '<p>No tee times found for this event.</p>' +
+      '</div>';
+  } else {
+    for (var g = 0; g < order.length; g++) {
+      var tt    = order[g];
+      var slots = groups[tt];
+      var slotsHtml = '';
+      for (var s = 0; s < slots.length; s++) {
+        var slot = slots[s];
+        if (slot.isOpen) {
+          slotsHtml +=
+            '<div class="slot open-slot" onclick="openModal(' + slot.rowIndex + ',\'' + escQ(tt) + '\',\'' + escQ(event.course) + '\',\'' + escQ(event.formattedDate) + '\',' + (event.golfMoose ? 'true' : 'false') + ')">' +
+              '<span class="slot-icon">\u26F3</span>' +
+              '<span class="slot-name">Open</span>' +
+              '<button class="btn-signup">Sign Up &rarr;</button>' +
+            '</div>';
+        } else {
+          slotsHtml +=
+            '<div class="slot filled">' +
+              '<span class="slot-icon">&#x2705;</span>' +
+              '<span class="slot-name">' + esc(slot.player) + '</span>' +
+            '</div>';
+        }
+      }
+      html +=
+        '<div class="tee-group">' +
+          '<div class="tee-label">' + esc(tt || 'Tee Time TBD') + '</div>' +
+          '<div class="slot-list">' + slotsHtml + '</div>' +
+        '</div>';
+    }
+  }
+
+  if (isFull) {
+    html +=
+      '<div class="waitlist-banner">' +
+        (waitlistCount > 0
+          ? '<div class="waitlist-count">&#128337; ' + waitlistCount + ' player' + (waitlistCount !== 1 ? 's' : '') + ' already on the waitlist</div>'
+          : '') +
+        '<p>This event is full. Join the waitlist and we\'ll email you if a spot opens up.</p>' +
+        '<button class="btn-waitlist" onclick="openWaitlistModal(\'' + escQ(event.isoDate) + '\',\'' + escQ(event.course) + '\',\'' + escQ(event.formattedDate) + '\')">Join Waitlist</button>' +
+      '</div>';
+  }
+
+  html +=
+    '<div style="text-align:center;padding:8px 0 14px">' +
+      '<button class="btn-refresh" onclick="window.location.href=APP_URL">&#8635; Refresh</button>' +
+    '</div>';
+
+  panel.innerHTML = html;
+}
+
+// Signup modal
+function openModal(rowIndex, teeTime, course, eventDate, golfMoose) {
+  pendingSignup = { rowIndex: rowIndex, teeTime: teeTime, course: course, eventDate: eventDate, golfMoose: !!golfMoose };
+  document.getElementById('modalBox').innerHTML =
+    '<div class="modal-head">' +
+      '<h3>Sign Up \u26F3</h3>' +
+      '<p>' + esc(course) + ' &mdash; ' + esc(teeTime) + '</p>' +
+    '</div>' +
+    '<div class="modal-body">' +
+      '<div class="form-group">' +
+        '<label for="inp-name">First and Last Name <span style="color:#c00">*</span></label>' +
+        '<input id="inp-name" type="text" placeholder="First Last" maxlength="60" autocomplete="name" inputmode="text">' +
+      '</div>' +
+      '<div class="form-group">' +
+        '<label for="inp-email">Email <span style="font-weight:400;color:#888;font-size:0.78rem;">(optional &mdash; lets you cancel your spot later)</span></label>' +
+        '<input id="inp-email" type="email" placeholder="you@example.com" maxlength="80" autocomplete="email" inputmode="email">' +
+      '</div>' +
+      (pendingSignup.golfMoose ?
+        '<div class="form-group">' +
+          '<label for="inp-voucher">&#127993; Golf Moose Voucher # <span style="color:#c00">*</span></label>' +
+          '<input id="inp-voucher" type="text" placeholder="Enter your Golf Moose voucher number" maxlength="40" autocomplete="off">' +
+          '<small>Required for Golf Moose events. Check your Golf Moose confirmation email.</small>' +
+        '</div>'
+      : '') +
+      '<div class="form-group">' +
+        '<label for="inp-code">Group Passcode <span style="color:#c00">*</span></label>' +
+        '<input id="inp-code" type="text" placeholder="Enter passcode" maxlength="20" autocomplete="off">' +
+        '<small style="display:flex;justify-content:space-between;align-items:center;">' +
+          '<span>Members only &mdash; ask the organizer for the code.</span>' +
+          '<a href="#" onclick="openAccessRequestModal();return false;" style="color:#2e7d32;font-weight:600;white-space:nowrap;margin-left:8px;">New? Request access &#8594;</a>' +
+        '</small>' +
+      '</div>' +
+      '<div class="form-group">' +
+        '<label for="inp-note">Note to Organizer <span style="font-weight:400;color:#888;font-size:0.78rem;">(optional)</span></label>' +
+        '<textarea id="inp-note" placeholder="Have a question or special request? Let us know..." maxlength="300" rows="3" style="width:100%;padding:10px 12px;border:1.5px solid #ccc;border-radius:8px;font-size:15px;font-family:inherit;resize:vertical;"></textarea>' +
+      '</div>' +
+      '<div id="modalErr" class="msg-err" style="display:none"></div>' +
+    '</div>' +
+    '<div class="modal-actions">' +
+      '<button class="btn-cancel" onclick="closeModal()">Cancel</button>' +
+      '<button class="btn-submit" id="btnSubmit" onclick="submitSignup()">Sign Me Up \u26F3</button>' +
+    '</div>';
+
+  document.getElementById('modalOverlay').classList.add('active');
+  setTimeout(function() {
+    var el = document.getElementById('inp-name');
+    if (el) el.focus();
+  }, 100);
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+  pendingSignup = null;
+}
+
+function submitSignup() {
+  var name    = document.getElementById('inp-name').value.trim();
+  var email   = document.getElementById('inp-email').value.trim();
+  var code    = document.getElementById('inp-code').value.trim();
+  var errDiv  = document.getElementById('modalErr');
+  var btn     = document.getElementById('btnSubmit');
+  var voucherEl = document.getElementById('inp-voucher');
+  var voucher = voucherEl ? voucherEl.value.trim() : '';
+  var noteEl = document.getElementById('inp-note');
+  var note = noteEl ? noteEl.value.trim() : '';
+
+  errDiv.style.display = 'none';
+
+  if (code.toUpperCase() !== 'SGF2026') {
+    errDiv.textContent = 'Incorrect passcode. Contact the organizer for the code.';
+    errDiv.style.display = 'block';
+    document.getElementById('inp-code').focus();
+    return;
+  }
+
+  var nameParts = name.split(/\s+/).filter(function(p){ return p.length > 0; });
+  if (nameParts.length < 2 || nameParts[0].length < 2 || nameParts[nameParts.length - 1].length < 2) {
+    errDiv.textContent = 'Please enter BOTH your first and last name - for example: John Smith.';
+    errDiv.style.display = 'block';
+    document.getElementById('inp-name').focus();
+    return;
+  }
+  name = nameParts.join(' ');  // collapse any extra spaces
+
+  if (pendingSignup.golfMoose && voucher.length < 2) {
+    errDiv.textContent = 'Please enter your Golf Moose Voucher # to complete signup.';
+    errDiv.style.display = 'block';
+    if (voucherEl) voucherEl.focus();
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Signing up\u2026';
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (res.success) {
+        // Full-page thank you screen
+        var appUrl    = res.appUrl || APP_URL;
+        var sheetUrl  = 'https://docs.google.com/spreadsheets/d/1xJF3G0oPOeRRuYEVXaTxhMjNAKwzm7bH9X3mcmeB3Tk';
+        document.open();
+        document.write('<!DOCTYPE html><html lang="en"><head>'
+          + '<meta charset="utf-8">'
+          + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+          + '<title>SGF Saturday Golf Friends</title>'
+          + '<style>'
+          + '*, *::before, *::after{box-sizing:border-box;margin:0;padding:0}'
+          + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;'
+          + 'background:#f1f8e9;display:flex;align-items:center;justify-content:center;'
+          + 'min-height:100vh;padding:20px;}'
+          + '.card{background:#fff;border-radius:20px;box-shadow:0 4px 28px rgba(0,0,0,.13);'
+          + 'padding:44px 32px 40px;max-width:460px;width:100%;text-align:center;}'
+          + '.golf-icon{font-size:3.4rem;margin-bottom:18px;}'
+          + 'h1{font-size:1.45rem;font-weight:800;color:#1b5e20;margin-bottom:14px;line-height:1.3;}'
+          + 'p{color:#444;font-size:.95rem;line-height:1.65;margin-bottom:28px;}'
+          + '.btn-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;}'
+          + '.btn{display:inline-block;border-radius:28px;padding:12px 26px;font-size:.9rem;'
+          + 'font-weight:700;text-decoration:none;cursor:pointer;border:none;}'
+          + '.btn-primary{background:#2e7d32;color:#fff;}'
+          + '.btn-secondary{background:#e8f5e9;color:#2e7d32;border:2px solid #2e7d32;}'
+          + '.btn:hover{opacity:.88;}'
+          + '</style>'
+          + '</head><body>'
+          + '<div class="card">'
+          + '<div class="golf-icon">\u26F3</div>'
+          + '<h1>Thank you for signing up to play with Saturday Golf Friends!</h1>'
+          + '<p>Pairings will be made and the Player Information will be sent to you the day before the event.</p>'
+          + '<div class="btn-row">'
+          + '<a class="btn btn-primary" href="' + appUrl + '" target="_top">Return to Calendar</a>'
+          + '<a class="btn btn-secondary" href="' + sheetUrl + '" target="_blank">Return to SGF Golf Tracker</a>'
+          + '</div>'
+          + '</div>'
+          + '</body></html>');
+        document.close();
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Sign Me Up \u26F3';
+        errDiv.textContent = res.message;
+        errDiv.style.display = 'block';
+      }
+    })
+    .withFailureHandler(function(err) {
+      btn.disabled = false;
+      btn.textContent = 'Sign Me Up \u26F3';
+      var msg = (err && err.message) ? err.message : 'Connection error \u2014 please try again.';
+      errDiv.textContent = msg;
+      errDiv.style.display = 'block';
+    })
+    .signupPlayer(pendingSignup.rowIndex, name, email,
+                  pendingSignup.course, pendingSignup.teeTime, pendingSignup.eventDate, voucher, note);
+}
+
+// Waitlist modal
+function openWaitlistModal(eventIsoDate, course, eventDate) {
+  pendingWaitlist = { eventIsoDate: eventIsoDate, course: course, eventDate: eventDate };
+  document.getElementById('modalBox').innerHTML =
+    '<div class="modal-head" style="background:#e65100">' +
+      '<h3>Join Waitlist &#128337;</h3>' +
+      '<p>' + esc(course) + ' &mdash; ' + esc(eventDate) + '</p>' +
+    '</div>' +
+    '<div class="modal-body">' +
+      '<div class="form-group">' +
+        '<label for="wl-name">Your Name <span style="color:#c00">*</span></label>' +
+        '<input id="wl-name" type="text" placeholder="First Last" maxlength="60" autocomplete="name" inputmode="text">' +
+      '</div>' +
+      '<div class="form-group">' +
+        '<label for="wl-email">Email <span style="color:#c00">*</span></label>' +
+        '<input id="wl-email" type="email" placeholder="you@example.com" maxlength="80" autocomplete="email" inputmode="email">' +
+        '<small>Required &mdash; we\'ll email you if a spot opens up.</small>' +
+      '</div>' +
+      '<div class="form-group">' +
+        '<label for="wl-code">Group Passcode <span style="color:#c00">*</span></label>' +
+        '<input id="wl-code" type="text" placeholder="Enter passcode" maxlength="20" autocomplete="off">' +
+        '<small>Members only &mdash; ask the organizer for the code.</small>' +
+      '</div>' +
+      '<div id="wlErr" class="msg-err" style="display:none"></div>' +
+    '</div>' +
+    '<div class="modal-actions">' +
+      '<button class="btn-cancel" onclick="closeModal()">Cancel</button>' +
+      '<button class="btn-submit" id="btnWlSubmit" style="background:#e65100" onclick="submitWaitlist()">Join Waitlist &#128337;</button>' +
+    '</div>';
+
+  document.getElementById('modalOverlay').classList.add('active');
+  setTimeout(function() {
+    var el = document.getElementById('wl-name');
+    if (el) el.focus();
+  }, 100);
+}
+
+function submitWaitlist() {
+  var name   = document.getElementById('wl-name').value.trim();
+  var email  = document.getElementById('wl-email').value.trim();
+  var code   = document.getElementById('wl-code').value.trim();
+  var errDiv = document.getElementById('wlErr');
+  var btn    = document.getElementById('btnWlSubmit');
+
+  errDiv.style.display = 'none';
+
+  if (code.toUpperCase() !== 'SGF2026') {
+    errDiv.textContent = 'Incorrect passcode. Contact the organizer for the code.';
+    errDiv.style.display = 'block';
+    document.getElementById('wl-code').focus();
+    return;
+  }
+
+  if (name.length < 2) {
+    errDiv.textContent = 'Please enter your full name (at least 2 characters).';
+    errDiv.style.display = 'block';
+    document.getElementById('wl-name').focus();
+    return;
+  }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errDiv.textContent = 'A valid email address is required.';
+    errDiv.style.display = 'block';
+    document.getElementById('wl-email').focus();
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Adding you...';
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (res && res.success) {
+        document.getElementById('modalBox').innerHTML =
+          '<div class="msg-ok">' +
+            '<span class="ok-icon">&#128337;</span>' +
+            '<p>' + esc(res.message) + '</p>' +
+          '</div>';
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Join Waitlist...';
+        errDiv.textContent = (res && res.message) ? res.message : 'Something went wrong. Please try again.';
+        errDiv.style.display = 'block';
+      }
+    })
+    .withFailureHandler(function(err) {
+      btn.disabled = false;
+      btn.textContent = 'Join Waitlist...';
+      var msg = (err && err.message) ? err.message : 'Connection error — please try again.';
+      errDiv.textContent = msg;
+      errDiv.style.display = 'block';
+    })
+    .addToWaitlist(pendingWaitlist.eventIsoDate, name, email);
+}
+
+// Utilities
+function toISO(d) {
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+function esc(s) {
+  return String(s || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+function escQ(s) {
+  return String(s || '').replace(/'/g,'&#39;').replace(/\\/g,'\\\\');
+}
+
+// Access request modal
+function openAccessRequestModal() {
+  document.getElementById('modalBox').innerHTML =
+    '<div class="modal-head">' +
+      '<h3>Request Access &#9939;</h3>' +
+      '<p>Tell us a bit about yourself and we\'ll send you the code.</p>' +
+    '</div>' +
+    '<div class="modal-body">' +
+      '<div class="form-group">' +
+        '<label for="req-name">Your Name <span style="color:#c00">*</span></label>' +
+        '<input id="req-name" type="text" placeholder="First Last" maxlength="60" autocomplete="name">' +
+      '</div>' +
+      '<div class="form-group">' +
+        '<label for="req-email">Your Email <span style="color:#c00">*</span></label>' +
+        '<input id="req-email" type="email" placeholder="you@example.com" maxlength="80" autocomplete="email">' +
+      '</div>' +
+      '<div class="form-group">' +
+        '<label for="req-heard">How did you hear about Saturday Golf Friends? <span style="color:#c00">*</span></label>' +
+        '<input id="req-heard" type="text" placeholder="e.g. Friend, website, Google search\u2026" maxlength="200">' +
+      '</div>' +
+      '<div id="reqErr" class="msg-err" style="display:none"></div>' +
+    '</div>' +
+    '<div class="modal-actions">' +
+      '<button class="btn-cancel" onclick="closeModal()">Cancel</button>' +
+      '<button class="btn-submit" id="btnReqSubmit" onclick="submitAccessRequest()">Send Request</button>' +
+    '</div>';
+  setTimeout(function() {
+    var el = document.getElementById('req-name');
+    if (el) el.focus();
+  }, 100);
+}
+
+function submitAccessRequest() {
+  var name   = document.getElementById('req-name').value.trim();
+  var email  = document.getElementById('req-email').value.trim();
+  var heard  = document.getElementById('req-heard').value.trim();
+  var errDiv = document.getElementById('reqErr');
+  var btn    = document.getElementById('btnReqSubmit');
+
+  errDiv.style.display = 'none';
+
+  if (name.length < 2) {
+    errDiv.textContent = 'Please enter your name.';
+    errDiv.style.display = 'block';
+    document.getElementById('req-name').focus();
+    return;
+  }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errDiv.textContent = 'Please enter a valid email address.';
+    errDiv.style.display = 'block';
+    document.getElementById('req-email').focus();
+    return;
+  }
+  if (heard.length < 2) {
+    errDiv.textContent = 'Please tell us how you heard about SGF.';
+    errDiv.style.display = 'block';
+    document.getElementById('req-heard').focus();
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Sending\u2026';
+
+  google.script.run
+    .withSuccessHandler(function() {
+      document.getElementById('modalBox').innerHTML =
+        '<div class="modal-head"><h3>Request Sent! \u26F3</h3></div>' +
+        '<div class="modal-body" style="text-align:center;padding:28px 20px;">' +
+          '<p style="color:#2e7d32;font-weight:700;font-size:1.05rem;margin-bottom:10px;">Thanks, ' + esc(name) + '!</p>' +
+          '<p style="font-size:0.88rem;color:#555;line-height:1.6;">The organizer will review your request and email you the passcode if you\'re a good fit. Welcome to the club! \u26F3</p>' +
+        '</div>' +
+        '<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">Close</button></div>';
+    })
+    .withFailureHandler(function() {
+      errDiv.textContent = 'Something went wrong. Please try again.';
+      errDiv.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Send Request';
+    })
+    .requestAccess(name, email, heard);
+}
+
+// Suppress GAS RPC debug overlay (the "RPC OK: {...}" bar injected by the GAS runtime)
+(function() {
+  function hideRpcBar() {
+    document.querySelectorAll('body > div').forEach(function(el) {
+      var t = el.textContent || '';
+      if (t.indexOf('RPC OK') !== -1 || t.indexOf('RPC Error') !== -1) {
+        el.style.display = 'none';
+      }
+    });
+  }
+  var rpcObserver = new MutationObserver(hideRpcBar);
+  rpcObserver.observe(document.body, { childList: true, subtree: false });
+  window.addEventListener('load', hideRpcBar);
+})();
+</script>
+</body>
+</html>
