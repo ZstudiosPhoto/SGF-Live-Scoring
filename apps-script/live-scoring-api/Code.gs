@@ -177,11 +177,19 @@ function loadMoneySetup_(sheetId) {
   var ss   = openSheet_(sheetId);
   var rows = tab_(ss, 'SETUP.MONEY').getDataRange().getValues();
 
+  // Some keys have a PRECISE pattern and a looser FALLBACK.  The fallback must only be
+  // used when the precise one matched nothing ANYWHERE in the tab - otherwise whichever
+  // label happens to sit higher in the sheet wins, which is not what we mean.
+  //
+  // That is exactly what went wrong: "FULL-FEE POT (NO CLOSIE-ONLY PLAYERS):" sits one
+  // row ABOVE "TOTAL POT WITH CLOSIE-ONLY PLAYERS:", so the fallback claimed totalPot
+  // first and every closie-only buy-in silently vanished from the payouts.  Two passes
+  // fixes it: precise patterns first, fallbacks only for whatever is still missing.
   var WANT = [
     { key: 'totalPot',      match: 'total pot with closie-only players' },
-    { key: 'totalPot',      match: 'full-fee pot' },              // fallback
+    { key: 'totalPot',      match: 'full-fee pot',                       fallback: true },
     { key: 'closiesPool',   match: 'closies pot counting only full-fee' },
-    { key: 'closiesPool',   match: 'closies pot' },               // fallback
+    { key: 'closiesPool',   match: 'closies pot',                        fallback: true },
     { key: 'closiePerHole', match: 'nominal closie award' },
     { key: 'skinsPool',     match: 'net skins pool' },
     { key: 'lowNet1',       match: 'low net #1 award' },
@@ -189,16 +197,20 @@ function loadMoneySetup_(sheetId) {
   ];
 
   var money = {};
-  for (var r = 0; r < rows.length; r++) {
-    for (var c = 0; c < rows[r].length; c++) {
-      var label = norm_(rows[r][c]);
-      if (!label) continue;
-      for (var w = 0; w < WANT.length; w++) {
-        if (money[WANT[w].key] != null) continue;      // first match wins
-        if (label.indexOf(WANT[w].match) !== 0) continue;
-        for (var c2 = c + 1; c2 < rows[r].length; c2++) {
-          var n = num_(rows[r][c2]);
-          if (n != null) { money[WANT[w].key] = n; break; }
+  for (var pass = 0; pass < 2; pass++) {
+    var wantFallback = (pass === 1);
+    for (var r = 0; r < rows.length; r++) {
+      for (var c = 0; c < rows[r].length; c++) {
+        var label = norm_(rows[r][c]);
+        if (!label) continue;
+        for (var w = 0; w < WANT.length; w++) {
+          if (!!WANT[w].fallback !== wantFallback) continue;   // pass 0 = precise, pass 1 = fallbacks
+          if (money[WANT[w].key] != null) continue;            // first match wins
+          if (label.indexOf(WANT[w].match) !== 0) continue;
+          for (var c2 = c + 1; c2 < rows[r].length; c2++) {
+            var n = num_(rows[r][c2]);
+            if (n != null) { money[WANT[w].key] = n; break; }
+          }
         }
       }
     }
