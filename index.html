@@ -1152,18 +1152,40 @@ function listenForClosieUpdates(){
 }
 
 function pushScoreToFirebase(pid, hole, val){
+  if (spectatorBlocked_()) return;
   if(!db) return;
   const ref=firebase.database().ref(`sgf/activeRound/scores/${pid}/${hole}`);
   if(val===null||val===undefined){ ref.remove(); } else { ref.set(val); }
 }
 
+// Spectators are view-only.  The nav does NOT hide the Closies screen, and spectators
+// are dropped straight onto the scoring screen where the Push buttons live -- so hiding
+// a button was never the control.  The block has to be in the functions themselves.
+// Found 2026-08-06: a guest session set a closie AND pushed it to the event sheet.
+function spectatorBlocked_(msg){
+  if(!window.isSpectator) return false;
+  try{
+    var t=document.createElement('div');
+    t.textContent = msg || 'View only - ask Chris to make this change.';
+    Object.assign(t.style,{position:'fixed',bottom:'84px',left:'50%',transform:'translateX(-50%)',
+      background:'rgba(176,60,40,0.94)',color:'#fff',padding:'10px 16px',borderRadius:'10px',
+      fontWeight:'800',fontSize:'0.85rem',zIndex:'3000',transition:'opacity 0.6s',
+      fontFamily:"'Nunito',sans-serif",boxShadow:'0 6px 20px rgba(0,0,0,0.35)',maxWidth:'82%',textAlign:'center'});
+    document.body.appendChild(t);
+    setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){ t.remove(); },600); },2400);
+  }catch(e){}
+  return true;
+}
+
 function toggleClosie(hole,pid){
+  if (spectatorBlocked_('Only the scorer can set closies.')) return;
   if(closies[hole]===pid){ delete closies[hole]; pushClosieToFirebase(hole,null); }
   else { closies[hole]=pid; pushClosieToFirebase(hole,pid); }
   buildClosiesView();
 }
 
 function pushClosieToFirebase(hole,pid){
+  if (spectatorBlocked_()) return;
   if(!db) return;
   const ref=firebase.database().ref(`sgf/activeRound/closies/${hole}`);
   if(pid===null||pid===undefined){ ref.remove(); } else { ref.set(pid); }
@@ -1584,6 +1606,7 @@ async function showPastRounds(){
 }
 
 async function deletePastRound(idx){
+  if (spectatorBlocked_()) return;
   const r=_pastRounds[idx];
   if(!r) return;
   const label=(r.course||'(no course)')+' · '+(r.date||'');
@@ -2325,6 +2348,7 @@ function listenForPlayerOverrides(){
 }
 
 function toggleNoShow(pid){
+  if (spectatorBlocked_()) return;
   pid=parseInt(pid);
   const wasNS=!!(noShows[pid]);
   if(wasNS){
@@ -2339,6 +2363,7 @@ function toggleNoShow(pid){
 }
 
 function updatePlayerTee(pid, newTee){
+  if (spectatorBlocked_()) return;
   pid=parseInt(pid);
   const p=players.find(p=>p.id===pid);
   if(!p) return;
@@ -2349,6 +2374,7 @@ function updatePlayerTee(pid, newTee){
 }
 
 function updatePlayerHcp(pid, newHcp){
+  if (spectatorBlocked_()) return;
   pid=parseInt(pid);
   const p=players.find(p=>p.id===pid);
   if(!p) return;
@@ -2360,6 +2386,7 @@ function updatePlayerHcp(pid, newHcp){
 }
 
 function updatePlayerPlayType(pid){
+  if (spectatorBlocked_()) return;
   pid=parseInt(pid);
   const p=players.find(p=>p.id===pid);
   if(!p) return;
@@ -2521,6 +2548,7 @@ function canReorder(group){
   return myGroup!==null && (parseInt(group)||1)===myGroup;   // your own foursome only
 }
 function movePlayer(pid,dir){
+  if (spectatorBlocked_()) return;
   pid=parseInt(pid);
   const me=players.find(x=>x.id===pid);
   if(!me) return;
@@ -2554,6 +2582,7 @@ function listenForOrderUpdates(){
 }
 
 function reassignGroup(pid, newGroup){
+  if (spectatorBlocked_()) return;
   pid=parseInt(pid); newGroup=parseInt(newGroup)||1;
   const p=players.find(p=>p.id===pid);
   if(p) p.group=newGroup;
@@ -2562,6 +2591,7 @@ function reassignGroup(pid, newGroup){
 }
 
 async function addPlayerMidRound(){
+  if (spectatorBlocked_()) return;
   const nameEl=document.getElementById('new-player-name');
   const name=(nameEl?.value||'').trim();
   if(!name){
@@ -2604,6 +2634,7 @@ async function addPlayerMidRound(){
 
 // ===== SYNC NEW PLAYERS FROM SHEET (mid-round walk-on) =====
 async function addNewPlayersFromSheet(){
+  if (spectatorBlocked_()) return;
   const sheetId=window.activeSheetId;
   if(!sheetId){showSync('No sheet ID — restart round from setup.',false);return;}
   showSync('🔄 Checking sheet for new players…',true);
@@ -2742,6 +2773,7 @@ function updateWalkOnHcp() {
 }
 
 async function confirmAddWalkOn() {
+  if (spectatorBlocked_()) return;
   const name = (document.getElementById('wo-name')?.value||'').trim();
   if(!name){ document.getElementById('wo-name').style.borderColor='#e74c3c'; document.getElementById('wo-name').focus(); return; }
   if(players.find(p=>p.name&&p.name.trim().toLowerCase()===name.toLowerCase())){
@@ -3061,6 +3093,7 @@ async function postToScript(payload){
 }
 
 async function pushToSheets(silent=false){
+  if (spectatorBlocked_('View only - scores were not sent to the sheet.')) return;
   if(!silent) showSync('Pushing scores to Google Sheets…',null);
   if(!players||players.length===0){
     if(!silent) showSync('⚠️ No players loaded. Start a round first.',false);
@@ -3202,6 +3235,7 @@ function buildClosiesView(){
 }
 
 async function pushClosiesToSheet(){
+  if (spectatorBlocked_('View only - closies were not sent to the sheet.')) return;
   const el=document.getElementById('closies-sync-result');
   const show=(msg,ok)=>{el.style.display='block';el.style.color=ok===true?'#7dcea0':ok===false?'#f08080':'#aac8e0';el.textContent=msg;if(ok!==null)setTimeout(()=>{el.style.display='none';},6000);};
   if(!players||players.length===0){ show('⚠️ No players loaded. Start a round first.',false); return; }
