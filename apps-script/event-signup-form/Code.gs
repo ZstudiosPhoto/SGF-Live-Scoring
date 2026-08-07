@@ -23,7 +23,9 @@ const COL_COURSE_HCP = 7;  // H: course handicap (player rows) / Pay REQ'D (even
 const COL_PAY_REQ    = 7;  // H: Pay REQ'D on event header rows
 const HIO_SHEET_NAME = 'Hole In One Club';
 const COL_HIO        = 9;  // J: HIO club member flag (auto-set on signup)
-const ONLINE_SIGNUP_COLOR = '#d9ead3';  // pale green: name cell fill for online signups
+const ONLINE_SIGNUP_COLOR    = '#d9ead3';  // pale green: golfer signed HIMSELF up on the form
+const ORGANIZER_SIGNUP_COLOR = '#cfe2f3';  // pale blue: the organizer entered him (he texted/emailed)
+const ORGANIZER_CODE         = 'SGF2026C'; // passcode the organizer types instead of the golfers' SGF2026
 
 // ============================================================
 // !! EMAIL TEXT RULE - PLEASE READ BEFORE EDITING !!
@@ -649,7 +651,7 @@ function buildAdminCancelHtml(playerName, email, eventDate, course, teeTime, row
 
 
 // -- Write a signup to the sheet -----------------------------
-function signupPlayer(rowIndex, playerName, email, course, teeTime, eventDate, voucherCode, noteToOrganizer) {
+function signupPlayer(rowIndex, playerName, email, course, teeTime, eventDate, voucherCode, noteToOrganizer, signupCode) {
   invalidateEventsCache(); // clear stale cache on write
   playerName = String(playerName || '').trim();
   email      = String(email      || '').trim().toLowerCase();
@@ -695,7 +697,11 @@ function signupPlayer(rowIndex, playerName, email, course, teeTime, eventDate, v
 
   // Write player name to the main tracker only
   playerCell.setValue(playerName);
-  playerCell.setBackground(ONLINE_SIGNUP_COLOR);  // mark this name as an ONLINE signup
+  // Pale green = the golfer signed himself up. Pale blue = the organizer entered him after a
+  // text or email. Told apart by which passcode was used on the form; an absent or unknown
+  // code falls back to green so nothing can break the normal path.
+  var byOrganizer = String(signupCode || '').trim().toUpperCase() === ORGANIZER_CODE;
+  playerCell.setBackground(byOrganizer ? ORGANIZER_SIGNUP_COLOR : ONLINE_SIGNUP_COLOR);
 
   // Mark HIO club members automatically
   var hio = isHIOmember(ss, playerName);
