@@ -624,21 +624,31 @@ function renderPanel(event) {
   if (event.deadline) metaParts.push(event.deadline);
   if (event.games)    metaParts.push(event.games);
 
-  // Build cost breakdown HTML
+  // Build cost breakdown HTML.  One price renders exactly as it always has;
+  // two or more render as "$78 Walking / $97 Riding" with matching split totals.
   var costHtml = '';
-  var payStr = String(event.payRequired || '').trim();
-  if (payStr) {
-    var payNum = parseFloat(payStr.replace(/[^0-9.]/g, ''));
-    if (!isNaN(payNum) && payNum > 0) {
-      var sf = event.serviceFee || 10;
-      var total = payNum + 30 + sf;
-      costHtml = '<div class="ep-cost">' +
-        '\uD83D\uDCB0 Green fee: $' + payNum.toFixed(0) +
-        ' &nbsp;+&nbsp; SGF Games: $30' +
-        ' &nbsp;+&nbsp; Service fee: $' + sf.toFixed(0) +
-        ' &nbsp;= &nbsp;<strong>Total: $' + total.toFixed(0) + '</strong>' +
-        '</div>';
+  var parsed = parseFeeCell(event.payRequired);
+  if (parsed.fees.length) {
+    var sf = event.serviceFee || 10;
+    var feeTxt, totalTxt;
+    if (parsed.fees.length === 1) {
+      feeTxt   = 'Green fee: $' + parsed.fees[0].amt.toFixed(0);
+      totalTxt = 'Total: $' + (parsed.fees[0].amt + 30 + sf).toFixed(0);
+    } else {
+      feeTxt = 'Green fee: ' + parsed.fees.map(function(f) {
+        return '$' + f.amt.toFixed(0) + (f.label ? ' ' + f.label : '');
+      }).join(' / ');
+      totalTxt = 'Total: ' + parsed.fees.map(function(f) {
+        return '$' + (f.amt + 30 + sf).toFixed(0);
+      }).join(' / ');
     }
+    costHtml = '<div class="ep-cost">' +
+      '\uD83D\uDCB0 ' + esc(feeTxt) +
+      (parsed.note ? ' &mdash; ' + esc(parsed.note) : '') +
+      ' &nbsp;+&nbsp; SGF Games: $30' +
+      ' &nbsp;+&nbsp; Service fee: $' + sf.toFixed(0) +
+      ' &nbsp;= &nbsp;<strong>' + esc(totalTxt) + '</strong>' +
+      '</div>';
   }
 
   // Build all HTML in one string, set innerHTML once to avoid re-parse issues
@@ -981,6 +991,29 @@ function toISO(d) {
   return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
 }
 function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+// -- Green fee parsing ---------------------------------------------------
+// The Pay REQ'D cell on an event header row may hold one plain price ("78.00") or
+// several labelled ones followed by a free-text note, e.g.
+//   78.00 Walking, 97.00 Riding  Pay the Pro Shop Includes Range
+// Only a word in FEE_LABELS counts as a price label, so "78.00 Pay the Pro Shop"
+// still reads as ONE price plus the note "Pay the Pro Shop".
+var FEE_LABELS = 'walking|riding|walk|ride|cart|riding cart|push cart|trail|senior|junior|twilight';
+function parseFeeCell(raw) {
+  var fees = [];
+  var rest = String(raw || '').replace(
+    new RegExp('(\\d+(?:\\.\\d+)?)\\s*(' + FEE_LABELS + ')?', 'gi'),
+    function(whole, num, label) {
+      var n = parseFloat(num);
+      if (isNaN(n) || n <= 0) return whole;
+      fees.push({ amt: n, label: label ? label.charAt(0).toUpperCase() + label.slice(1).toLowerCase() : '' });
+      return '\u0000';
+    });
+  var note = rest.split('\u0000').join(' ')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/^[\s,;:+\-$\/]+/, '')
+    .replace(/[\s,;:+\-$\/]+$/, '');
+  return { fees: fees, note: note };
+}
 function esc(s) {
   return String(s || '')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
