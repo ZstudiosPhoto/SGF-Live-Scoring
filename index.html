@@ -1865,11 +1865,14 @@ function buildSettleView(){
       +PAY_METHODS.map(m=>'<button class="mchip'+(pay.in===m.k?' on':'')+'" onclick="setPayMethod('+p.id+',\'in\',\''+m.k+'\')">'+m.l+'</button>').join('')
       +'</div>';
     // How much he handed over.  Preset amounts in the dropdown, "Other" reveals a box.
+    // Green (.set) means the amount is confirmed: either it was explicitly chosen, OR a
+    // paid-in method is ticked -- in which case the $30 default IS what gets recorded on
+    // the PAYMENTS tab, so showing it as unconfirmed was misleading.
     const amt=payAmountOf(p.id);
     const isPreset=PAY_AMOUNTS.indexOf(amt)>=0;
     const showBox=!!amtOther[p.id]||!isPreset;
     html+='<div class="settle-line"><span class="settle-lbl">Amount</span>'
-      +'<select class="amt-sel'+(pay.amt?' set':'')+'" onchange="onAmtSelect('+p.id+',this.value)">'
+      +'<select class="amt-sel'+((pay.amt||pay.in)?' set':'')+'" onchange="onAmtSelect('+p.id+',this.value)">'
       +PAY_AMOUNTS.map(a=>'<option value="'+a+'"'+((!showBox&&amt===a)?' selected':'')+'>$'+a+'</option>').join('')
       +'<option value="__other"'+(showBox?' selected':'')+'>Other&hellip;</option>'
       +'</select>'
