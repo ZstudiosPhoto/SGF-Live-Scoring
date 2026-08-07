@@ -330,7 +330,7 @@ function cancelSignup(token) {
     MailApp.sendEmail({
       to:       SGF_ADMIN,
       name:     'SGF Saturday Golf Friends',
-      subject:  'SGF Cancellation: ' + playerName + ' - ' + eventLine,
+      subject:  '[SGF CANCELLATION] ' + playerName + ' - ' + eventLine,
       body:     playerName + ' cancelled their spot.\n\n'
               + 'Player:  ' + playerName + '\n'
               + 'Email:   ' + (playerEmail || '(not provided)') + '\n'
@@ -726,7 +726,7 @@ function signupPlayer(rowIndex, playerName, email, course, teeTime, eventDate, v
       to:       SGF_ADMIN,
       name:     'SGF Saturday Golf Friends',
       replyTo:  email || SGF_REPLY_TO,
-      subject:  'SGF Signup: ' + playerName + ' - ' + eventLine,
+      subject:  '[SGF SIGNUP] ' + playerName + ' - ' + eventLine,
       body:     'A new player just signed up for Saturday Golf Friends.\n\n'
               + 'Name:     ' + playerName + '\n'
               + 'Email:    ' + (email || '(not provided)') + '\n'
@@ -961,7 +961,7 @@ function addToWaitlist(eventIsoDate, playerName, email) {
       to:      SGF_ADMIN,
       name:    'SGF Saturday Golf Friends',
       replyTo: email,
-      subject: 'SGF Waitlist: ' + playerName + ' joined the waitlist',
+      subject: '[SGF WAITLIST] ' + playerName + ' joined the waitlist',
       body:    playerName + ' (' + email + ') joined the waitlist for the event on '
              + eventIsoDate + '.\n\n- SGF Golf Signup'
     });
@@ -1094,25 +1094,54 @@ function manualNotifyWaitlist() {
 }
 
 // -- Access Request ----------------------------------------------------------
+// Someone hit "New? Request access" on the Calendar app because they do not have the
+// group passcode.  Goes to SGF_ADMIN, NOT SGF_REPLY_TO: golf@ runs an autoresponder,
+// so mail addressed there bounced a "Thank you for your interest" reply back at Chris
+// and the actual request never announced itself.  Every other organizer alert in this
+// file already goes to SGF_ADMIN; this one was the odd man out.
 function requestAccess(name, email, howHeard) {
   try {
     MailApp.sendEmail({
-      to:      SGF_REPLY_TO,
+      to:      SGF_ADMIN,
       name:    'SGF Saturday Golf Friends',
       replyTo: email,
-      subject: 'SGF Access Request from ' + name,
-      body:    'Someone is requesting access to the Saturday Golf Friends signup app.\n\n'
+      subject: '[SGF PASSCODE REQUEST] ' + name + ' wants the signup code',
+      body:    'PASSCODE REQUEST from the Calendar and Signup app.\n\n'
+             + 'This person tried to sign up, does not have the group passcode, and used the\n'
+             + '"New? Request access" link on the signup form.\n\n'
              + 'Name:  ' + name  + '\n'
              + 'Email: ' + email + '\n'
              + 'How they heard about SGF: ' + howHeard + '\n\n'
-             + 'If they are a good fit, reply to their email (' + email + ') with the group passcode.\n\n'
-             + '- SGF Signup App'
+             + 'If they are a good fit, reply to this email and send them the group passcode.\n\n'
+             + '- SGF Signup App',
+      htmlBody: buildAccessRequestHtml(name, email, howHeard)
     });
   } catch(e) {
     Logger.log('Access request email error: ' + e.message);
     return { success: false };
   }
   return { success: true };
+}
+
+// The branded card version of the passcode request, so it is obvious at a glance that
+// this came from the Calendar app and what the person is asking for.
+function buildAccessRequestHtml(name, email, howHeard) {
+  var rows = sgfRow('Name',  escHtml(name))
+           + sgfRow('Email', '<a href="mailto:' + escHtml(email) + '" style="color:#1565c0;text-decoration:none;">' + escHtml(email) + '</a>')
+           + sgfRow('Heard about SGF via', escHtml(howHeard));
+
+  var body = '<p style="margin:0 0 4px;color:#555555;font-size:15px;">'
+    + 'This person tried to sign up on the Calendar app but does not have the group passcode. '
+    + 'They used the <strong>New? Request access</strong> link on the signup form.</p>'
+    + sgfCard(rows, '#ef6c00')
+    + '<p style="margin:0 0 18px;color:#555555;font-size:14px;line-height:1.6;">'
+    + 'If they are a good fit, just reply to this email &mdash; it goes straight to them &mdash; '
+    + 'and send the group passcode.</p>'
+    + '<div style="text-align:center;margin-top:6px;">'
+    +   sgfButton(WEB_APP_URL, 'Open the Signup App', '#ef6c00')
+    + '</div>';
+
+  return sgfShell('#1a4d24', '#ffe0b2', 'Passcode Request', 'SGF ORGANIZER ALERT', body);
 }
 
 
