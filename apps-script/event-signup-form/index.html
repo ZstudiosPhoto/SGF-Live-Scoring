@@ -795,7 +795,10 @@ function submitSignup() {
 
   errDiv.style.display = 'none';
 
-  if (code.toUpperCase() !== 'SGF2026') {
+  // Two valid codes. SGF2026 = a golfer signing himself up (green on the tracker).
+  // SGF2026C = the organizer entering someone who texted or emailed him (blue).
+  var codeUp = code.toUpperCase();
+  if (codeUp !== 'SGF2026' && codeUp !== 'SGF2026C') {
     errDiv.textContent = 'Incorrect passcode. Contact the organizer for the code.';
     errDiv.style.display = 'block';
     document.getElementById('inp-code').focus();
@@ -876,7 +879,7 @@ function submitSignup() {
       errDiv.style.display = 'block';
     })
     .signupPlayer(pendingSignup.rowIndex, name, email,
-                  pendingSignup.course, pendingSignup.teeTime, pendingSignup.eventDate, voucher, note);
+                  pendingSignup.course, pendingSignup.teeTime, pendingSignup.eventDate, voucher, note, code);
 }
 
 // Waitlist modal
@@ -925,7 +928,7 @@ function submitWaitlist() {
 
   errDiv.style.display = 'none';
 
-  if (code.toUpperCase() !== 'SGF2026') {
+  if (code.toUpperCase() !== 'SGF2026' && code.toUpperCase() !== 'SGF2026C') {
     errDiv.textContent = 'Incorrect passcode. Contact the organizer for the code.';
     errDiv.style.display = 'block';
     document.getElementById('wl-code').focus();
