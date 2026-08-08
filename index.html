@@ -2635,6 +2635,34 @@ async function addPlayerMidRound(){
   showSync(`✅ ${name} added!${hcpInfo} Other devices will see them after a page reload.`,true);
 }
 
+// Re-read SETUP.MONEY from the sheet and republish it to Firebase.
+// The pot is sized from the sheet's PLAYER COUNT, but moneySetup is fetched in only one
+// place (loadPlayersFromSheet) and read back from Firebase on every later page load.  So
+// ANY change to the field size mid-round leaves the stored copy stale and every payout
+// stays scaled to the old headcount.  That is what put the 8/8/2026 Los Robles round $30
+// -- exactly one buy-in -- under the Google Sheet after a walk-on was synced in.
+// loadMoneySetup has no server-side cache, so this always returns live sheet values.
+// Never throws: adding the player must succeed even if the money refresh does not.
+async function refreshMoneySetup(sheetId){
+  if(!sheetId) return null;
+  try{
+    const mUrl=`${APPS_SCRIPT_URL}?action=loadMoneySetup&token=${SGF_TOKEN}&sheetId=${encodeURIComponent(sheetId)}`;
+    const mResp=await fetch(mUrl);
+    const mJson=await mResp.json();
+    if(mJson.status!=='ok'||!mJson.money) return null;
+    const m=mJson.money;
+    // Derive per-hole closie if the sheet did not supply one (same rule as loadPlayersFromSheet)
+    if(!m.closiePerHole&&m.closiesPool){
+      const par3Count=pars.filter(p=>p===3).length||1;
+      m.closiePerHole=Math.round(m.closiesPool/par3Count);
+    }
+    moneySetup=m;
+    if(db) await firebase.database().ref('sgf/activeRound/moneySetup').set(m);
+    console.log('Money setup refreshed:',m);
+    return m.totalPot||0;
+  }catch(e){ console.log('Money setup refresh failed:',e.message); return null; }
+}
+
 // ===== SYNC NEW PLAYERS FROM SHEET (mid-round walk-on) =====
 async function addNewPlayersFromSheet(){
   if (spectatorBlocked_()) return;
@@ -2683,11 +2711,15 @@ async function addNewPlayersFromSheet(){
         await firebase.database().ref('sgf/activeRound/scores/'+newId).set(emptyScores);
       }
     }
+    // The pot is sized from the sheet's player count, so it MUST be re-read now or every
+    // payout stays scaled to the old field size.  See refreshMoneySetup() above.
+    const newPot=await refreshMoneySetup(sheetId);
     buildTable();
     // Refresh the manage dialog so the new player shows immediately
     document.getElementById('manage-groups-dialog')?.remove();
     openManageGroups();   // was showManageGroups() - no such function; threw after adding a player
-    showSync(`✅ Added ${newRows.length} new player(s) from sheet! Set their group in Manage Players.`,true);
+    const potMsg=newPot?` Pot updated to $${newPot}.`:' ⚠️ Could not refresh the pot — check Payouts against the sheet.';
+    showSync(`✅ Added ${newRows.length} new player(s) from sheet!${potMsg} Set their group in Manage Players.`,true);
   }catch(e){showSync('Error: '+e.message,false);}
 }
 
