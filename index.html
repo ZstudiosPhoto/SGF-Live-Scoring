@@ -2365,15 +2365,112 @@ function toggleNoShow(pid){
   openManageGroups();
 }
 
+// == TEE OPTIONS ==============================================================
+// 8/9/2026 (Los Robles): Richard Gitahi wanted the blues instead of the whites.
+// The Manage Players tee dropdown was built ONLY from the tees already in play,
+// and the whole field had loaded on WHT - so there was literally nothing else to
+// pick, and his name kept showing the white chip even after his handicap was
+// hand-corrected.  The list is now the union of: tees in play, any tee the sheet
+// gave us a rating/slope for, the standard set below, and whatever this golfer is
+// on right now.  "Other..." types in anything else (combo tees, member tees).
+// Order is back-to-front, the way a card reads.
+var STANDARD_TEES = ['BLK','BLU','GLD','WHT','GRN','SIL','RED'];
+var TEE_CUSTOM = '__other__';
+
+function teeOptionList(currentTee){
+  var seen = {}, out = [];
+  function add(t){
+    t = String(t == null ? '' : t).trim().toUpperCase();
+    if(!t || t === TEE_CUSTOM || seen[t]) return;
+    seen[t] = 1; out.push(t);
+  }
+  players.forEach(function(p){ add(p.tee); });
+  Object.keys(teeData).forEach(add);
+  STANDARD_TEES.forEach(add);
+  add(currentTee);
+  return out.sort(function(a,b){
+    var ia = STANDARD_TEES.indexOf(a), ib = STANDARD_TEES.indexOf(b);
+    if(ia < 0) ia = 99; if(ib < 0) ib = 99;
+    return ia !== ib ? ia - ib : (a < b ? -1 : a > b ? 1 : 0);
+  });
+}
+
+function teeOptionsHtml(currentTee){
+  var cur = String(currentTee == null ? '' : currentTee).trim().toUpperCase();
+  return teeOptionList(cur).map(function(t){
+    return '<option value="'+esc(t)+'"'+(t === cur ? ' selected' : '')+'>'+esc(t)+'</option>';
+  }).join('') + '<option value="'+TEE_CUSTOM+'">Other…</option>';
+}
+
+// Most-played tee in the field - the sensible default for a walk-on.
+function defaultTee(){
+  var counts = {}, best = '', n = 0;
+  players.forEach(function(p){
+    var t = String(p.tee || '').trim().toUpperCase();
+    if(!t) return;
+    counts[t] = (counts[t] || 0) + 1;
+    if(counts[t] > n){ n = counts[t]; best = t; }
+  });
+  return best || 'WHT';
+}
+
+// Shared "Other..." handler for the two ADD-a-player tee dropdowns.  Returns true
+// if the select now holds a usable tee, false if the typing was cancelled.
+function handleTeeSelectOther(sel){
+  if(!sel || sel.value !== TEE_CUSTOM) return true;
+  var typed = prompt('Type the tee name (e.g. BLU, GLD, COMBO):', '');
+  var val = typed === null ? '' : String(typed).trim().toUpperCase().slice(0,10);
+  if(!val){ sel.selectedIndex = 0; return false; }
+  if(!Array.prototype.some.call(sel.options, function(o){ return o.value === val; })){
+    var opt = document.createElement('option');
+    opt.value = val; opt.textContent = val;
+    sel.insertBefore(opt, sel.options[sel.options.length-1]);
+  }
+  sel.value = val;
+  return true;
+}
+
 function updatePlayerTee(pid, newTee){
   if (spectatorBlocked_()) return;
   pid=parseInt(pid);
   const p=players.find(p=>p.id===pid);
   if(!p) return;
+  if(String(newTee)===TEE_CUSTOM){
+    const typed=prompt('Type the tee name (e.g. BLU, GLD, COMBO):', p.tee||'');
+    // Cancelled or blank: leave him where he was and repaint so the select snaps back.
+    if(typed===null||!String(typed).trim()){ openManageGroups(); return; }
+    newTee=String(typed).trim().toUpperCase().slice(0,10);
+  }
+  const prevTee=String(p.tee||'').trim().toUpperCase();
   p.tee=String(newTee||'').trim().toUpperCase();
   if(db) firebase.database().ref('sgf/activeRound/playerOverrides/'+pid+'/tee').set(p.tee);
+  // A tee change moves the course handicap.  If the sheet handed us a rating/slope
+  // for the new tee AND this golfer has a GHIN index, recalc it so the leaderboard
+  // is not quietly running on his old-tee number.  If we have no rating for that tee
+  // (nobody in the field is on it) say so out loud - the HCP box is right there.
+  let note='';
+  const idx=parseFloat(p.index);
+  const changed=(p.tee!==prevTee);
+  if(changed&&!isNaN(idx)&&idx>0){
+    if(teeData[p.tee]&&teeData[p.tee].rating){
+      const newHcp=calcCourseHandicap(idx,p.tee);
+      if(newHcp!==(parseInt(p.hcp)||0)){
+        p.hcp=newHcp;
+        if(db) firebase.database().ref('sgf/activeRound/playerOverrides/'+pid+'/hcp').set(p.hcp);
+        note=' — Course HCP now '+newHcp;
+      }
+    } else {
+      note=' — no rating/slope for '+p.tee+' in the sheet, set his HCP by hand';
+    }
+  }
   buildTable();
   if(document.getElementById('screen-lb').classList.contains('active')) buildLB();
+  if(document.getElementById('screen-skins').classList.contains('active')) buildSkinsView();
+  if(changed){
+    const warn=note.indexOf('no rating')>=0;
+    showSync((warn?'⚠️ ':'✅ ')+p.name+' → '+p.tee+' tee'+note, !warn);
+    openManageGroups(); // repaint: a typed-in tee has to appear (and stay selected) in the list
+  }
 }
 
 function updatePlayerHcp(pid, newHcp){
@@ -2428,8 +2525,7 @@ function openManageGroups(){
   const activePlayers=players.filter(p=>p.name&&p.name.trim()!=='');
   const maxGroup=Math.max(...activePlayers.map(p=>parseInt(p.group)||1), Math.ceil(activePlayers.length/4));
   const distinctGroups=Array.from({length:maxGroup},(_,i)=>i+1);
-  // Collect unique tee values across all loaded players for the dropdown
-  const allTees=[...new Set(activePlayers.filter(p=>p.tee&&p.tee.trim()).map(p=>p.tee.trim()))].sort();
+  // Tee dropdown choices come from teeOptionList() now - see the note above it.
   const listed=sortPlayers(players.filter(p=>p.name&&p.name.trim()!==''
     && (!viewOnlyOrder || (parseInt(p.group)||1)===myGroup)));
   // Arrow buttons: disabled at the ends of each group so you cannot push a name out of it.
@@ -2464,9 +2560,7 @@ function openManageGroups(){
     const ptLabel=pt==='full'?'🏆 Full Game':pt==='closie'?'⛳ Closies Only':'👤 Guest (No $)';
     const ptColor=pt==='full'?'#1a5518':pt==='closie'?'#8a6a00':'#555';
     const ptBg=pt==='full'?'rgba(58,170,53,0.15)':pt==='closie'?'rgba(212,168,67,0.2)':'rgba(150,150,150,0.18)';
-    const teeOpts=allTees.length
-      ? allTees.map(t=>`<option value="${esc(t)}" ${t===teeVal?'selected':''}>${esc(t)}</option>`).join('')
-      : `<option value="${esc(teeVal)}">${esc(teeVal)||'—'}</option>`;
+    const teeOpts=teeOptionsHtml(teeVal);
     return `<div style="padding:9px 0;border-bottom:1px solid #eee;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
         <span style="font-weight:800;font-size:0.9rem;color:#142010;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.name.trim())}</span>
@@ -2505,7 +2599,7 @@ function openManageGroups(){
             <span style="font-size:0.65rem;font-weight:800;color:#4a7044;text-transform:uppercase;letter-spacing:0.5px;">Group</span>
             <select id="new-player-group" style="padding:4px 8px;border:1.5px solid #b8ddb5;border-radius:5px;font-family:'Nunito',sans-serif;font-size:0.8rem;font-weight:700;">${[...distinctGroups,maxGroup+1].map(n=>`<option value="${n}">${n}</option>`).join('')}</select>
             <span style="font-size:0.65rem;font-weight:800;color:#4a7044;text-transform:uppercase;letter-spacing:0.5px;margin-left:6px;">Tee</span>
-            <select id="new-player-tee" style="padding:4px 6px;border:1.5px solid #b8ddb5;border-radius:5px;font-family:'Nunito',sans-serif;font-size:0.8rem;font-weight:700;" onchange="updateMidRoundHcpPreview()">${allTees.length?allTees.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join(''):'<option value="">—</option>'}</select>
+            <select id="new-player-tee" style="padding:4px 6px;border:1.5px solid #b8ddb5;border-radius:5px;font-family:'Nunito',sans-serif;font-size:0.8rem;font-weight:700;" onchange="if(handleTeeSelectOther(this)) updateMidRoundHcpPreview()">${teeOptionsHtml(defaultTee())}</select>
             <span style="font-size:0.65rem;font-weight:800;color:#4a7044;text-transform:uppercase;letter-spacing:0.5px;margin-left:6px;">GHIN Index</span>
             <input id="new-player-hcp" type="number" min="0" max="54" step="0.1" placeholder="e.g. 14.5" style="width:64px;padding:4px 6px;border:1.5px solid #b8ddb5;border-radius:5px;font-family:'Nunito',sans-serif;font-size:0.8rem;font-weight:700;text-align:center;" oninput="updateMidRoundHcpPreview()">
           </div>
@@ -2748,9 +2842,7 @@ function updateMidRoundHcpPreview() {
 
 // Walk-on dialog — shown from the Setup screen "Add Walk-on" button
 function showWalkOnDialog() {
-  const allTees = [...new Set(players.filter(p=>p.tee).map(p=>p.tee))];
-  const knownTees = Object.keys(teeData);
-  const teeList = allTees.length ? allTees : knownTees.length ? knownTees : ['WHT'];
+  const teeOptsHtml = teeOptionsHtml(defaultTee());
   const distinctGroups = [...new Set(players.map(p=>parseInt(p.group)||1))].sort((a,b)=>a-b);
   const maxGroup = distinctGroups.length ? Math.max(...distinctGroups) : 1;
   document.getElementById('walkOn-dialog')?.remove();
@@ -2769,8 +2861,8 @@ function showWalkOnDialog() {
             style="width:80px;padding:7px 8px;border:1.5px solid #b8ddb5;border-radius:6px;font-family:'Nunito',sans-serif;font-size:0.88rem;font-weight:700;text-align:center;"
             oninput="updateWalkOnHcp()">
           <span style="font-size:0.65rem;font-weight:800;color:#4a7044;text-transform:uppercase;margin-left:4px;">Tee</span>
-          <select id="wo-tee" style="padding:7px 8px;border:1.5px solid #b8ddb5;border-radius:6px;font-family:'Nunito',sans-serif;font-size:0.88rem;font-weight:700;" onchange="updateWalkOnHcp()">
-            ${teeList.map(t=>`<option value="${t}">${t}</option>`).join('')}
+          <select id="wo-tee" style="padding:7px 8px;border:1.5px solid #b8ddb5;border-radius:6px;font-family:'Nunito',sans-serif;font-size:0.88rem;font-weight:700;" onchange="if(handleTeeSelectOther(this)) updateWalkOnHcp()">
+            ${teeOptsHtml}
           </select>
         </div>
         <div id="wo-hcp-display" style="font-size:0.78rem;color:#4a7044;font-weight:800;min-height:18px;padding-left:2px;"></div>
