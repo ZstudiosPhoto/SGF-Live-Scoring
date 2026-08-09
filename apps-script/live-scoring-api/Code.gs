@@ -31,7 +31,10 @@
  */
 
 var SGF_TOKEN   = 'SGF-LIVE-2026';
-var ADMIN_EMAIL = 'golf@zstudios.com';
+// Organizer alerts go to chris@, NOT golf@.  golf@ runs an eigbox autoresponder, so mail
+// addressed there bounces a "Thank you for your interest" reply back at Chris and the real
+// report never announces itself.  Same trap that hid the signup app's passcode requests.
+var ADMIN_EMAIL = 'chris@zstudios.com';
 var CACHE_SECS  = 300;          // loadSetup cache; bypass with &nocache=1
 var MAX_ROWS    = 32;           // the workbook supports 32 players
 
@@ -407,7 +410,7 @@ function writeSettle_(body) {
       lines.push('Sent automatically by the SGF Live Scoring app.');
 
       MailApp.sendEmail(ADMIN_EMAIL,
-        'SGF settle-up - ' + (course || 'round') + ' - ' + (date || ''),
+        '[SGF SETTLE-UP] ' + (course || 'round') + ' - ' + (date || ''),
         lines.join('\n'));
       emailed = true;
     } catch (me) {
