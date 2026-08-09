@@ -423,6 +423,103 @@ var selectedIdx   = -1;
 var pendingSignup = null;
 var pendingWaitlist = null;
 
+// == REMEMBER THE GOLFER ======================================================
+// Signing up for three Saturdays used to mean typing your name, your email and
+// the group passcode three separate times.  Now the first successful signup
+// stashes them and every later form opens pre-filled.  Two layers, because this
+// app lives inside Google's sandboxed iframe:
+//   1. RECALL, a plain object - always works, lasts as long as this page does.
+//   2. localStorage - carries over to next weekend, but Safari can block storage
+//      inside a third-party frame, so every call is wrapped and failure is
+//      silent.  Layer 1 is what makes the multi-event case work either way.
+// For the ORGANIZER code only the passcode is kept: Chris enters a different
+// golfer every time, so carrying his name and email over would be wrong.
+var MEMBER_CODE    = 'SGF2026';
+var ORGANIZER_CODE = 'SGF2026C';
+var RECALL_KEY = 'sgfSignupRecall1';
+var RECALL = { name: '', email: '', code: '' };
+
+function isValidCode(code) {
+  var c = String(code || '').trim().toUpperCase();
+  return c === MEMBER_CODE || c === ORGANIZER_CODE;
+}
+
+function recallLoad() {
+  try {
+    var raw = window.localStorage.getItem(RECALL_KEY);
+    if (!raw) return;
+    var o = JSON.parse(raw);
+    if (o && typeof o === 'object') {
+      RECALL.name  = String(o.name  || '').slice(0, 60);
+      RECALL.email = String(o.email || '').slice(0, 80);
+      RECALL.code  = String(o.code  || '').slice(0, 20);
+    }
+  } catch (e) { /* private mode, partitioned storage, corrupt JSON - ignore */ }
+}
+
+function recallPersist() {
+  try { window.localStorage.setItem(RECALL_KEY, JSON.stringify(RECALL)); } catch (e) {}
+}
+
+function recallSave(name, email, code) {
+  var isOrganizer = String(code || '').trim().toUpperCase() === ORGANIZER_CODE;
+  RECALL.code  = String(code  || '').trim();
+  RECALL.name  = isOrganizer ? '' : String(name  || '').trim();
+  RECALL.email = isOrganizer ? '' : String(email || '').trim();
+  recallPersist();
+}
+
+// Called when a passcode is rejected, so a code that has since been rotated does
+// not keep re-filling itself and failing every time.
+function recallForgetCode() {
+  RECALL.code = '';
+  recallPersist();
+}
+
+function recallClear() {
+  RECALL.name = ''; RECALL.email = ''; RECALL.code = '';
+  try { window.localStorage.removeItem(RECALL_KEY); } catch (e) {}
+}
+
+// "Not you?" - wipe what we remember and redraw whichever form is open.
+function recallResetSignup() {
+  recallClear();
+  var p = pendingSignup;
+  if (p) openModal(p.rowIndex, p.teeTime, p.course, p.eventDate, p.golfMoose);
+}
+function recallResetWaitlist() {
+  recallClear();
+  var w = pendingWaitlist;
+  if (w) openWaitlistModal(w.eventIsoDate, w.course, w.eventDate);
+}
+
+// The green "we filled this in for you" strip at the top of a pre-filled form.
+function recallBanner(resetFn) {
+  if (!RECALL.name && !RECALL.email && !RECALL.code) return '';
+  var who = RECALL.name ? esc(RECALL.name) : 'your passcode';
+  return '<div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;' +
+    'padding:9px 12px;margin-bottom:14px;font-size:0.84rem;color:#1b5e20;' +
+    'display:flex;justify-content:space-between;align-items:center;gap:10px;">' +
+      '<span>&#x2705; Filled in for ' + who + '</span>' +
+      '<a href="#" onclick="' + resetFn + '();return false;" ' +
+        'style="color:#2e7d32;font-weight:700;white-space:nowrap;">Not you?</a>' +
+    '</div>';
+}
+
+// Put the cursor in the first EMPTY field.  If the form is already complete,
+// focus the submit button instead - on a phone that means no keyboard pops up
+// just to press one button.
+function focusFirstEmpty(ids, submitId) {
+  for (var i = 0; i < ids.length; i++) {
+    var el = document.getElementById(ids[i]);
+    if (el && !el.value) { el.focus(); return; }
+  }
+  var btn = document.getElementById(submitId);
+  if (btn) btn.focus();
+}
+
+recallLoad();
+
 // Month names (ASCII only)
 var MONTH_NAMES = ['January','February','March','April','May','June',
                    'July','August','September','October','November','December'];
@@ -746,13 +843,14 @@ function openModal(rowIndex, teeTime, course, eventDate, golfMoose) {
       '<p>' + esc(course) + ' &mdash; ' + esc(teeTime) + '</p>' +
     '</div>' +
     '<div class="modal-body">' +
+      recallBanner('recallResetSignup') +
       '<div class="form-group">' +
         '<label for="inp-name">First and Last Name <span style="color:#c00">*</span></label>' +
-        '<input id="inp-name" type="text" placeholder="First Last" maxlength="60" autocomplete="name" inputmode="text">' +
+        '<input id="inp-name" type="text" placeholder="First Last" maxlength="60" autocomplete="name" inputmode="text" value="' + esc(RECALL.name) + '">' +
       '</div>' +
       '<div class="form-group">' +
         '<label for="inp-email">Email <span style="font-weight:400;color:#888;font-size:0.78rem;">(optional &mdash; lets you cancel your spot later)</span></label>' +
-        '<input id="inp-email" type="email" placeholder="you@example.com" maxlength="80" autocomplete="email" inputmode="email">' +
+        '<input id="inp-email" type="email" placeholder="you@example.com" maxlength="80" autocomplete="email" inputmode="email" value="' + esc(RECALL.email) + '">' +
       '</div>' +
       (pendingSignup.golfMoose ?
         '<div class="form-group">' +
@@ -763,7 +861,7 @@ function openModal(rowIndex, teeTime, course, eventDate, golfMoose) {
       : '') +
       '<div class="form-group">' +
         '<label for="inp-code">Group Passcode <span style="color:#c00">*</span></label>' +
-        '<input id="inp-code" type="text" placeholder="Enter passcode" maxlength="20" autocomplete="off">' +
+        '<input id="inp-code" type="text" placeholder="Enter passcode" maxlength="20" autocomplete="off" value="' + esc(RECALL.code) + '">' +
         '<small style="display:flex;justify-content:space-between;align-items:center;">' +
           '<span>Members only &mdash; ask the organizer for the code.</span>' +
           '<a href="#" onclick="openAccessRequestModal();return false;" style="color:#2e7d32;font-weight:600;white-space:nowrap;margin-left:8px;">New? Request access &#8594;</a>' +
@@ -782,8 +880,12 @@ function openModal(rowIndex, teeTime, course, eventDate, golfMoose) {
 
   document.getElementById('modalOverlay').classList.add('active');
   setTimeout(function() {
-    var el = document.getElementById('inp-name');
-    if (el) el.focus();
+    // Email is optional, so it is deliberately NOT in this list - a golfer who
+    // never gives one should not have the cursor parked there every time.
+    var ids = ['inp-name'];
+    if (pendingSignup && pendingSignup.golfMoose) ids.push('inp-voucher');
+    ids.push('inp-code');
+    focusFirstEmpty(ids, 'btnSubmit');
   }, 100);
 }
 
@@ -807,8 +909,8 @@ function submitSignup() {
 
   // Two valid codes. SGF2026 = a golfer signing himself up (green on the tracker).
   // SGF2026C = the organizer entering someone who texted or emailed him (blue).
-  var codeUp = code.toUpperCase();
-  if (codeUp !== 'SGF2026' && codeUp !== 'SGF2026C') {
+  if (!isValidCode(code)) {
+    recallForgetCode();   // a rotated code must not keep re-filling itself
     errDiv.textContent = 'Incorrect passcode. Contact the organizer for the code.';
     errDiv.style.display = 'block';
     document.getElementById('inp-code').focus();
@@ -837,43 +939,11 @@ function submitSignup() {
   google.script.run
     .withSuccessHandler(function(res) {
       if (res.success) {
-        // Full-page thank you screen
-        var appUrl    = res.appUrl || APP_URL;
-        var sheetUrl  = 'https://docs.google.com/spreadsheets/d/1xJF3G0oPOeRRuYEVXaTxhMjNAKwzm7bH9X3mcmeB3Tk';
-        document.open();
-        document.write('<!DOCTYPE html><html lang="en"><head>'
-          + '<meta charset="utf-8">'
-          + '<meta name="viewport" content="width=device-width,initial-scale=1">'
-          + '<title>SGF Saturday Golf Friends</title>'
-          + '<style>'
-          + '*, *::before, *::after{box-sizing:border-box;margin:0;padding:0}'
-          + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;'
-          + 'background:#f1f8e9;display:flex;align-items:center;justify-content:center;'
-          + 'min-height:100vh;padding:20px;}'
-          + '.card{background:#fff;border-radius:20px;box-shadow:0 4px 28px rgba(0,0,0,.13);'
-          + 'padding:44px 32px 40px;max-width:460px;width:100%;text-align:center;}'
-          + '.golf-icon{font-size:3.4rem;margin-bottom:18px;}'
-          + 'h1{font-size:1.45rem;font-weight:800;color:#1b5e20;margin-bottom:14px;line-height:1.3;}'
-          + 'p{color:#444;font-size:.95rem;line-height:1.65;margin-bottom:28px;}'
-          + '.btn-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;}'
-          + '.btn{display:inline-block;border-radius:28px;padding:12px 26px;font-size:.9rem;'
-          + 'font-weight:700;text-decoration:none;cursor:pointer;border:none;}'
-          + '.btn-primary{background:#2e7d32;color:#fff;}'
-          + '.btn-secondary{background:#e8f5e9;color:#2e7d32;border:2px solid #2e7d32;}'
-          + '.btn:hover{opacity:.88;}'
-          + '</style>'
-          + '</head><body>'
-          + '<div class="card">'
-          + '<div class="golf-icon">\u26F3</div>'
-          + '<h1>Thank you for signing up to play with Saturday Golf Friends!</h1>'
-          + '<p>Pairings will be made and the Player Information will be sent to you the day before the event.</p>'
-          + '<div class="btn-row">'
-          + '<a class="btn btn-primary" href="' + appUrl + '" target="_top">Return to Calendar</a>'
-          + '<a class="btn btn-secondary" href="' + sheetUrl + '" target="_blank">Return to SGF Golf Tracker</a>'
-          + '</div>'
-          + '</div>'
-          + '</body></html>');
-        document.close();
+        // Remember him for the next event, mark the slot taken in the local copy
+        // of the calendar, then offer another signup INSTEAD of nuking the page.
+        recallSave(name, email, code);
+        markSlotTaken(pendingSignup.rowIndex, name);
+        showSignupSuccess(res.appUrl || APP_URL);
       } else {
         btn.disabled = false;
         btn.textContent = 'Sign Me Up \u26F3';
@@ -892,6 +962,100 @@ function submitSignup() {
                   pendingSignup.course, pendingSignup.teeTime, pendingSignup.eventDate, voucher, note, code);
 }
 
+// == AFTER A SUCCESSFUL SIGNUP ================================================
+// This used to document.write() the full-page thank you immediately, which meant
+// signing up for a SECOND event cost a complete reload of the web app - and the
+// 1-2 second white screen that comes with it, plus retyping everything.  Now the
+// confirmation lives in the modal and the thank-you page is one tap away for
+// whoever is finished.
+
+// Patch the in-memory calendar so the slot he just took shows his name.  The
+// sheet is already updated; this only keeps the page he is looking at honest.
+// Slots other people grabbed in the meantime still need the Refresh button.
+function markSlotTaken(rowIndex, playerName) {
+  if (!Array.isArray(EVENTS)) return false;
+  for (var i = 0; i < EVENTS.length; i++) {
+    var rows = (EVENTS[i] && EVENTS[i].playerRows) || [];
+    for (var j = 0; j < rows.length; j++) {
+      if (String(rows[j].rowIndex) === String(rowIndex)) {
+        rows[j].isOpen = false;
+        rows[j].player = playerName;
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function showSignupSuccess(appUrl) {
+  var where = pendingSignup
+    ? esc(pendingSignup.course) + ' &mdash; ' + esc(pendingSignup.teeTime)
+    : '';
+  document.getElementById('modalBox').innerHTML =
+    '<div class="modal-head">' +
+      '<h3>You are in! \u26F3</h3>' +
+      '<p>' + where + '</p>' +
+    '</div>' +
+    '<div class="modal-body" style="text-align:center;">' +
+      '<p style="font-size:0.95rem;color:#444;line-height:1.6;">' +
+        'Pairings will be made and the Player Information will be sent to you the day before the event.' +
+      '</p>' +
+      '<p style="font-size:0.84rem;color:#1b5e20;background:#e8f5e9;border:1px solid #a5d6a7;' +
+        'border-radius:8px;padding:10px 12px;margin-top:14px;">' +
+        '&#x2705; Your details are saved &mdash; signing up for another date takes one tap.' +
+      '</p>' +
+    '</div>' +
+    '<div class="modal-actions">' +
+      '<button class="btn-cancel" onclick="showThankYouPage(\'' + escQ(appUrl) + '\')">Done</button>' +
+      '<button class="btn-submit" onclick="signupAnother()">Sign up for another event</button>' +
+    '</div>';
+}
+
+// Back to the calendar with the page still alive - no reload, nothing retyped.
+function signupAnother() {
+  closeModal();
+  renderCalendar();
+  if (selectedIdx >= 0 && EVENTS[selectedIdx]) renderPanel(EVENTS[selectedIdx]);
+}
+
+function showThankYouPage(appUrl) {
+  var sheetUrl = 'https://docs.google.com/spreadsheets/d/1xJF3G0oPOeRRuYEVXaTxhMjNAKwzm7bH9X3mcmeB3Tk';
+  document.open();
+  document.write('<!DOCTYPE html><html lang="en"><head>'
+    + '<meta charset="utf-8">'
+    + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+    + '<title>SGF Saturday Golf Friends</title>'
+    + '<style>'
+    + '*, *::before, *::after{box-sizing:border-box;margin:0;padding:0}'
+    + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;'
+    + 'background:#f1f8e9;display:flex;align-items:center;justify-content:center;'
+    + 'min-height:100vh;padding:20px;}'
+    + '.card{background:#fff;border-radius:20px;box-shadow:0 4px 28px rgba(0,0,0,.13);'
+    + 'padding:44px 32px 40px;max-width:460px;width:100%;text-align:center;}'
+    + '.golf-icon{font-size:3.4rem;margin-bottom:18px;}'
+    + 'h1{font-size:1.45rem;font-weight:800;color:#1b5e20;margin-bottom:14px;line-height:1.3;}'
+    + 'p{color:#444;font-size:.95rem;line-height:1.65;margin-bottom:28px;}'
+    + '.btn-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;}'
+    + '.btn{display:inline-block;border-radius:28px;padding:12px 26px;font-size:.9rem;'
+    + 'font-weight:700;text-decoration:none;cursor:pointer;border:none;}'
+    + '.btn-primary{background:#2e7d32;color:#fff;}'
+    + '.btn-secondary{background:#e8f5e9;color:#2e7d32;border:2px solid #2e7d32;}'
+    + '.btn:hover{opacity:.88;}'
+    + '</style>'
+    + '</head><body>'
+    + '<div class="card">'
+    + '<div class="golf-icon">\u26F3</div>'
+    + '<h1>Thank you for signing up to play with Saturday Golf Friends!</h1>'
+    + '<p>Pairings will be made and the Player Information will be sent to you the day before the event.</p>'
+    + '<div class="btn-row">'
+    + '<a class="btn btn-primary" href="' + appUrl + '" target="_top">Return to Calendar</a>'
+    + '<a class="btn btn-secondary" href="' + sheetUrl + '" target="_blank">Return to SGF Golf Tracker</a>'
+    + '</div>'
+    + '</div>'
+    + '</body></html>');
+  document.close();
+}
+
 // Waitlist modal
 function openWaitlistModal(eventIsoDate, course, eventDate) {
   pendingWaitlist = { eventIsoDate: eventIsoDate, course: course, eventDate: eventDate };
@@ -901,18 +1065,19 @@ function openWaitlistModal(eventIsoDate, course, eventDate) {
       '<p>' + esc(course) + ' &mdash; ' + esc(eventDate) + '</p>' +
     '</div>' +
     '<div class="modal-body">' +
+      recallBanner('recallResetWaitlist') +
       '<div class="form-group">' +
         '<label for="wl-name">Your Name <span style="color:#c00">*</span></label>' +
-        '<input id="wl-name" type="text" placeholder="First Last" maxlength="60" autocomplete="name" inputmode="text">' +
+        '<input id="wl-name" type="text" placeholder="First Last" maxlength="60" autocomplete="name" inputmode="text" value="' + esc(RECALL.name) + '">' +
       '</div>' +
       '<div class="form-group">' +
         '<label for="wl-email">Email <span style="color:#c00">*</span></label>' +
-        '<input id="wl-email" type="email" placeholder="you@example.com" maxlength="80" autocomplete="email" inputmode="email">' +
+        '<input id="wl-email" type="email" placeholder="you@example.com" maxlength="80" autocomplete="email" inputmode="email" value="' + esc(RECALL.email) + '">' +
         '<small>Required &mdash; we\'ll email you if a spot opens up.</small>' +
       '</div>' +
       '<div class="form-group">' +
         '<label for="wl-code">Group Passcode <span style="color:#c00">*</span></label>' +
-        '<input id="wl-code" type="text" placeholder="Enter passcode" maxlength="20" autocomplete="off">' +
+        '<input id="wl-code" type="text" placeholder="Enter passcode" maxlength="20" autocomplete="off" value="' + esc(RECALL.code) + '">' +
         '<small>Members only &mdash; ask the organizer for the code.</small>' +
       '</div>' +
       '<div id="wlErr" class="msg-err" style="display:none"></div>' +
@@ -924,8 +1089,7 @@ function openWaitlistModal(eventIsoDate, course, eventDate) {
 
   document.getElementById('modalOverlay').classList.add('active');
   setTimeout(function() {
-    var el = document.getElementById('wl-name');
-    if (el) el.focus();
+    focusFirstEmpty(['wl-name', 'wl-email', 'wl-code'], 'btnWlSubmit');
   }, 100);
 }
 
@@ -938,7 +1102,8 @@ function submitWaitlist() {
 
   errDiv.style.display = 'none';
 
-  if (code.toUpperCase() !== 'SGF2026' && code.toUpperCase() !== 'SGF2026C') {
+  if (!isValidCode(code)) {
+    recallForgetCode();   // a rotated code must not keep re-filling itself
     errDiv.textContent = 'Incorrect passcode. Contact the organizer for the code.';
     errDiv.style.display = 'block';
     document.getElementById('wl-code').focus();
@@ -964,6 +1129,7 @@ function submitWaitlist() {
   google.script.run
     .withSuccessHandler(function(res) {
       if (res && res.success) {
+        recallSave(name, email, code);
         document.getElementById('modalBox').innerHTML =
           '<div class="msg-ok">' +
             '<span class="ok-icon">&#128337;</span>' +
