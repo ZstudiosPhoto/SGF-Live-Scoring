@@ -137,6 +137,7 @@
   .pm-idx{background:#eef3ee;color:#3f5c3d;}
   .pm-hcp{background:var(--sgf-green);color:#fff;border-color:transparent;}
   .pm-tee{color:#fff;border-color:transparent;}
+  .pm-tee-long{font-size:0.47rem;letter-spacing:-0.2px;padding:2px 2px;} /* combo tees e.g. AVO-LIM */
   .pm-tee-wht,.pm-tee-white,.pm-tee-w{background:#ececec;color:#333;border-color:#c9c9c9;}
   .pm-tee-gld,.pm-tee-gold,.pm-tee-g{background:#c9a227;}
   .pm-tee-blu,.pm-tee-blue,.pm-tee-b{background:#1565c0;}
@@ -855,6 +856,7 @@ const BACK=[10,11,12,13,14,15,16,17,18];
 let players=[], pars=[4,4,3,4,4,4,4,3,5,4,3,5,4,3,5,3,4,4]; // Ojai Valley Inn defaults
 let strokeIndex=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]; // Handicap Stroke Index per hole (1=hardest)
 let teeData={}; // {TEE: {rating, slope, par}} — built during loadPlayersFromSheet, used for walk-on HCP calc
+let roundCourseSymbol='', roundTeeSymbol=''; // SETUP.COURSE col A: 'SPK' and 'AVO-LIM' — see teeFromCourseTee()
 let scores={}, closies={}, activeNine='front', nextId=2, db=null, roundRef=null, isAdmin=(localStorage.getItem('sgf_isAdminDevice')==='true');
 let activeEventCode=null; // set when checkForActiveRound reads the round
 let myGroup=null, viewMode='myFoursome', groupsRef=null; // foursome isolation state
@@ -1105,6 +1107,7 @@ function joinRound(){
     pars=data.pars||pars;
     strokeIndex=data.strokeIndex||strokeIndex;
     teeData=data.teeData||{};
+    roundCourseSymbol=data.courseSymbol||''; roundTeeSymbol=data.teeSymbol||'';
     scores=data.scores||{};
     closies=data.closies||{};
     // Firebase live groups are authoritative (admin can reassign without resetting the round);
@@ -1362,6 +1365,7 @@ async function startRound(){
     const roundData={
       active:true, course, date:date?fmtDate(date):'Live Round',
       players, pars, strokeIndex, teeData, scores, closies,
+      courseSymbol: roundCourseSymbol, teeSymbol: roundTeeSymbol,
       groups: groupsMap,
       code:(document.getElementById('inp-eventcode').value.trim()||''),
       sheetId:sheetIdVal,
@@ -1460,6 +1464,12 @@ async function loadPlayersFromSheet(){
     // Parse players from SETUP.PLAYERS B13:I30, keeping the Group column (N13:N30) aligned by row index
     const rawPlayers=json.players||[];
     const rawGroups=json.groups||[];
+    // SETUP.COURSE keeps the round's symbols in col A, labelled in col B.  Read them
+    // first: teeFromCourseTee() needs the course symbol to split the player rows.
+    const courseRows=json.course||[];
+    const courseCell=(re)=>{const r=courseRows.find(x=>x&&x.length>1&&re.test(String(x[1]||'').trim()));return r?String(r[0]||'').trim():'';};
+    roundCourseSymbol=courseCell(/^default\s+course\s+symbol$/i);
+    roundTeeSymbol=courseCell(/^default\s+tee\s+symbol$/i).toUpperCase();
     console.log('SGF groups from sheet:', JSON.stringify(rawGroups));
     const playerEntries=rawPlayers.map((r,i)=>({row:r,group:rawGroups[i]})).filter(e=>{
       const nm=String(e.row[0]||'').trim();
@@ -1469,10 +1479,8 @@ async function loadPlayersFromSheet(){
     });
     if(!playerEntries.length){showStatus(st,'No player names found in SETUP.PLAYERS.','err');document.getElementById('btn-load').disabled=false;return;}
     players=playerEntries.slice(0,30).map((e,i)=>{
-      // Extract just the tee color from CourseTee symbol (e.g. "LRG-WHT" → "WHT")
-      const courseTee=String(e.row[3]||'').trim();
-      const dash=courseTee.lastIndexOf('-');
-      const tee=dash>=0?courseTee.slice(dash+1):courseTee;
+      // Tee comes off the CourseTee symbol (e.g. "LRG-WHT" → "WHT", "SPK-AVO-LIM" → "AVO-LIM")
+      const tee=teeFromCourseTee(e.row[3]);
       // Col C (index 1) = Handicap Index — blank means Closie-Only player (no GHIN)
       // Col N (index 12) = NO$ flag — "X" means exclude from ALL game pots, scores still tracked
       const hcpIndex=String(e.row[1]||'').trim();
@@ -1485,9 +1493,7 @@ async function loadPlayersFromSheet(){
     // Build teeData map {TEE: {rating, slope, par}} for walk-on handicap calculation
     teeData={};
     playerEntries.forEach(e=>{
-      const ct=String(e.row[3]||'').trim();
-      const dash=ct.lastIndexOf('-');
-      const tee=dash>=0?ct.slice(dash+1):ct;
+      const tee=teeFromCourseTee(e.row[3]);
       if(tee&&!teeData[tee]){
         const rating=parseFloat(String(e.row[4]||''))||0;
         const slope=parseInt(String(e.row[5]||''))||113;
@@ -2179,7 +2185,9 @@ function playerMetaHTML(p){
   const teeCls='pm-tee-'+(known.includes(teeKey)?teeKey:'default');
   let h='<div class="td-pmeta">';
   if(idx) h+='<span class="pm-chip pm-idx" title="Handicap Index">'+esc(idx)+'</span>';
-  if(tee) h+='<span class="pm-chip pm-tee '+teeCls+'" title="Tee played">'+esc(tee)+'</span>';
+  // A combo tee ("AVO-LIM") is twice the width of "WHT" and was pushing the course-handicap
+  // chip out of the name column, so long labels ride a size smaller.
+  if(tee) h+='<span class="pm-chip pm-tee '+teeCls+(tee.length>4?' pm-tee-long':'')+'" title="Tee played">'+esc(tee)+'</span>';
   if(hcp) h+='<span class="pm-chip pm-hcp" title="Course Handicap">'+esc(hcp)+'</span>';
   return h+'</div>';
 }
@@ -2404,6 +2412,22 @@ function toggleNoShow(pid){
 // gave us a rating/slope for, the standard set below, and whatever this golfer is
 // on right now.  "Other..." types in anything else (combo tees, member tees).
 // Order is back-to-front, the way a card reads.
+// A player's CourseTee cell reads "<course>-<tee>", and the TEE ITSELF can contain a
+// dash: Soule Park's Avocado/Lime combo is "SPK-AVO-LIM".  Splitting at the LAST dash
+// turned that into "LIM" - the wrong tee name on 13 of 15 cards for 8/15/26, and
+// indistinguishable from a real Lime-only tee.  Strip the course symbol off the FRONT
+// instead, and only fall back to the old split when SETUP.COURSE gave us no symbol.
+function teeFromCourseTee(sym){
+  var s = String(sym == null ? '' : sym).trim();
+  if(!s) return '';
+  var c = String(roundCourseSymbol || '').trim();
+  if(c && s.length > c.length + 1 && s.slice(0, c.length + 1).toUpperCase() === c.toUpperCase() + '-'){
+    return s.slice(c.length + 1).toUpperCase();
+  }
+  var d = s.lastIndexOf('-');
+  return (d >= 0 ? s.slice(d + 1) : s).toUpperCase();
+}
+
 var STANDARD_TEES = ['BLK','BLU','GLD','WHT','GRN','SIL','RED'];
 var TEE_CUSTOM = '__other__';
 
@@ -2416,6 +2440,7 @@ function teeOptionList(currentTee){
   }
   players.forEach(function(p){ add(p.tee); });
   Object.keys(teeData).forEach(add);
+  add(roundTeeSymbol);
   STANDARD_TEES.forEach(add);
   add(currentTee);
   return out.sort(function(a,b){
