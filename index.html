@@ -21,7 +21,7 @@
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;overflow:hidden;}
   body{font-family:'Nunito',sans-serif;background:var(--sgf-green-darker);color:var(--text);font-size:15px;display:flex;flex-direction:column;}
-  .screen{display:none;height:100vh;flex-direction:column;overflow:hidden;}
+  .screen{display:none;height:100vh;height:100dvh;flex-direction:column;overflow:hidden;}
   .screen.active{display:flex;}
   .app-header{background:linear-gradient(150deg,var(--sgf-black) 0%,var(--sgf-green-darker) 45%,var(--sgf-green-dark) 100%);padding:10px 14px;border-bottom:3px solid var(--sgf-green);display:flex;align-items:center;gap:10px;flex-shrink:0;}
   .sgf-logo{width:52px;height:52px;flex-shrink:0;border-radius:6px;overflow:hidden;border:2px solid rgba(255,255,255,0.15);background:#fff;}
@@ -352,6 +352,35 @@
   .info-badge.off{background:#f5f5f5;color:#888;border:1px solid #ddd;}
   /* Spectator banner */
   .spectator-banner{background:rgba(26,107,26,0.12);border:1.5px solid rgba(58,170,53,0.4);border-radius:10px;margin:8px 12px;padding:8px 14px;font-size:0.82rem;font-weight:800;color:var(--sgf-green-dark);text-align:center;letter-spacing:0.3px;}
+  /* ===== COMPACT MODE - short viewports ==========================
+     Small iPhones, iOS Display Zoom, and Safari per-site page zoom all shrink
+     the CSS viewport. At full size the scoring screen spends ~430px on fixed
+     chrome + sticky headers before the first player row, so a short screen was
+     left showing only 2 of 4 players in a group (Joe Fiano, iPhone 17 Pro, 8/9).
+     Tall screens keep the big 72px tap targets - only short ones go compact. */
+  @media(max-height:795px){
+    .app-header{padding:6px 12px;gap:8px;}
+    .sgf-logo{width:38px;height:38px;}
+    .header-brand{font-size:1.2rem;}
+    .round-info-date,.round-info-players{font-size:0.7rem;}
+    .round-info-players{margin-top:2px;}
+    .hdr-btn{padding:4px 8px;font-size:0.66rem;}
+    .spectator-banner{margin:4px 10px;padding:4px 10px;font-size:0.72rem;border-radius:8px;}
+    .scoring-meta-bar{padding:5px 11px;}
+    .nine-tab{padding:5px;font-size:0.72rem;}
+    .group-status-bar{padding:4px 11px;font-size:0.68rem;}
+    .group-btn{padding:3px 8px;font-size:0.62rem;}
+    .legend-bar{padding:3px 9px;gap:4px;}
+    .legend-item{font-size:0.56rem;}
+    .legend-dot{width:8px;height:8px;}
+    .sync-bar{padding:6px 8px;gap:5px;}
+    .sync-btn{padding:7px 9px;font-size:0.7rem;}
+    .score-btn{height:56px;}
+  }
+  @media(max-height:640px){
+    .sgf-logo{width:32px;height:32px;}
+    .score-btn{height:46px;font-size:0.88rem;}
+  }
   /* Past results on welcome */
   .welcome-past-btn{display:block;width:100%;max-width:280px;margin:12px auto 0;padding:12px 20px;background:transparent;border:2px solid rgba(58,170,53,0.4);border-radius:12px;color:#b8e6b5;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;letter-spacing:0.3px;}
   .welcome-past-btn:active{background:rgba(58,170,53,0.12);}
