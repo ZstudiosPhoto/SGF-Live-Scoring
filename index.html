@@ -1401,11 +1401,13 @@ function renderPlayerList(){
     const ptLabel=pt==='closie'?'📍 Closie':pt==='guest'?'🚫 Opt-Out':'⛳ Full';
     const ptCls=pt==='closie'?'closie':pt==='guest'?'guest':'full';
     const grp=parseInt(p.group)||1;
+    // Always offer at least 8 groups, and never fewer than the highest one already in use.
+    const grpOpts=Array.from({length:Math.max(8,grp)},(_,n)=>`<option value="${n+1}"${n+1===grp?' selected':''}>${n+1}</option>`).join('');
     return`<div class="player-item">
       <span class="player-num">${i+1}</span>
       <input type="text" value="${esc(p.name||'')}" placeholder="Player ${i+1}" maxlength="20" oninput="players[${i}].name=this.value">
       <span style="font-size:0.63rem;font-weight:800;color:#4a7044;white-space:nowrap;flex-shrink:0;">Grp</span>
-      <input type="number" min="1" max="8" value="${grp}" title="Foursome group #" oninput="players[${i}].group=parseInt(this.value)||1" style="width:34px;border:1.5px solid rgba(58,170,53,0.35);border-radius:5px;font-family:'Nunito',sans-serif;font-size:0.85rem;font-weight:800;color:#1a5518;text-align:center;padding:3px 2px;background:#fff;flex-shrink:0;">
+      <select title="Foursome group #" onchange="players[${i}].group=parseInt(this.value)||1" style="width:54px;border:1.5px solid rgba(58,170,53,0.35);border-radius:5px;font-family:'Nunito',sans-serif;font-size:0.85rem;font-weight:800;color:#1a5518;text-align:center;padding:3px 2px;background:#fff;flex-shrink:0;">${grpOpts}</select>
       <button class="play-type-btn ${ptCls}" onclick="cyclePlayType(${p.id})">${ptLabel}</button>
       ${players.length>1?`<button class="rm-btn" onclick="removePlayer(${p.id})">×</button>`:''}
     </div>`;
@@ -1459,7 +1461,6 @@ async function loadPlayersFromSheet(){
     const rawPlayers=json.players||[];
     const rawGroups=json.groups||[];
     console.log('SGF groups from sheet:', JSON.stringify(rawGroups));
-    showStatus(st,'DEBUG: groups returned = '+JSON.stringify(rawGroups.slice(0,12)),'info');
     const playerEntries=rawPlayers.map((r,i)=>({row:r,group:rawGroups[i]})).filter(e=>{
       const nm=String(e.row[0]||'').trim();
       return nm &&
