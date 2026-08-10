@@ -172,20 +172,39 @@
   .sync-result{color:#7dcea0;font-size:0.72rem;width:100%;text-align:center;font-weight:700;}
   .lb-body{flex:1;padding:14px 13px 20px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
   .lb-card{background:var(--card-bg);border-radius:13px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,0.2);border:1px solid rgba(58,170,53,0.25);}
-  .lb-row{display:flex;align-items:center;padding:11px 13px;border-bottom:1px solid var(--border);gap:9px;}
+  /* Leaderboard row density (tightened 2026-08-10). The whole field should fit
+     with as little scrolling as possible, so rows are kept to ONE line of name +
+     ONE line of meta. nowrap+ellipsis on .lb-holes is load-bearing: the meta line
+     used to wrap to 2 lines on anything narrower than ~430px, which cost 12px on
+     EVERY row on every phone except the 17 Pro Max. .lb-info needs min-width:0 or
+     the ellipsis never kicks in (flex child won't shrink below content width). */
+  .lb-row{display:flex;align-items:center;padding:7px 12px;border-bottom:1px solid var(--border);gap:8px;}
   .lb-row:last-child{border-bottom:none;}
   .lb-row.top1{background:linear-gradient(90deg,#f0fced 0%,white 100%);}
   .lb-row.tb-winner{background:linear-gradient(90deg,#fff0ef 0%,white 100%);}
   .lb-row.tb-winner .lb-name{color:#c0392b;}
-  .lb-pos{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:var(--muted);width:28px;text-align:center;flex-shrink:0;}
-  .lb-info{flex:1;}
-  .lb-name{font-weight:800;font-size:0.9rem;}
-  .lb-holes{font-size:0.67rem;color:var(--muted);}
-  .lb-gross{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:var(--text);}
-  .lb-net{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:var(--sgf-green-dark);}
-  .lb-vp{font-size:0.77rem;font-weight:800;padding:2px 7px;border-radius:5px;}
+  .lb-pos{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--muted);width:24px;text-align:center;flex-shrink:0;}
+  .lb-info{flex:1;min-width:0;}
+  .lb-name{font-weight:800;font-size:0.88rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .lb-holes{font-size:0.64rem;color:var(--muted);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .lb-gross{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;line-height:1;color:var(--text);flex-shrink:0;}
+  .lb-net{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;line-height:1;color:var(--sgf-green-dark);flex-shrink:0;}
+  .lb-vp{font-size:0.72rem;font-weight:800;padding:2px 6px;border-radius:5px;flex-shrink:0;}
   .lb-vp.under{background:#e6f7e5;color:#1e6b1e;}.lb-vp.even{background:#eef5ed;color:#2a5028;}.lb-vp.over{background:#fde8e8;color:#c0392b;}
-  .lb-inc{color:#bbb;font-size:0.73rem;font-style:italic;}
+  .lb-inc{color:#bbb;font-size:0.73rem;font-style:italic;flex-shrink:0;}
+  /* Phones go a tier denser again — 520px is the same phone breakpoint the
+     .app-header wrap uses. iPads/desktop keep the roomier sizes above. */
+  @media(max-width:520px){
+    #screen-lb .lb-body{padding:9px 10px 16px;}
+    .lb-row{padding:4px 11px;gap:7px;}
+    .lb-pos{font-size:1.05rem;width:20px;}
+    .lb-name{font-size:0.84rem;line-height:1.15;}
+    .lb-holes{font-size:0.6rem;line-height:1.2;}
+    .lb-gross,.lb-net{font-size:1.25rem;}
+    .lb-vp{font-size:0.66rem;padding:1px 5px;}
+    .lb-inc{font-size:0.68rem;}
+    .lb-closie-badge{font-size:0.55rem;padding:1px 5px;margin-left:4px;}
+  }
   .back-btn{display:block;width:calc(100% - 26px);margin:13px auto 0;padding:13px;background:var(--sgf-green);color:white;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.93rem;cursor:pointer;}
   .loading-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
   .spinner{width:40px;height:40px;border:4px solid rgba(58,170,53,0.2);border-top-color:var(--sgf-green);border-radius:50%;animation:spin 0.8s linear infinite;}
@@ -3217,7 +3236,7 @@ function buildLB(){
       const rowCls=p.rank===1?'top1':p.tbWinner?'tb-winner':'';
       const tbNote=p.tbWinner?` · TB: Low H${p.tbHole||''}`:'' ;
       const teeStr=p.tee?` · ${p.tee}`:'';
-      return`<div class="lb-row ${rowCls}"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">Net ${p.net} · Gross ${p.gross} · Hcp ${p.hcp} · Pops ${p.pops}${teeStr} · ${thru}${tbNote}</div></div><div class="lb-net">${p.net}</div><div class="lb-vp ${vc}" title="Net vs par over holes played">${vs}</div></div>`;
+      return`<div class="lb-row ${rowCls}"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">Gross ${p.gross} · Hcp ${p.hcp}${teeStr} · ${thru}${tbNote}</div></div><div class="lb-net">${p.net}</div><div class="lb-vp ${vc}" title="Net vs par over holes played">${vs}</div></div>`;
     }
     return`<div class="lb-row"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">No scores · Hcp ${p.hcp||0}</div></div><div class="lb-inc">—</div></div>`;
   }).join('');
