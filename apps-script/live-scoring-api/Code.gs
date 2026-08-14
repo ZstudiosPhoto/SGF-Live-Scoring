@@ -350,39 +350,74 @@ function writeSettle_(body) {
   var course = String(body.course || '');
   var date   = String(body.date || '');
   var rows   = body.rows || [];
+  var NCOL   = 8;
 
   var out = [];
-  out.push(['SGF PLAYER PAYMENTS', course, date, '', '', '']);
-  out.push(['', '', '', '', '', '']);
-  out.push(['Player', 'Amount paid', 'Paid for games', 'Won $', 'Winnings paid back', 'Settled?']);
+  out.push(['SGF PLAYER PAYMENTS', course, date, '', '', '', '', '']);
+  out.push(['', '', '', '', '', '', '', '']);
+  out.push(['Player', 'Games Paid', 'SGF Fee Paid', 'Green Fees Paid',
+            'Payment Method', 'Won?', 'Winnings Paid Back', 'Settled?']);
 
-  var owedNames = [], totalWon = 0, totalCollected = 0;
+  var owedNames = [], totalWon = 0, totalGames = 0, totalFee = 0, totalGreen = 0;
   rows.forEach(function (r) {
     var won = Number(r.won || 0);
     totalWon += won;
     var settled = (won <= 0) ? 'n/a' : (r.paidBack ? 'YES' : 'NO');
     if (won > 0 && !r.paidBack) owedNames.push(r.name + ' $' + won + (r.paidIn ? ' (' + r.paidIn + ')' : ''));
-    var amt = Number(r.amount || 0);
-    totalCollected += amt;
-    out.push([r.name || '', amt > 0 ? amt : '', r.paidIn || '', won > 0 ? won : '', r.paidBack || '', settled]);
+    var amt   = Number(r.amount || 0);
+    var fee   = Number(r.fee || 0);
+    var green = Number(r.green || 0);
+    totalGames += amt;
+    totalFee   += fee;
+    totalGreen += green;
+    out.push([r.name || '',
+              String(r.amount || '') !== '' ? amt   : '',
+              String(r.fee    || '') !== '' ? fee   : '',
+              String(r.green  || '') !== '' ? green : '',
+              r.paidIn || '',
+              won > 0 ? won : '',
+              r.paidBack || '',
+              settled]);
   });
 
-  out.push(['', '', '', '', '', '']);
-  out.push(['Total collected', totalCollected, '', 'Total pot', Number(body.totalPot || 0), '']);
-  out.push(['Recorded', new Date(), '', 'Total winnings', totalWon, '']);
-  out.push(['', '', '', 'Still owed', owedNames.length, '']);
+  // The pot is the Games column and nothing else -- the service fee and the green fee
+  // are collected at the same time but neither one is ever paid back out.
+  var sheetPot = Number(body.totalPot || 0);
+  var grand    = totalGames + totalFee + totalGreen;
 
-  sh.getRange(1, 1, out.length, 6).setValues(out);
-  sh.getRange(1, 1, 1, 6).setFontWeight('bold').setFontSize(12);
-  sh.getRange(3, 1, 1, 6).setFontWeight('bold').setBackground('#1a4a1a').setFontColor('#ffffff');
+  out.push(['', '', '', '', '', '', '', '']);
+  out.push(['Total Pot (Games)',         totalGames, '', '', 'Total winnings',          totalWon,          '', '']);
+  out.push(['Total Fee Collected',       totalFee,   '', '', 'Still owed',              owedNames.length,  '', '']);
+  out.push(['Total Green Fee Collected', totalGreen, '', '', 'Sheet pot (SETUP.MONEY)', sheetPot,          '', '']);
+  out.push(['Grand Total Collected',     grand,      '', '', 'Recorded',                new Date(),        '', '']);
+
+  var nRows   = rows.length;
+  var lastRow = 3 + nRows;
+  var f1 = lastRow + 2;   // Total Pot (Games)
+
+  sh.getRange(1, 1, out.length, NCOL).setValues(out);
+  sh.getRange(1, 1, 1, NCOL).setFontWeight('bold').setFontSize(12);
+  sh.getRange(3, 1, 1, NCOL).setFontWeight('bold').setBackground('#1a4a1a').setFontColor('#ffffff');
+  sh.getRange(f1, 1, 4, 1).setFontWeight('bold');
+  sh.getRange(f1, 5, 4, 1).setFontWeight('bold');
   // Highlight anyone who won money and has not been paid back.
-  for (var i = 0; i < rows.length; i++) {
+  for (var i = 0; i < nRows; i++) {
     if (Number(rows[i].won || 0) > 0 && !rows[i].paidBack) {
-      sh.getRange(4 + i, 1, 1, 6).setBackground('#ffe0b2');
+      sh.getRange(4 + i, 1, 1, NCOL).setBackground('#ffe0b2');
     }
   }
-  if (rows.length) sh.getRange(4, 2, rows.length, 1).setNumberFormat('$#,##0.00');
-  sh.autoResizeColumns(1, 6);
+  if (nRows) {
+    sh.getRange(4, 2, nRows, 3).setNumberFormat('$#,##0.00');   // games / fee / green
+    sh.getRange(4, 6, nRows, 1).setNumberFormat('$#,##0.00');   // won
+  }
+  sh.getRange(f1, 2, 4, 1).setNumberFormat('$#,##0.00');        // the three totals + grand
+  sh.getRange(f1, 6, 1, 1).setNumberFormat('$#,##0.00');        // total winnings
+  sh.getRange(f1 + 2, 6, 1, 1).setNumberFormat('$#,##0.00');    // sheet pot
+  // If the money you actually took in does not match the pot the sheet is paying out
+  // from, that is the app-vs-sheet gap -- flag it here rather than finding it later.
+  var potGap = (sheetPot > 0 && totalGames > 0 && Math.abs(sheetPot - totalGames) > 0.005);
+  if (potGap) sh.getRange(f1 + 2, 5, 1, 2).setBackground('#f4c7c3');
+  sh.autoResizeColumns(1, NCOL);
   SpreadsheetApp.flush();
 
   var emailed = false, emailError = '';
@@ -394,15 +429,23 @@ function writeSettle_(body) {
       lines.push('');
       rows.forEach(function (r) {
         var won = Number(r.won || 0);
-        lines.push(pad_(r.name || '', 22)
-          + ' paid: ' + pad_(Number(r.amount || 0) > 0 ? ('$' + Number(r.amount).toFixed(2)) : '-', 9)
-          + ' paid in: ' + pad_(r.paidIn || '-', 8)
-          + ' won: ' + pad_(won > 0 ? ('$' + won) : '-', 7)
-          + ' paid back: ' + (won > 0 ? (r.paidBack || 'NOT YET') : '-'));
+        lines.push(pad_(r.name || '', 20)
+          + ' games: ' + pad_(String(r.amount || '') !== '' ? ('$' + Number(r.amount).toFixed(2)) : '-', 8)
+          + ' fee: '   + pad_(String(r.fee    || '') !== '' ? ('$' + Number(r.fee).toFixed(2))    : '-', 7)
+          + ' green: ' + pad_(String(r.green  || '') !== '' ? ('$' + Number(r.green).toFixed(2))  : '-', 8)
+          + ' via: '   + pad_(r.paidIn || '-', 7)
+          + ' won: '   + pad_(won > 0 ? ('$' + won) : '-', 7)
+          + ' back: '  + (won > 0 ? (r.paidBack || 'NOT YET') : '-'));
       });
       lines.push('');
-      lines.push('Total collected: $' + totalCollected.toFixed(2));
-      lines.push('Total pot: $' + Number(body.totalPot || 0) + '   Total winnings: $' + totalWon);
+      lines.push('Total Pot (Games):         $' + totalGames.toFixed(2));
+      lines.push('Total Fee Collected:       $' + totalFee.toFixed(2));
+      lines.push('Total Green Fee Collected: $' + totalGreen.toFixed(2));
+      lines.push('GRAND TOTAL COLLECTED:     $' + grand.toFixed(2));
+      lines.push('');
+      lines.push('Sheet pot (SETUP.MONEY):   $' + sheetPot.toFixed(2)
+        + (potGap ? '   <-- DOES NOT MATCH the Games total above' : ''));
+      lines.push('Total winnings paid out:   $' + totalWon.toFixed(2));
       lines.push(owedNames.length
         ? ('STILL OWED: ' + owedNames.join('; '))
         : 'Everyone who won has been paid back.');
@@ -421,11 +464,15 @@ function writeSettle_(body) {
 
   return {
     status: 'ok',
-    players: rows.length,
+    players: nRows,
     stillOwed: owedNames.length,
+    totalGames: totalGames,
+    totalFee: totalFee,
+    totalGreen: totalGreen,
+    potGap: potGap,
     emailed: emailed,
     emailError: emailError,
-    message: rows.length + ' players written to the PAYMENTS tab'
+    message: nRows + ' players written to the PAYMENTS tab'
       + (body.email ? (emailed ? ' and emailed.' : ' (email FAILED: ' + emailError + ')') : '.')
   };
 }
