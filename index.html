@@ -431,12 +431,17 @@
     border-radius:7px;padding:5px 8px;margin-top:6px;line-height:1.45;}
   .settle-hint.ok{color:#2c6b26;background:#e9f6e7;border-color:#a9d9a4;}
   /* Amount paid for the games.  Sits on its own line under the method chips. */
-  .amt-sel{font-family:'Nunito',sans-serif;font-weight:800;font-size:0.8rem;padding:7px 8px;min-height:36px;
+  .amt-sel,.fee-sel{font-family:'Nunito',sans-serif;font-weight:800;font-size:0.8rem;padding:7px 8px;min-height:36px;
     border-radius:8px;border:1.5px solid #cfd8ce;background:#fbfdfb;color:#2c4a2b;cursor:pointer;flex:1;min-width:0;
     -webkit-appearance:none;appearance:none;text-align:center;}
-  .amt-sel.set{background:linear-gradient(135deg,#eaf5e8,#dcefd9);border-color:#7fae7a;color:#1a4a1a;}
-  .amt-box{font-family:'Nunito',sans-serif;font-weight:800;font-size:0.8rem;padding:7px 8px;min-height:36px;
+  .amt-sel.set,.fee-sel.set{background:linear-gradient(135deg,#eaf5e8,#dcefd9);border-color:#7fae7a;color:#1a4a1a;}
+  .amt-box,.fee-box{font-family:'Nunito',sans-serif;font-weight:800;font-size:0.8rem;padding:7px 8px;min-height:36px;
     border-radius:8px;border:1.5px solid #7fae7a;background:#fff;color:#1a4a1a;flex:1;min-width:0;text-align:center;}
+  /* Green fee: free text, neutral until something is typed in it. */
+  .gf-dollar{font-family:'Nunito',sans-serif;font-weight:900;font-size:0.8rem;color:#5a6a5a;}
+  .gf-box{font-family:'Nunito',sans-serif;font-weight:800;font-size:0.8rem;padding:7px 8px;min-height:36px;
+    border-radius:8px;border:1.5px solid #cfd8ce;background:#fbfdfb;color:#2c4a2b;flex:1;min-width:0;text-align:center;}
+  .gf-box.set{border-color:#7fae7a;background:linear-gradient(135deg,#eaf5e8,#dcefd9);color:#1a4a1a;}
 </style>
 </head>
 <body>
@@ -1836,6 +1841,67 @@ function onAmtSelect(pid,v){
   setPayAmount(pid,v);
 }
 
+// ── SGF SERVICE FEE ──────────────────────────────────────────────────────────
+// Separate from the games money.  $10 most weeks, $5 at some courses, $0 on the
+// weeks Chris donates his fee into the pot and for closie-only guests.  This money
+// does NOT go in the pot and is NOT part of any payout -- it is tracked here so the
+// PAYMENTS tab shows what actually changed hands, not just the pot portion.
+const FEE_AMOUNTS=['10.00','5.00','0.00'];
+const DEFAULT_FEE_AMOUNT='10.00';
+let feeOther={};   // pid -> true while the manual fee box is open for that player
+
+// Same rule as the games amount: the dropdown SHOWS $10, but nothing is stored until
+// it is touched, so an untouched player never silently reads as having paid a fee.
+function feeAmountOf(pid){
+  const a=(payments[pid]||{}).fee;
+  return (a===undefined||a===null||a==='')?DEFAULT_FEE_AMOUNT:String(a);
+}
+
+function setFeeAmount(pid,raw){
+  if(!isAdmin||window.isSpectator) return;
+  let val=String(raw==null?'':raw).replace(/[^0-9.]/g,'');
+  if(val!==''){ const n=parseFloat(val); val=(isFinite(n)&&n>=0)?n.toFixed(2):''; }
+  if(!payments[pid]) payments[pid]={};
+  if(val===''){ delete payments[pid].fee; } else { payments[pid].fee=val; }
+  buildSettleView();                      // repaint now; Firebase confirms behind it
+  if(db){
+    try{ firebase.database().ref('sgf/activeRound/payments/'+pid+'/fee').set(val===''?null:val); }
+    catch(e){ console.log('Fee write failed:',e.message); }
+  }
+}
+
+function onFeeSelect(pid,v){
+  if(v==='__other'){
+    feeOther[pid]=true; buildSettleView();
+    const el=document.getElementById('feebox-'+pid); if(el) el.focus();
+    return;
+  }
+  delete feeOther[pid];
+  setFeeAmount(pid,v);
+}
+
+// ── GREEN FEE ────────────────────────────────────────────────────────────────
+// Whatever the course charged, typed in by hand -- it varies by course, by walking
+// vs riding, and by whoever has a comp.  No dropdown on purpose: blank means nothing
+// was collected, and only what is typed gets recorded.
+function greenFeeOf(pid){
+  const a=(payments[pid]||{}).green;
+  return (a===undefined||a===null)?'':String(a);
+}
+
+function setGreenFee(pid,raw){
+  if(!isAdmin||window.isSpectator) return;
+  let val=String(raw==null?'':raw).replace(/[^0-9.]/g,'');
+  if(val!==''){ const n=parseFloat(val); val=(isFinite(n)&&n>=0)?n.toFixed(2):''; }
+  if(!payments[pid]) payments[pid]={};
+  if(val===''){ delete payments[pid].green; } else { payments[pid].green=val; }
+  buildSettleView();                      // repaint now; Firebase confirms behind it
+  if(db){
+    try{ firebase.database().ref('sgf/activeRound/payments/'+pid+'/green').set(val===''?null:val); }
+    catch(e){ console.log('Green fee write failed:',e.message); }
+  }
+}
+
 function listenForPaymentUpdates(){
   if(!db) return;
   if(paymentsRef) paymentsRef.off('value');
@@ -1844,7 +1910,7 @@ function listenForPaymentUpdates(){
     payments=snap.val()||{};
     // A repaint mid-typing would blow away the manual amount box, so hold off while it has focus.
     const ae=document.activeElement;
-    if(ae&&ae.classList&&ae.classList.contains('amt-box')) return;
+    if(ae&&ae.classList&&(ae.classList.contains('amt-box')||ae.classList.contains('fee-box')||ae.classList.contains('gf-box'))) return;
     if(document.getElementById('screen-settle').classList.contains('active')) buildSettleView();
   });
 }
@@ -1886,13 +1952,20 @@ function buildSettleView(){
   // Only count money from guys whose payment method is ticked -- an amount sitting in a
   // dropdown nobody confirmed is not cash in hand.
   const collected=ordered.reduce((t,p)=>t+((payments[p.id]||{}).in?parseFloat(payAmountOf(p.id))||0:0),0);
+  // Fees follow the same "only if it was confirmed" rule as the games money.
+  const feeTotal=ordered.reduce((t,p)=>{const q=payments[p.id]||{};
+    return t+((q.fee||q.in)?(parseFloat(feeAmountOf(p.id))||0):0);},0);
+  // Green fees count only what was actually typed in -- there is no default.
+  const greenTotal=ordered.reduce((t,p)=>t+(parseFloat(greenFeeOf(p.id))||0),0);
   const winners=ordered.filter(p=>(totals[p.id]||0)>0);
   const paidOut=winners.filter(p=>(payments[p.id]||{}).out).length;
   const owed=winners.filter(p=>!(payments[p.id]||{}).out);
 
   let html='<div class="settle-summary"><div class="settle-stats">'
     +'<div class="settle-stat"><b>Paid for games</b><i>'+paidIn+' / '+ordered.length+'</i></div>'
-    +'<div class="settle-stat"><b>Collected</b><i>$'+collected.toFixed(2)+'</i></div>'
+    +'<div class="settle-stat"><b>Games $</b><i>$'+collected.toFixed(2)+'</i></div>'
+    +'<div class="settle-stat"><b>SGF fees</b><i>$'+feeTotal.toFixed(2)+'</i></div>'
+    +'<div class="settle-stat"><b>Green fees</b><i>$'+greenTotal.toFixed(2)+'</i></div>'
     +'<div class="settle-stat'+(owed.length?' warn':'')+'"><b>Winners paid back</b><i>'
       +(scored?paidOut+' / '+winners.length:'&mdash;')+'</i></div>'
     +'</div>';
@@ -1926,12 +1999,29 @@ function buildSettleView(){
     const amt=payAmountOf(p.id);
     const isPreset=PAY_AMOUNTS.indexOf(amt)>=0;
     const showBox=!!amtOther[p.id]||!isPreset;
-    html+='<div class="settle-line"><span class="settle-lbl">Amount</span>'
+    html+='<div class="settle-line"><span class="settle-lbl">Games</span>'
       +'<select class="amt-sel'+((pay.amt||pay.in)?' set':'')+'" onchange="onAmtSelect('+p.id+',this.value)">'
       +PAY_AMOUNTS.map(a=>'<option value="'+a+'"'+((!showBox&&amt===a)?' selected':'')+'>$'+a+'</option>').join('')
       +'<option value="__other"'+(showBox?' selected':'')+'>Other&hellip;</option>'
       +'</select>'
       +(showBox?'<input id="amtbox-'+p.id+'" class="amt-box" type="text" inputmode="decimal" placeholder="0.00" value="'+(isPreset?'':esc(amt))+'" onchange="setPayAmount('+p.id+',this.value)">':'')
+      +'</div>';
+    // SGF service fee -- same dropdown pattern, its own money.
+    const fee=feeAmountOf(p.id);
+    const feePreset=FEE_AMOUNTS.indexOf(fee)>=0;
+    const feeBox=!!feeOther[p.id]||!feePreset;
+    html+='<div class="settle-line"><span class="settle-lbl">SGF fee</span>'
+      +'<select class="fee-sel'+((pay.fee||pay.in)?' set':'')+'" onchange="onFeeSelect('+p.id+',this.value)">'
+      +FEE_AMOUNTS.map(a=>'<option value="'+a+'"'+((!feeBox&&fee===a)?' selected':'')+'>$'+a+'</option>').join('')
+      +'<option value="__other"'+(feeBox?' selected':'')+'>Other&hellip;</option>'
+      +'</select>'
+      +(feeBox?'<input id="feebox-'+p.id+'" class="fee-box" type="text" inputmode="decimal" placeholder="0.00" value="'+(feePreset?'':esc(fee))+'" onchange="setFeeAmount('+p.id+',this.value)">':'')
+      +'</div>';
+    // Green fee -- free text, blank means nothing collected.
+    const gf=greenFeeOf(p.id);
+    html+='<div class="settle-line"><span class="settle-lbl">Green fee</span>'
+      +'<span class="gf-dollar">$</span>'
+      +'<input id="gfbox-'+p.id+'" class="gf-box'+(gf?' set':'')+'" type="text" inputmode="decimal" placeholder="Not collected" value="'+esc(gf)+'" onchange="setGreenFee('+p.id+',this.value)">'
       +'</div>';
     if(showBack){
       html+='<div class="settle-line"><span class="settle-lbl">Paid back</span>'
@@ -1984,6 +2074,8 @@ async function pushSettleToSheet(sendEmail){
       // payment method is ticked (in which case the $30 default is the real figure).
       return{name:p.name, won:totals[p.id]||0,
              amount:(pay.amt||pay.in)?payAmountOf(p.id):'',
+             fee:(pay.fee||pay.in)?feeAmountOf(p.id):'',
+             green:greenFeeOf(p.id),
              paidIn:pay.in?methodLabel(pay.in):'', paidBack:pay.out?methodLabel(pay.out):''};
     })
   };
