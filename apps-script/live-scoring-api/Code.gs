@@ -191,7 +191,7 @@ function loadMoneySetup_(sheetId) {
   var WANT = [
     { key: 'totalPot',      match: 'total pot with closie-only players' },
     { key: 'totalPot',      match: 'full-fee pot',                       fallback: true },
-    { key: 'closiesPool',   match: 'closies pot counting only full-fee' },
+    { key: 'closiesPool',   match: 'closies pot including closie-only' },   // C19, NOT C18. Must INCLUDE the closie-only buy-ins: index.html divides this pool by the closies actually won, and the sheet divides the inclusive pot. Reading C18 here lost $10 per closie-only player into the Low Net plug (found 2026-08-15).
     { key: 'closiesPool',   match: 'closies pot',                        fallback: true },
     { key: 'closiePerHole', match: 'nominal closie award' },
     { key: 'skinsPool',     match: 'net skins pool' },
