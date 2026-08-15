@@ -3472,6 +3472,38 @@ function showSync(msg,ok){
   el.style.display='block';el.style.color=ok===true?'#7dcea0':ok===false?'#f08080':'#aac8e0';el.textContent=msg;
   if(ok!==null)setTimeout(()=>{el.style.display='none';},6000);
 }
+// ---- KEEP THE POT HONEST WHEN A MONEY SCREEN OPENS -------------------------
+// moneySetup is sized from the sheet's HEADCOUNT, but it is fetched in only two
+// places (loadPlayersFromSheet, and refreshMoneySetup from the Sync New Players
+// button) and read back from Firebase on every later page load.  Anything that
+// changes the field size WITHOUT adding a player -- marking a man NO$ (an X in
+// SETUP.PLAYERS col N), deleting a no-show, flipping someone to closie-only --
+// moves the sheet's pot and leaves the stored copy stale.  That is what put the
+// 8/15/2026 Soule Park round at $460 when the sheet said $430: exactly one $30
+// buy-in, Michael Sanchez, marked NO$ after the round was loaded.
+//
+// So: re-read the pot whenever Payouts or Settle Up opens, and repaint only if it
+// actually moved.  Throttled to once a minute so sixteen golfers refreshing the
+// payouts screen do not hammer the Apps Script.  Fire-and-forget and fully
+// guarded -- a money refresh must never stop the screen from rendering.
+var _lastMoneyRefreshAt=0;
+async function refreshMoneyForScreen(id){
+  try{
+    var sheetId=window.activeSheetId;
+    if(!sheetId||typeof refreshMoneySetup!=='function') return;
+    var now=Date.now();
+    if(now-_lastMoneyRefreshAt<60000) return;
+    _lastMoneyRefreshAt=now;
+    var before=JSON.stringify(moneySetup||null);
+    var res=await refreshMoneySetup(sheetId);
+    if(res===null) return;                       // endpoint failed; keep what we had
+    if(JSON.stringify(moneySetup||null)===before) return;
+    var el=document.getElementById(id);
+    if(!el||!el.classList.contains('active')) return;   // user already navigated away
+    console.log('Pot changed while open, repainting',id);
+    if(id==='screen-payouts') buildPayoutsView(); else buildSettleView();
+  }catch(e){ console.log('refreshMoneyForScreen skipped:',e.message); }
+}
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -3480,6 +3512,7 @@ function showScreen(id){
   if(id==='screen-closies')buildClosiesView();
   if(id==='screen-payouts')buildPayoutsView();
   if(id==='screen-settle')buildSettleView();
+  if(id==='screen-payouts'||id==='screen-settle') refreshMoneyForScreen(id);
   // Show floating buttons on game screens; auto-unlock when leaving them
   const floatContainer=document.getElementById('floating-btns');
   if(floatContainer){
