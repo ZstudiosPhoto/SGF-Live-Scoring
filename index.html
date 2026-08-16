@@ -2028,23 +2028,30 @@ function buildSettleView(){
     const amt=payAmountOf(p.id);
     const isPreset=PAY_AMOUNTS.indexOf(amt)>=0;
     const showBox=!!amtOther[p.id]||!isPreset;
+    // The manual box must echo what is ACTUALLY stored, blank only when nothing is.
+    // It used to blank itself whenever the stored figure matched a preset, so typing
+    // 30 / 40 / 10 into "Other" looked like the entry had been thrown away -- it was
+    // saved, it just stopped being visible.
+    const amtShown=(pay.amt===undefined||pay.amt===null)?'':String(pay.amt);
     html+='<div class="settle-line"><span class="settle-lbl">Games</span>'
       +'<select class="amt-sel'+((pay.amt||pay.in)?' set':'')+'" onchange="onAmtSelect('+p.id+',this.value)">'
       +PAY_AMOUNTS.map(a=>'<option value="'+a+'"'+((!showBox&&amt===a)?' selected':'')+'>$'+a+'</option>').join('')
       +'<option value="__other"'+(showBox?' selected':'')+'>Other&hellip;</option>'
       +'</select>'
-      +(showBox?'<input id="amtbox-'+p.id+'" class="amt-box" type="text" inputmode="decimal" placeholder="0.00" value="'+(isPreset?'':esc(amt))+'" onchange="setPayAmount('+p.id+',this.value)">':'')
+      +(showBox?'<input id="amtbox-'+p.id+'" class="amt-box" type="text" inputmode="decimal" placeholder="0.00" value="'+esc(amtShown)+'" onchange="setPayAmount('+p.id+',this.value)">':'')
       +'</div>';
     // SGF service fee -- same dropdown pattern, its own money.
     const fee=feeAmountOf(p.id);
     const feePreset=FEE_AMOUNTS.indexOf(fee)>=0;
     const feeBox=!!feeOther[p.id]||!feePreset;
+    // Same rule as the games box above -- 10 / 5 / 0 typed into "Other" must stay visible.
+    const feeShown=(pay.fee===undefined||pay.fee===null)?'':String(pay.fee);
     html+='<div class="settle-line"><span class="settle-lbl">SGF fee</span>'
       +'<select class="fee-sel'+((pay.fee||pay.in)?' set':'')+'" onchange="onFeeSelect('+p.id+',this.value)">'
       +FEE_AMOUNTS.map(a=>'<option value="'+a+'"'+((!feeBox&&fee===a)?' selected':'')+'>$'+a+'</option>').join('')
       +'<option value="__other"'+(feeBox?' selected':'')+'>Other&hellip;</option>'
       +'</select>'
-      +(feeBox?'<input id="feebox-'+p.id+'" class="fee-box" type="text" inputmode="decimal" placeholder="0.00" value="'+(feePreset?'':esc(fee))+'" onchange="setFeeAmount('+p.id+',this.value)">':'')
+      +(feeBox?'<input id="feebox-'+p.id+'" class="fee-box" type="text" inputmode="decimal" placeholder="0.00" value="'+esc(feeShown)+'" onchange="setFeeAmount('+p.id+',this.value)">':'')
       +'</div>';
     // Green fee -- free text, blank means nothing collected.
     const gf=greenFeeOf(p.id);
