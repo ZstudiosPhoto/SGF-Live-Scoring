@@ -883,6 +883,7 @@ let teeData={}; // {TEE: {rating, slope, par}} — built during loadPlayersFromS
 let roundCourseSymbol='', roundTeeSymbol=''; // SETUP.COURSE col A: 'SPK' and 'AVO-LIM' — see teeFromCourseTee()
 let scores={}, closies={}, activeNine='front', nextId=2, db=null, roundRef=null, isAdmin=(localStorage.getItem('sgf_isAdminDevice')==='true');
 let activeEventCode=null; // set when checkForActiveRound reads the round
+let activeRoundStart=null; // startedAt of the live round; scopes the remembered join to THIS round
 let myGroup=null, viewMode='myFoursome', groupsRef=null; // foursome isolation state
 let playerOrder={}, orderRef=null;  // {pid: n} - display order WITHIN a group
 let noShows={}, noShowRef=null; // no-show tracking {pid: true}
@@ -1061,12 +1062,26 @@ function checkForActiveRound(){
       document.getElementById('join-date').textContent=data.date||'';
       document.getElementById('join-players').textContent=`${(data.players||[]).length} players`;
       activeEventCode=data.code||null;
+      activeRoundStart=String(data.startedAt||'');
       // Auto-grant admin if this device created the round (device ID match)
       if(data.adminDeviceId && data.adminDeviceId===getDeviceId()){
         isAdmin=true; localStorage.setItem('sgf_isAdminDevice','true');
       }
       // Admin devices skip the join screen and go straight in
       if(isAdmin){ joinRound(); return; }
+      // ---- SILENT REJOIN --------------------------------------------------
+      // The join used to live only in page memory, so ANY reload dumped a golfer back
+      // on the passcode screen.  Chris never saw it because an admin device skips the
+      // join screen entirely (the isAdmin branch above) -- but Chrome on Android
+      // discards backgrounded tabs under memory pressure, so a phone in a pocket
+      // between holes comes back to a full reload.  Two golfers reported exactly that
+      // on 8/15/2026.  Remember the join, scoped to THIS round's startedAt, so a
+      // reload restores it silently while a NEW round still asks for the code.
+      if(activeRoundStart && localStorage.getItem('sgf_joinedRound')===activeRoundStart){
+        window.isSpectator=(localStorage.getItem('sgf_joinedAs')==='spectator');
+        joinRound();
+        return;
+      }
       // Show code entry only if this round has a code set
       const codeSection=document.getElementById('join-code-section');
       if(activeEventCode){ codeSection.style.display='block'; } else { codeSection.style.display='none'; }
@@ -1103,12 +1118,26 @@ function verifyAndJoin(){
     }
   }
   window.isSpectator=false;
+  rememberJoin('player');
   joinRound();
 }
 
 function joinAsSpectator(){
   window.isSpectator=true;
+  rememberJoin('spectator');
   joinRound();
+}
+
+// Record that this device has cleared the passcode for the CURRENT round, so a reload
+// (or an Android tab discard) does not make the golfer type the code again.  Keyed on
+// startedAt, so the moment Chris starts or resets a round every device is asked afresh.
+// Storage failures are ignored -- private browsing must not block joining.
+function rememberJoin(role){
+  try{
+    if(!activeRoundStart) return;
+    localStorage.setItem('sgf_joinedRound',activeRoundStart);
+    localStorage.setItem('sgf_joinedAs',role);
+  }catch(e){ console.log('rememberJoin skipped:',e.message); }
 }
 
 function joinRound(){
