@@ -161,6 +161,13 @@
   .score-btn.double{background:var(--double-bg);color:var(--double-fg);border-color:var(--double-bg);}
   .score-btn.triple{background:var(--triple-bg);color:var(--triple-fg);border-color:var(--triple-bg);}
   .td-sub{text-align:center;font-weight:800;font-size:0.74rem;color:var(--muted);padding:0 2px;white-space:nowrap;}
+    /* Out / In / Tot cells now carry GROSS and NET.  They are STACKED, not written as
+       "84/69", because the back-nine table already scrolls sideways on a 360px phone and an
+       inline slash added another 35px of column width.  Stacked costs nothing horizontally,
+       fits inside the existing row height, and matches the per-hole buttons, which have
+       shown gross-over-net all along. */
+    .tsub-g{display:block;font-weight:900;line-height:1.05;}
+    .tsub-n{display:block;font-weight:800;font-size:0.64rem;opacity:0.72;line-height:1.05;}
   .td-total{text-align:center;font-weight:900;font-size:0.78rem;padding:0 2px;white-space:nowrap;}
   .td-total.under{color:#1e6b1e;}.td-total.even{color:#2a5028;}.td-total.over{color:#c0392b;}
   .sync-bar{background:var(--sgf-black);padding:9px 11px;border-top:3px solid var(--sgf-green);display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;flex-shrink:0;}
@@ -880,6 +887,31 @@ const BACK=[10,11,12,13,14,15,16,17,18];
 let players=[], pars=[4,4,3,4,4,4,4,3,5,4,3,5,4,3,5,3,4,4]; // Ojai Valley Inn defaults
 let strokeIndex=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]; // Handicap Stroke Index per hole (1=hardest)
 let teeData={}; // {TEE: {rating, slope, par}} — built during loadPlayersFromSheet, used for walk-on HCP calc
+// ⚠️ Unresolved course-tee lookups from the last sheet load.  When SETUP.PLAYERS shows
+// #N/A for a player's rating/slope, his course handicap silently arrives as 0 and he plays
+// off scratch.  GROSS scoring still looks perfect, so nothing warns — but Net Skins, Low Net
+// and every payout are wrong.  Cost the 8/18/2026 Sand Canyon round its whole net side when
+// the nines changed from Valley/Desert to Valley/Mountain and COURSE.TEES had no
+// SCynVM-GLD-F row for the one player on the Gold-Forward tees.
+// Changing the nines rewrites EVERY player's course-tee key at once, so this can hit anybody.
+let teeIssues=[];
+function findTeeIssues(rows){
+  const bad=[];
+  const isErr=v=>String(v===null||v===undefined?'':v).trim().charAt(0)==='#';
+  (rows||[]).forEach(r=>{
+    if(!r) return;
+    const nm=String(r[0]||'').trim();
+    if(!nm||nm.charAt(0)==='#'||['player name','name','player'].includes(nm.toLowerCase())) return;
+    const key=String(r[3]||'').trim()||'(no course-tee symbol)';
+    // Rating/slope depend ONLY on the course-tee key, so an error there means the key is
+    // not in COURSE.TEES.  The course-handicap cell is checked only for players who have a
+    // handicap index, so a legitimate Closie-Only player never trips this.
+    if(isErr(r[4])||isErr(r[5])) bad.push({name:nm,key:key,why:'no rating/slope on file for this tee'});
+    else if(String(r[1]||'').trim()!==''&&isErr(r[7])) bad.push({name:nm,key:key,why:'course handicap did not calculate'});
+  });
+  return bad;
+}
+function teeIssueText(list){return list.map(t=>'• '+t.name+'  —  '+t.key+'  —  '+t.why).join('\n');}
 let roundCourseSymbol='', roundTeeSymbol=''; // SETUP.COURSE col A: 'SPK' and 'AVO-LIM' — see teeFromCourseTee()
 let scores={}, closies={}, activeNine='front', nextId=2, db=null, roundRef=null, isAdmin=(localStorage.getItem('sgf_isAdminDevice')==='true');
 let activeEventCode=null; // set when checkForActiveRound reads the round
@@ -1369,6 +1401,16 @@ async function changeAdminPin(){
 // ── End Admin PIN helpers ──────────────────────────────────────────────────
 
 async function startRound(){
+  // ── Pre-flight: unresolved tees ───────────────────────────────────
+  // Stop BEFORE the PIN prompt so nothing is wasted, name the player and the exact tee key,
+  // and still allow an override — he is standing in a parking lot with 15 men waiting.
+  if(teeIssues.length){
+    if(!confirm('⛔ TEE NOT FOUND — do not start yet\n\n'+teeIssueText(teeIssues)
+      +'\n\nAdd the missing tee to the COURSE.TEES tab in the Google Sheet, then press'
+      +' "Load Players from Sheet" again.\n\nStart anyway?  '
+      +(teeIssues.length>1?'Those players':'That player')
+      +' will play off 0 strokes, and Net Skins, Low Net and the payouts will all be wrong.')) return;
+  }
   // ── Admin PIN gate ──
   if(db){
     const pinSnap=await firebase.database().ref('sgf/adminPin').once('value');
@@ -1578,6 +1620,12 @@ async function loadPlayersFromSheet(){
         } else { showStatus(st,`✅ Loaded ${players.length} players + course pars! (No stroke index row found — add a "Handicap" row to SETUP.COURSE for net skins)`, 'ok'); }
       } else { showStatus(st,`✅ Loaded ${players.length} players with handicaps!`,'ok'); }
     } else { showStatus(st,`✅ Loaded ${players.length} players with handicaps!`,'ok'); }
+    // ⚠️ Pre-flight: every player's course-tee key must resolve in COURSE.TEES.
+    teeIssues=findTeeIssues(rawPlayers);
+    if(teeIssues.length){
+      showStatus(st,`⚠️ TEE NOT FOUND for ${teeIssues.length} player${teeIssues.length>1?'s':''} — ${teeIssues.map(t=>t.name+' ('+t.key+')').join(', ')}. Add the tee to the COURSE.TEES tab in the Google Sheet, then press Load Players again. Until you do they play off 0 strokes and Net Skins, Low Net and the money will all be wrong.`,'err');
+    }
+
     // Load money setup from SETUP.MONEY (non-fatal if tab missing)
     moneySetup=null;
     try{
@@ -2320,6 +2368,21 @@ function scoreBtnInner(gross,hcp,hsi){
   const net=parseInt(gross)-strokesOnHole(hcp,hsi);
   return{html:`<span class="sb-gross">${gross}</span><span class="sb-net">${net}</span>`,hasNet:true};
 }
+// Gross AND net for a set of holes -> "112/82", used by the Out / In / Tot columns on both
+// the group view and the whole-field view.  Net uses strokesUsedOn(), the same pro-rated
+// allocation Low Net uses, so over a finished 18 it equals Gross - Course Handicap exactly
+// and agrees with LOW.NET on the Google Sheet.  A player with no course handicap (guest or
+// Closie-Only) shows gross alone rather than a pointless "84/84".
+function subTotHTML(p,holeSet){
+  if(!p) return '—';
+  const done=holeSet.filter(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
+  if(!done.length) return '—';
+  const gross=done.reduce((s,h)=>s+scores[p.id][h],0);
+  const hcp=p.hcp||0;
+  if(hcp<=0) return String(gross);
+  const net=gross-strokesUsedOn(hcp,done);
+  return `<span class="tsub-g">${gross}</span><span class="tsub-n">${net}</span>`;
+}
 // Index / Tee / Course-Handicap chips beside each player's name.
 // Index = SETUP.PLAYERS col C, tee = col E, course handicap = col I.
 function playerMetaHTML(p){
@@ -2351,7 +2414,7 @@ function buildTable(){
     <tr class="th-si">
       <th class="th-name">SI</th>
       ${siVals.map(s=>`<th>${s}</th>`).join('')}
-      <th></th>${activeNine==='back'?'<th></th>':''}<th></th>
+      <th>G/N</th>${activeNine==='back'?'<th>G/N</th>':''}<th></th>
     </tr>
     <tr class="th-par">
       <th class="th-name">Par</th>
@@ -2389,7 +2452,7 @@ function buildTable(){
         const inner=scoreBtnInner(svNum!==null?svNum:null,p.hcp||0,hsi);
         return`<td class="td-score"><button class="score-btn ${inner.hasNet?'has-net ':''}${sCls(svNum,ps[i])}" data-pid="${p.id}" data-hole="${h}" ${cellDisabled?'disabled':`onclick="openScorePad(${p.id},${h})"`}>${inner.html}</button></td>`;
       }).join('')+
-      `<td class="td-sub" id="sub-${p.id}">${isNS?'NS':tot2!==null?tot2:'—'}</td>${activeNine==='back'?(()=>{const ft=runSum(p.id,FRONT);const bt=runSum(p.id,BACK);const grossTot=(ft!==null||bt!==null)?((ft||0)+(bt||0)):null;return`<td class="td-sub" id="gtot-${p.id}">${grossTot!==null?grossTot:'—'}</td>`;})():''}<td class="td-total ${vCls}" id="vp-${p.id}">${vpStr}</td>`;
+      `<td class="td-sub" id="sub-${p.id}">${isNS?'NS':subTotHTML(p,holes)}</td>${activeNine==='back'?`<td class="td-sub" id="gtot-${p.id}">${isNS?'NS':subTotHTML(p,HOLES)}</td>`:''}<td class="td-total ${vCls}" id="vp-${p.id}">${vpStr}</td>`;
     tbody.appendChild(tr);
   });
   updateGroupStatusBar();
@@ -2790,8 +2853,8 @@ function openManageGroups(){
         : 'Order · Group · No Show · Tee · HCP · Game Type — live on all devices.'}</div>
       <div>${rows}</div>
       <div style="margin-top:14px;padding-top:12px;border-top:2px dashed #b8ddb5;display:${viewOnlyOrder?'none':'block'};">
-        <button onclick="addNewPlayersFromSheet()" style="width:100%;padding:11px;background:linear-gradient(135deg,#1a6ea8,#0d3d5e);color:white;border:none;border-radius:9px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">🔄 Sync New Players from Sheet</button>
-        <div style="font-size:0.68rem;color:#888;font-weight:700;text-align:center;margin-top:5px;">Adds players in SETUP.PLAYERS not yet in this round</div>
+        <button onclick="addNewPlayersFromSheet()" style="width:100%;padding:11px;background:linear-gradient(135deg,#1a6ea8,#0d3d5e);color:white;border:none;border-radius:9px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">🔄 Sync Players from Sheet</button>
+        <div style="font-size:0.68rem;color:#888;font-weight:700;text-align:center;margin-top:5px;">Adds new players AND re-reads tee, course handicap and NO$ from SETUP.PLAYERS. Anything you changed by hand here is left alone.</div>
       </div>
       <div style="margin-top:16px;padding-top:14px;border-top:2px dashed #b8ddb5;display:${viewOnlyOrder?'none':'block'};">
         <div style="font-family:'Bebas Neue',sans-serif;font-size:1.05rem;color:#1a5518;letter-spacing:1px;margin-bottom:10px;">🚶 Add Walk-on Player</div>
@@ -2982,12 +3045,13 @@ async function addNewPlayersFromSheet(){
         !currentNames.has(nm.toLowerCase());
     });
 
-    if(!newRows.length){showSync('✅ No new players found in sheet.',true);return;}
-
     for(const r of newRows){
+      // Splitting the CourseTee key at the LAST dash turns "SCynVM-GLD-F" into "F" and
+      // "SPK-AVO-LIM" into "LIM".  loadPlayersFromSheet has used teeFromCourseTee() since
+      // 8/15 for exactly this reason; this path never got the fix.  Prefer the explicit tee
+      // override in column E, fall back to stripping the course symbol off the front.
       const ct=String(r[3]||'').trim();
-      const dash=ct.lastIndexOf('-');
-      const tee=dash>=0?ct.slice(dash+1):ct;
+      const tee=(String(r[2]||'').trim()||teeFromCourseTee(ct)).trim().toUpperCase();
       const hcp=r[7]?parseInt(String(r[7]))||0:0;
       const hcpIndex=String(r[1]||'').trim();
       const isClosie=!hcpIndex||hcpIndex.startsWith('#')||hcpIndex.toLowerCase()==='n/a';
@@ -3007,15 +3071,84 @@ async function addNewPlayersFromSheet(){
         await firebase.database().ref('sgf/activeRound/scores/'+newId).set(emptyScores);
       }
     }
+    // ── REFRESH THE PLAYERS ALREADY IN THE ROUND ──────────────────
+    // Adding names was never the only reason to re-read the sheet.  On 8/18/2026 a missing
+    // COURSE.TEES row left a player's course handicap at 0 for a whole round, and fixing the
+    // sheet mid-round had no way back in, because this function only ever looked at names it
+    // had not seen before.  It now re-reads tee, course handicap, handicap index and the
+    // NO$ / Closie-Only flag for everyone in the round.
+    // Anything YOU changed by hand in Manage Players wins — those live in playerOverrides
+    // and are deliberately skipped, so an on-course correction is never undone by a sync.
+    // Re-read the round's course + tee symbols first: teeFromCourseTee() strips the course
+    // symbol off the front of each CourseTee key, so if the NINES changed since the round
+    // was built these must move with them or every tee comes back wrong.
+    const cRows=json.course||[];
+    const cCell=(re)=>{const x=cRows.find(y=>y&&y.length>1&&re.test(String(y[1]||'').trim()));return x?String(x[0]||'').trim():'';};
+    const cSym=cCell(/^default\s+course\s+symbol$/i), tSym=cCell(/^default\s+tee\s+symbol$/i).toUpperCase();
+    if(cSym) roundCourseSymbol=cSym;
+    if(tSym) roundTeeSymbol=tSym;
+    if(db&&(cSym||tSym)){ try{ await firebase.database().ref('sgf/activeRound').update({courseSymbol:roundCourseSymbol,teeSymbol:roundTeeSymbol}); }catch(ce){} }
+    let overrides={};
+    if(db){ try{ overrides=(await firebase.database().ref('sgf/activeRound/playerOverrides').once('value')).val()||{}; }catch(oe){} }
+    const sheetByName={};
+    rawPlayers.forEach(r=>{
+      const nm=String(r[0]||'').trim();
+      if(nm&&!nm.startsWith('#')&&!['player name','name','player'].includes(nm.toLowerCase())) sheetByName[nm.toLowerCase()]=r;
+    });
+    const changed=[];
+    players.forEach(p=>{
+      const r=sheetByName[String(p.name||'').trim().toLowerCase()];
+      if(!r) return;
+      const ov=overrides[p.id]||{};
+      // Column E (r[2]) is the explicit tee override when the man is off the default tee;
+      // otherwise derive it from the CourseTee key.  NEVER split at the last dash — the tee
+      // itself can contain one ("SCynVM-GLD-F", "SPK-AVO-LIM") and that is the 8/15 bug.
+      const sheetTee=(String(r[2]||'').trim()||teeFromCourseTee(String(r[3]||''))).trim().toUpperCase();
+      const sheetHcp=r[7]?parseInt(String(r[7]))||0:0;
+      const sheetIdx=String(r[1]||'').trim();
+      if(ov.tee===undefined&&sheetTee&&sheetTee!==String(p.tee||'').trim().toUpperCase()){
+        changed.push(`${p.name}: tee ${p.tee||'—'} → ${sheetTee}`); p.tee=sheetTee;
+      }
+      // A sheet handicap of 0 is never trusted — that is exactly what a broken #N/A tee
+      // lookup parses to, and overwriting a good handicap with it would repeat the 8/18 bug.
+      if(ov.hcp===undefined&&sheetHcp>0&&sheetHcp!==(parseInt(p.hcp)||0)){
+        changed.push(`${p.name}: HCP ${p.hcp||0} → ${sheetHcp}`); p.hcp=sheetHcp;
+      }
+      const isClosie=!sheetIdx||sheetIdx.startsWith('#')||sheetIdx.toLowerCase()==='n/a';
+      const sheetPT=String(r[12]||'').trim().toUpperCase()==='X'?'guest':(isClosie?'closie':'full');
+      if(ov.playType===undefined&&sheetPT!==p.playType){
+        changed.push(`${p.name}: ${p.playType} → ${sheetPT}`);
+        p.playType=sheetPT; p.closieOnly=(sheetPT!=='full');
+      }
+      if(sheetIdx&&!sheetIdx.startsWith('#')) p.index=sheetIdx;
+    });
+    if(db&&(changed.length||newRows.length)) await firebase.database().ref('sgf/activeRound/players').set(players);
+
     // The pot is sized from the sheet's player count, so it MUST be re-read now or every
     // payout stays scaled to the old field size.  See refreshMoneySetup() above.
     const newPot=await refreshMoneySetup(sheetId);
     buildTable();
-    // Refresh the manage dialog so the new player shows immediately
-    document.getElementById('manage-groups-dialog')?.remove();
-    openManageGroups();   // was showManageGroups() - no such function; threw after adding a player
-    const potMsg=newPot?` Pot updated to $${newPot}.`:' ⚠️ Could not refresh the pot — check Payouts against the sheet.';
-    showSync(`✅ Added ${newRows.length} new player(s) from sheet!${potMsg} Set their group in Manage Players.`,true);
+    if(newRows.length){
+      // Refresh the manage dialog so the new player shows immediately
+      document.getElementById('manage-groups-dialog')?.remove();
+      openManageGroups();   // was showManageGroups() - no such function; threw after adding a player
+    }
+    const potMsg=newPot?` Pot $${newPot}.`:' ⚠️ Could not refresh the pot — check Payouts against the sheet.';
+    const bits=[];
+    if(newRows.length) bits.push(`Added ${newRows.length} new player(s) — set their group in Manage Players`);
+    if(changed.length) bits.push(`Updated ${changed.length}: ${changed.join('; ')}`);
+    if(!bits.length) bits.push('Everything already matches the sheet');
+    // Same pre-flight as round start, but only for the men actually in this round.
+    const inRound=new Set(players.map(p=>String(p.name||'').trim().toLowerCase()));
+    teeIssues=findTeeIssues(rawPlayers.filter(r=>inRound.has(String(r[0]||'').trim().toLowerCase())));
+    if(teeIssues.length){
+      showSync('⚠️ TEE NOT FOUND — '+teeIssues.map(t=>t.name+' ('+t.key+')').join(', '),false);
+      alert('⚠️ TEE NOT FOUND\n\n'+teeIssueText(teeIssues)
+        +'\n\nAdd the tee to the COURSE.TEES tab in the Google Sheet, then press Sync again.'
+        +'\n\nUntil then those players have a course handicap of 0. You can also set it by hand in Manage Players.');
+    } else {
+      showSync(`✅ ${bits.join(' · ')}.${potMsg}`,true);
+    }
   }catch(e){showSync('Error: '+e.message,false);}
 }
 
@@ -3153,9 +3286,10 @@ function saveScore(pid,hole,val){
   const tot=runSum(pid,nine);
   const vp=tot!==null?tot-runPar(pid,nine):null;
   const se=document.getElementById(`sub-${pid}`),ve=document.getElementById(`vp-${pid}`);
-  if(se)se.textContent=tot!==null?tot:'—';
+  const _sp=players.find(p=>p.id===pid);
+  if(se)se.innerHTML=noShows[pid]?'NS':subTotHTML(_sp,nine);
   if(ve){ve.textContent=vp===null?'—':(vp===0?'E':vp>0?`+${vp}`:vp);ve.className=`td-total ${vp===null?'':(vp<0?'under':vp===0?'even':'over')}`;}
-  if(activeNine==='back'){const ge=document.getElementById(`gtot-${pid}`);if(ge){const ft=runSum(pid,FRONT);const bt=runSum(pid,BACK);ge.textContent=(ft!==null||bt!==null)?((ft||0)+(bt||0)):'—';}}
+  if(activeNine==='back'){const ge=document.getElementById(`gtot-${pid}`);if(ge)ge.innerHTML=noShows[pid]?'NS':subTotHTML(_sp,HOLES);}
 }
 
 // ===== CUSTOM SCORE PAD =====
