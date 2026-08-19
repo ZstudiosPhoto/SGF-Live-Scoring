@@ -1217,6 +1217,7 @@ function joinRound(){
     listenForPaymentUpdates();
     listenForOrderUpdates();
     listenForPlayerOverrides();
+    listenForPlayerUpdates();   // must come AFTER the overrides listener -- it re-applies them
     startAutoPush();
     afterRoundLoaded();
     watchConnection();
@@ -1479,6 +1480,7 @@ async function startRound(){
     listenForPaymentUpdates();
     listenForOrderUpdates();
     listenForPlayerOverrides();
+    listenForPlayerUpdates();   // must come AFTER the overrides listener -- it re-applies them
   }
   startAutoPush();
   afterRoundLoaded();
@@ -2577,24 +2579,96 @@ function listenForNoShowUpdates(){
   });
 }
 
-let playerOverridesRef=null;
+let playerOverridesRef=null, playerOverridesData={};
+// Manual edits made in Manage Players (tee / course handicap / play type).  Kept in a module
+// global so they can be RE-APPLIED after the player list itself is replaced by
+// listenForPlayerUpdates() -- otherwise a roster push from the admin's phone would silently
+// wipe a correction somebody made on the course.
+function applyPlayerOverrides(){
+  const data=playerOverridesData||{};
+  players.forEach(p=>{
+    const ov=data[p.id];
+    if(!ov) return;
+    if(ov.tee!==undefined) p.tee=ov.tee;
+    if(ov.hcp!==undefined) p.hcp=ov.hcp;
+    if(ov.playType!==undefined){ p.playType=ov.playType; p.closieOnly=(ov.playType!=='full'); }
+    if(ov.closieOnly!==undefined && ov.playType===undefined) p.closieOnly=ov.closieOnly;
+  });
+}
+
+// Repaint whichever screen is showing.  A player-list change moves more than the scoreboard:
+// Closies, Payouts and Settle Up are all built from `players` too.
+function repaintActiveScreen(){
+  const on=id=>{const e=document.getElementById(id);return !!(e&&e.classList.contains('active'));};
+  if(on('screen-scoring')) buildTable();
+  if(on('screen-lb')) buildLB();
+  if(on('screen-skins')) buildSkinsView();
+  if(on('screen-closies')) buildClosiesView();
+  if(on('screen-payouts')) buildPayoutsView();
+  if(on('screen-settle')){
+    // Same rule as the payments listener: a repaint mid-typing blows away the amount box.
+    const ae=document.activeElement;
+    const typing=ae&&ae.classList&&(ae.classList.contains('amt-box')||ae.classList.contains('fee-box')||ae.classList.contains('gf-box'));
+    if(!typing) buildSettleView();
+  }
+}
+
 function listenForPlayerOverrides(){
   if(!db) return;
   if(playerOverridesRef) playerOverridesRef.off('value');
   playerOverridesRef=firebase.database().ref('sgf/activeRound/playerOverrides');
   playerOverridesRef.on('value', snap=>{
-    const data=snap.val()||{};
-    players.forEach(p=>{
-      const ov=data[p.id];
-      if(!ov) return;
-      if(ov.tee!==undefined) p.tee=ov.tee;
-      if(ov.hcp!==undefined) p.hcp=ov.hcp;
-      if(ov.playType!==undefined){ p.playType=ov.playType; p.closieOnly=(ov.playType!=='full'); }
-      if(ov.closieOnly!==undefined && ov.playType===undefined) p.closieOnly=ov.closieOnly;
+    playerOverridesData=snap.val()||{};
+    applyPlayerOverrides();
+    repaintActiveScreen();
+  });
+}
+
+// ===== LIVE PLAYER LIST =====
+// joinRound() reads sgf/activeRound with .once('value'), so until 8/18/2026 the roster every
+// golfer's phone held was frozen at the moment they joined.  Scores, closies, groups, no-shows
+// and payments all had listeners; `players` did not.  So a late signup synced in from the
+// admin's phone, or a course handicap corrected mid-round, reached nobody without a full page
+// reload -- and nothing on screen suggested a reload was needed.
+//
+// Deliberately defensive: this is the one node whose loss would empty every card on the
+// course, so a null/empty snapshot is ignored rather than applied.
+let playersRef=null;
+function playerListSignature(list){
+  return (list||[]).map(p=>[p.id,p.name,p.hcp,p.tee,p.index,p.playType,p.closieOnly?1:0].join('|')).join(';');
+}
+function listenForPlayerUpdates(){
+  if(!db) return;
+  if(playersRef) playersRef.off('value');
+  playersRef=firebase.database().ref('sgf/activeRound/players');
+  playersRef.on('value', snap=>{
+    const raw=snap.val();
+    if(!raw) return;                                   // never blank the field on a bad read
+    // Firebase hands this back as an array, but a sparse write can arrive as an object with
+    // numeric keys, and either form can carry holes.  Sorting by id restores sheet order.
+    const list=(Array.isArray(raw)?raw:Object.keys(raw).map(k=>raw[k]))
+      .filter(p=>p&&p.name)
+      .sort((a,b)=>(parseInt(a.id)||0)-(parseInt(b.id)||0));
+    if(!list.length) return;
+    // This fires on our OWN writes too, so do nothing unless something actually moved.
+    if(playerListSignature(list)===playerListSignature(players)) return;
+    // listenForGroupUpdates() owns the group column -- keep what it has already applied.
+    const oldGroup={}; players.forEach(p=>{ oldGroup[p.id]=p.group; });
+    players=list.map(p=>{
+      const np={};
+      for(const k in p) np[k]=p[k];
+      np.group=(oldGroup[p.id]!==undefined)?oldGroup[p.id]:(parseInt(p.group)||1);
+      return np;
     });
-    if(document.getElementById('screen-scoring').classList.contains('active')) buildTable();
-    if(document.getElementById('screen-lb').classList.contains('active')) buildLB();
-    if(document.getElementById('screen-skins').classList.contains('active')) buildSkinsView();
+    // A player who appeared while we were watching has no score bucket yet, and buildTable()
+    // would render nothing for him.
+    players.forEach(p=>{
+      if(!scores[p.id]) scores[p.id]={};
+      HOLES.forEach(h=>{ if(scores[p.id][h]===undefined) scores[p.id][h]=null; });
+    });
+    nextId=Math.max.apply(null,players.map(p=>parseInt(p.id)||0).concat([0]))+1;
+    applyPlayerOverrides();      // a hand edit made on the course still wins
+    repaintActiveScreen();
   });
 }
 
