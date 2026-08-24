@@ -387,8 +387,10 @@
   .hbh-tbl{table-layout:fixed;width:100%;}
   .hbh-tbl th,.hbh-tbl td{padding:2px 1px;font-size:0.62rem;}
   .hbh-tbl thead th{padding:3px 1px;font-size:0.6rem;}
-  .hbh-tbl .hbh-name{text-align:left;padding-left:7px;font-size:0.66rem;font-weight:800;width:82px;max-width:82px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .hbh-tbl .hbh-end{width:34px;}
+  .hbh-tbl .hbh-name{text-align:left;padding-left:6px;font-size:0.62rem;font-weight:800;width:90px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .hbh-tbl .hbh-end{width:32px;}
+  /* Foursome divider -- the card reads group by group, the way the scoring screen does. */
+  .hbh-tbl tr.hbh-grp td{background:var(--sgf-green-dark);color:#fff;text-align:left;padding:3px 7px;font-size:0.6rem;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;}
   .hbh-tbl tr.hbh-sub td{background:#eef3ee;color:#3f5c3d;font-weight:800;border-bottom:1px solid var(--border);}
   .hbh-tbl tr.hbh-sub td.hbh-name{color:#3f5c3d;}
   .hbh-box{display:block;border-radius:4px;padding:2px 0;line-height:1.02;}
@@ -4310,8 +4312,15 @@ function buildPayoutsView(){
     // cell, coloured on the eagle/birdie/par/bogey scale from sCls().  Net per hole uses
     // strokesOnHole() -- the FULL course handicap, double pops above 18 -- so a man's nine
     // adds up to exactly the OUT / IN net in the summary table.
-    const nineHTML=(label,holeSet,endLabel)=>{
+    // Rows run in FOURSOME order with a divider per group -- the same sortPlayers() order
+    // the scoring screen uses -- because that is how the guys read a card.  And the back
+    // nine carries IN *and* TOT, exactly like the scoring screen's back-nine view.
+    const hbhOrder=sortPlayers(scored);
+    const hbhMultiGroup=new Set(hbhOrder.map(p=>parseInt(p.group)||1)).size>1;
+    const nineHTML=(label,holeSet,endLabel,withTot)=>{
       const parNine=holeSet.reduce((s,h)=>s+(pars[h-1]||0),0);
+      const parAll=pars.reduce((s,v)=>s+(v||0),0);
+      const nCols=holeSet.length+2+(withTot?1:0);
       const hCell=p=>holeSet.map(h=>{
         const g=(scores[p.id]&&scores[p.id][h]!=null)?scores[p.id][h]:null;
         if(g===null) return '<td><span class="hbh-box none">&mdash;</span></td>';
@@ -4320,17 +4329,25 @@ function buildPayoutsView(){
         const n=hcp>0?g-strokesOnHole(hcp,strokeIndex[h-1]||h):null;
         return `<td><span class="hbh-box ${sCls(g,par)}"><span class="hbh-g">${g}</span>${n!==null?`<span class="hbh-n">${n}</span>`:''}</span></td>`;
       }).join('');
-      const endCell=p=>{
-        const done=holeSet.filter(h=>scores[p.id]&&scores[p.id][h]!=null);
+      const endCell=(p,set)=>{
+        const done=set.filter(h=>scores[p.id]&&scores[p.id][h]!=null);
         if(!done.length) return '<td class="hbh-tot">&mdash;</td>';
         const g=done.reduce((s,h)=>s+scores[p.id][h],0);
         const hcp=p.hcp||0;
         return `<td class="hbh-tot">${g}${hcp>0?`<small>${g-strokesUsedOn(hcp,done)}</small>`:''}</td>`;
       };
-      const body=comp.concat(rest).map(r=>{
-        const last=String(r.p.name||'').split(',')[0].trim()||r.p.name;
-        return `<tr><td class="hbh-name">${esc(last)}</td>${hCell(r.p)}${endCell(r.p)}</tr>`;
-      }).join('');
+      let lastG=null,body='';
+      hbhOrder.forEach(p=>{
+        const g=parseInt(p.group)||1;
+        if(hbhMultiGroup&&g!==lastG){ lastG=g; body+=`<tr class="hbh-grp"><td colspan="${nCols}">Group ${g}</td></tr>`; }
+        // Surname alone is not enough -- SGF has had brothers in the same round.
+        const nm=String(p.name||'').trim();
+        const ci=nm.indexOf(',');
+        let label;
+        if(ci>-1){ const fi=nm.slice(ci+1).trim().charAt(0); label=nm.slice(0,ci).trim()+(fi?', '+fi:''); }
+        else { const w=nm.split(/\s+/); label=w.length>1?w.slice(1).join(' ')+', '+w[0].charAt(0):nm; }
+        body+=`<tr><td class="hbh-name" title="${esc(nm)}">${esc(label)}</td>${hCell(p)}${endCell(p,holeSet)}${withTot?endCell(p,HOLES):''}</tr>`;
+      });
       return `<div class="payout-section">
         <div class="payout-section-hdr">
           <span class="payout-section-title">${label}</span>
@@ -4338,18 +4355,18 @@ function buildPayoutsView(){
         </div>
         <div class="skins-tbl-wrap"><table class="skins-tbl hbh-tbl">
           <thead>
-            <tr><th class="hbh-name">Hole</th>${holeSet.map(h=>`<th>${h}</th>`).join('')}<th class="hbh-end">${endLabel}</th></tr>
+            <tr><th class="hbh-name">Hole</th>${holeSet.map(h=>`<th>${h}</th>`).join('')}<th class="hbh-end">${endLabel}</th>${withTot?'<th class="hbh-end">TOT</th>':''}</tr>
           </thead>
           <tbody>
-            <tr class="hbh-sub"><td class="hbh-name">Par</td>${holeSet.map(h=>`<td>${pars[h-1]||''}</td>`).join('')}<td>${parNine||''}</td></tr>
-            <tr class="hbh-sub"><td class="hbh-name">Hcp</td>${holeSet.map(h=>`<td>${strokeIndex[h-1]||''}</td>`).join('')}<td></td></tr>
+            <tr class="hbh-sub"><td class="hbh-name">Par</td>${holeSet.map(h=>`<td>${pars[h-1]||''}</td>`).join('')}<td>${parNine||''}</td>${withTot?`<td>${parAll||''}</td>`:''}</tr>
+            <tr class="hbh-sub"><td class="hbh-name">Hcp</td>${holeSet.map(h=>`<td>${strokeIndex[h-1]||''}</td>`).join('')}<td>G/N</td>${withTot?'<td>G/N</td>':''}</tr>
             ${body}
           </tbody>
         </table></div>
       </div>`;
     };
-    scorecardHTML+=nineHTML('&#9971; FRONT NINE',FRONT,'OUT')
-                  +nineHTML('&#9971; BACK NINE',BACK,'IN')
+    scorecardHTML+=nineHTML('&#9971; FRONT NINE',FRONT,'OUT',false)
+                  +nineHTML('&#9971; BACK NINE',BACK,'IN',true)
                   +`<div class="payout-section"><div class="hbh-key">
         <span class="hbh-box eagle" style="padding:1px 6px;">Eagle+</span>
         <span class="hbh-box birdie" style="padding:1px 6px;">Birdie</span>
