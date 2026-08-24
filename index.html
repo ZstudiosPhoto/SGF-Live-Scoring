@@ -339,30 +339,49 @@
   .st-si-cell{color:var(--muted);font-size:0.72rem;}
   .skins-empty{text-align:center;padding:40px 20px;color:var(--muted);font-weight:600;font-size:0.88rem;}
   /* ===== PAYOUTS ===== */
-  .payout-section{background:var(--card-bg);border-radius:13px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,0.2);border:1px solid rgba(58,170,53,0.25);margin-bottom:14px;}
-  .payout-section-hdr{background:var(--sgf-green);padding:11px 14px;display:flex;justify-content:space-between;align-items:center;}
-  .payout-section-title{font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:#fff;letter-spacing:1px;}
+  .payout-section{background:var(--card-bg);border-radius:13px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,0.2);border:1px solid rgba(58,170,53,0.25);margin-bottom:9px;}
+  .payout-section-hdr{background:var(--sgf-green);padding:7px 13px;display:flex;justify-content:space-between;align-items:center;}
+  .payout-section-title{font-family:'Bebas Neue',sans-serif;font-size:1.05rem;color:#fff;letter-spacing:1px;}
   .payout-pool-badge{color:#f0cc70;font-weight:800;font-size:0.85rem;}
-  .payout-row{display:flex;align-items:center;padding:11px 14px;border-bottom:1px solid var(--border);gap:10px;}
+  .payout-row{display:flex;align-items:center;padding:6px 13px;border-bottom:1px solid var(--border);gap:9px;}
   .payout-row:last-child{border-bottom:none;}
   .payout-hole{font-family:'Bebas Neue',sans-serif;font-size:1.05rem;color:var(--sgf-green-dark);width:62px;flex-shrink:0;}
   .payout-name{flex:1;font-weight:800;font-size:0.9rem;color:var(--text);}
   .payout-name-empty{flex:1;font-weight:600;font-size:0.88rem;color:#aaa;}
-  .payout-amount{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:#d4a843;}
+  .payout-amount{font-family:'Bebas Neue',sans-serif;font-size:1.35rem;color:#d4a843;line-height:1.1;}
   .payout-amount-pending{font-size:0.78rem;color:#bbb;font-style:italic;}
   .payout-sub{font-size:0.7rem;color:var(--muted);font-weight:700;}
-  .payout-place-icon{font-size:1.3rem;width:32px;text-align:center;flex-shrink:0;}
+  .payout-place-icon{font-size:1.15rem;width:28px;text-align:center;flex-shrink:0;}
   .payout-place-label{font-size:0.65rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
-  .pot-summary{background:linear-gradient(135deg,#1a5518,#3aaa35);border-radius:13px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,0.2);margin-bottom:14px;}
-  .pot-total-row{padding:13px 16px;display:flex;justify-content:space-between;align-items:center;}
+  .pot-summary{background:linear-gradient(135deg,#1a5518,#3aaa35);border-radius:13px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,0.2);margin-bottom:9px;}
+  .pot-total-row{padding:8px 15px;display:flex;justify-content:space-between;align-items:center;}
   .pot-total-label{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:#fff;letter-spacing:1px;}
-  .pot-total-amount{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;color:#f0cc70;line-height:1;}
+  .pot-total-amount{font-family:'Bebas Neue',sans-serif;font-size:1.9rem;color:#f0cc70;line-height:1;}
   .pot-breakdown{display:flex;border-top:2px solid rgba(255,255,255,0.2);}
-  .pot-bucket{flex:1;padding:10px 8px;text-align:center;border-right:1px solid rgba(255,255,255,0.15);}
+  .pot-bucket{flex:1;padding:6px 8px;text-align:center;border-right:1px solid rgba(255,255,255,0.15);}
   .pot-bucket:last-child{border-right:none;}
   .pot-bucket-label{font-size:0.6rem;font-weight:800;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:1px;}
   .pot-bucket-amount{font-family:'Bebas Neue',sans-serif;font-size:1.35rem;color:#f0cc70;line-height:1.1;}
-  .closie-only-note{background:#fff9e0;border:1px solid #f0cc70;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:0.78rem;font-weight:700;color:#8a6d1f;}
+  .closie-only-note{background:#fff9e0;border:1px solid #f0cc70;border-radius:10px;padding:8px 13px;margin-bottom:9px;font-size:0.78rem;font-weight:700;color:#8a6d1f;}
+  /* The round DATE, top left under the screen name.  The Payouts screen is what Chris
+     sends the group as the event summary, so a screenshot of it has to say WHEN. */
+  .header-date{font-size:0.66rem;color:#f0cc70;font-weight:800;letter-spacing:1px;margin-top:1px;line-height:1.2;}
+  /* SCORECARD on the Payouts screen: Out / In / Total, gross over net, whole field.
+     Reuses .skins-tbl for the frame and .tsub-g / .tsub-n for the two-line cells, so the
+     numbers look and read exactly like the Out/In/Tot columns on the scoring table. */
+  .sc-tbl td{padding:4px 4px;}
+  .sc-tbl thead th{padding:5px 4px;}
+  .sc-tbl .sc-rank{font-family:'Bebas Neue',sans-serif;font-size:0.95rem;color:var(--sgf-green-dark);width:26px;}
+  .sc-tbl .sc-name{text-align:left;padding-left:9px;font-weight:800;font-size:0.78rem;}
+  .sc-tbl .sc-hcp{color:var(--muted);font-size:0.72rem;font-weight:700;width:34px;}
+  .sc-tbl .tsub-g{font-size:0.86rem;}
+  .sc-tbl .tsub-n{font-size:0.66rem;opacity:0.8;}
+  .sc-tbl .sc-tot .tsub-g{color:var(--sgf-green-dark);}
+  .sc-tbl tr.sc-out td{opacity:0.72;}
+  .sc-legend{padding:6px 13px;background:var(--cream);border-top:1px solid var(--border);font-size:0.65rem;font-weight:700;color:var(--muted);text-align:center;}
+  /* Room at the bottom so the last scorecard row clears the floating gear / lock buttons
+     -- this screen gets screenshotted for the group's summary email. */
+  #screen-payouts .lb-body{padding-bottom:76px;}
   /* closie-only badge on leaderboard */
   .lb-closie-badge{display:inline-block;background:#fff9e0;border:1px solid #f0cc70;color:#8a6d1f;border-radius:8px;padding:1px 6px;font-size:0.6rem;font-weight:800;margin-left:5px;vertical-align:middle;}
   /* INFO screen */
@@ -801,6 +820,7 @@ try {
     <div class="header-text">
       <div class="header-brand">💰 Payouts</div>
       <div class="header-sub" id="payouts-sub">Round Results</div>
+      <div class="header-date" id="payouts-date"></div>
     </div>
     <div class="header-actions">
       <div class="live-badge"><div class="live-dot"></div>LIVE</div>
@@ -4204,7 +4224,64 @@ function buildPayoutsView(){
     }
   }
 
-  document.getElementById('payouts-content').innerHTML=potHTML+noMoneyNote+closieNote+closiesHTML+skinsHTML+lowNetHTML+playerTotalsHTML;
+  // ---- SCORECARD ---------------------------------------------------------
+  // 8/24/2026: Chris used to screenshot every tab of the Google Sheet and assemble a PDF
+  // for the group's event-summary email.  Now that the payouts reconcile to the dollar,
+  // this one screen is nearly the whole story - it was only missing the actual scores.
+  // subTotHTML() is reused verbatim, so these are the SAME numbers the scoring table
+  // shows: net is pro-rated by strokesUsedOn(), which over a finished 18 equals
+  // Gross - Course Handicap and therefore agrees with LOW.NET on the sheet.
+  // Competing players rank by net-to-par; Closies-Only and NO$ men are listed after them
+  // without a rank, the same convention the leaderboard uses.
+  let scorecardHTML='';
+  const scored=ap.filter(p=>HOLES.some(h=>scores[p.id]&&scores[p.id][h]!=null));
+  if(scored.length){
+    const scRow=p=>{
+      const done=HOLES.filter(h=>scores[p.id]&&scores[p.id][h]!=null);
+      const gross=done.reduce((s,h)=>s+scores[p.id][h],0);
+      const hcp=p.hcp||0;
+      const net=hcp>0?gross-strokesUsedOn(hcp,done):gross;
+      const parPlayed=done.reduce((s,h)=>s+(pars[h-1]||4),0);
+      return{p,hcp,hp:done.length,toPar:net-parPlayed};
+    };
+    const comp=scored.filter(p=>!p.closieOnly).map(scRow).sort((a,b)=>a.toPar-b.toPar||b.hp-a.hp);
+    const rest=scored.filter(p=>p.closieOnly).map(scRow).sort((a,b)=>a.toPar-b.toPar||b.hp-a.hp);
+    let scRank=0,scPrev=null;
+    comp.forEach((r,i)=>{ if(scPrev===null||r.toPar!==scPrev){scRank=i+1;scPrev=r.toPar;} r.rank=scRank; });
+    const parTot=pars.reduce((s,v)=>s+(v||0),0);
+    const cell=r=>`<td class="sc-rank">${r.rank||'&mdash;'}</td>
+        <td class="sc-name">${esc(r.p.name)}${r.p.playType==='guest'?'<span class="lb-closie-badge" style="background:#f0f0f0;border-color:#bbb;color:#666;">NO $</span>':(r.p.closieOnly?'<span class="lb-closie-badge">CLOSIES</span>':'')}</td>
+        <td class="sc-hcp">${r.hcp||'&mdash;'}</td>
+        <td>${subTotHTML(r.p,FRONT)}</td>
+        <td>${subTotHTML(r.p,BACK)}</td>
+        <td class="sc-tot">${subTotHTML(r.p,HOLES)}</td>`;
+    scorecardHTML=`<div class="payout-section">
+      <div class="payout-section-hdr">
+        <span class="payout-section-title">&#128203; SCORECARD</span>
+        ${parTot?`<span class="payout-pool-badge">Par ${parTot}</span>`:''}
+      </div>
+      <div class="skins-tbl-wrap"><table class="skins-tbl sc-tbl">
+        <thead><tr><th>#</th><th style="text-align:left;padding-left:9px;">Player</th><th>Hcp</th><th>OUT</th><th>IN</th><th>TOTAL</th></tr></thead>
+        <tbody>
+          ${comp.map(r=>`<tr>${cell(r)}</tr>`).join('')}
+          ${rest.map(r=>`<tr class="sc-out">${cell(r)}</tr>`).join('')}
+        </tbody>
+      </table></div>
+      <div class="sc-legend">Big number = gross &middot; small number = net</div>
+    </div>`;
+  }
+
+  // The event-summary screenshot has to carry the date, so mirror it into the header.
+  try{
+    const _c=(document.getElementById('hdr-course').textContent||'').trim();
+    const _d=(document.getElementById('hdr-date').textContent||'').trim();
+    const _sub=document.getElementById('payouts-sub');
+    const _dt=document.getElementById('payouts-date');
+    if(_sub&&_c) _sub.textContent=_c;
+    if(_dt) _dt.textContent=(_d&&_d!=='Live Round')?_d:'';
+  }catch(e){}
+
+  document.getElementById('payouts-content').innerHTML=potHTML+noMoneyNote+closieNote+closiesHTML+skinsHTML+lowNetHTML+playerTotalsHTML+scorecardHTML;
 }
 
 function buildSkinsView(){
