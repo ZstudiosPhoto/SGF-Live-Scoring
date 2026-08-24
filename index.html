@@ -378,7 +378,33 @@
   .sc-tbl .tsub-n{font-size:0.66rem;opacity:0.8;}
   .sc-tbl .sc-tot .tsub-g{color:var(--sgf-green-dark);}
   .sc-tbl tr.sc-out td{opacity:0.72;}
+  .sc-tbl .sc-tee{width:36px;}
   .sc-legend{padding:6px 13px;background:var(--cream);border-top:1px solid var(--border);font-size:0.65rem;font-weight:700;color:var(--muted);text-align:center;}
+  /* Hole-by-hole grid on the Payouts screen -- the front and back nine exactly as they
+     read on a paper card, so the summary email no longer needs a shot of GROSS.SCORES.
+     Colours are the same eagle/birdie/par/bogey scale sCls() paints on the scoring
+     screen, so the group recognises them instantly. */
+  .hbh-tbl{table-layout:fixed;width:100%;}
+  .hbh-tbl th,.hbh-tbl td{padding:2px 1px;font-size:0.62rem;}
+  .hbh-tbl thead th{padding:3px 1px;font-size:0.6rem;}
+  .hbh-tbl .hbh-name{text-align:left;padding-left:7px;font-size:0.66rem;font-weight:800;width:82px;max-width:82px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .hbh-tbl .hbh-end{width:34px;}
+  .hbh-tbl tr.hbh-sub td{background:#eef3ee;color:#3f5c3d;font-weight:800;border-bottom:1px solid var(--border);}
+  .hbh-tbl tr.hbh-sub td.hbh-name{color:#3f5c3d;}
+  .hbh-box{display:block;border-radius:4px;padding:2px 0;line-height:1.02;}
+  .hbh-g{display:block;font-weight:900;font-size:0.76rem;}
+  .hbh-n{display:block;font-weight:800;font-size:0.56rem;opacity:0.85;}
+  .hbh-box.eagle{background:var(--eagle-bg);color:var(--eagle-fg);}
+  .hbh-box.birdie{background:var(--birdie-bg);color:var(--birdie-fg);}
+  .hbh-box.par-s{background:var(--par-bg);color:var(--par-fg);}
+  .hbh-box.bogey{background:var(--bogey-bg);color:var(--bogey-fg);}
+  .hbh-box.double{background:var(--double-bg);color:var(--double-fg);}
+  .hbh-box.triple{background:var(--triple-bg);color:var(--triple-fg);}
+  .hbh-box.none{color:#bbb;}
+  .hbh-tot{font-weight:900;color:var(--sgf-green-dark);font-size:0.74rem;line-height:1.05;}
+  .hbh-tot small{display:block;font-size:0.56rem;font-weight:800;color:var(--muted);}
+  .hbh-key{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;padding:6px 8px;background:var(--cream);border-top:1px solid var(--border);}
+  .hbh-key span{border-radius:4px;padding:1px 6px;font-size:0.58rem;font-weight:800;}
   /* Room at the bottom so the last scorecard row clears the floating gear / lock buttons
      -- this screen gets screenshotted for the group's summary email. */
   #screen-payouts .lb-body{padding-bottom:76px;}
@@ -4070,7 +4096,7 @@ function buildPayoutsView(){
       closieEntries.map(e=>`
       <div class="payout-row">
         <div class="payout-hole">Hole ${e.hole}</div>
-        <div class="${e.winner?'payout-name':'payout-name-empty'}">${e.winner?esc(e.winner.name):(par3Settled(e.hole)?'Nobody inside':'No winner yet')}</div>
+        <div class="${e.winner?'payout-name':'payout-name-empty'}">${e.winner?esc(e.winner.name):(par3Settled(e.hole)?'Nobody on':'No winner yet')}</div>
         ${e.winner&&closieAward>0?`<div class="payout-amount">$${closieAward}</div>`:e.winner?'':'<div class="payout-amount-pending">—</div>'}
       </div>`).join('')}
     ${closiesUnclaimed>0&&closiesPool>0&&closiesExpected>0?`<div style="padding:9px 13px;background:#fff9e0;border-top:1px solid #f0cc70;font-size:0.73rem;font-weight:700;color:#8a6d1f;line-height:1.45;">
@@ -4249,8 +4275,17 @@ function buildPayoutsView(){
     let scRank=0,scPrev=null;
     comp.forEach((r,i)=>{ if(scPrev===null||r.toPar!==scPrev){scRank=i+1;scPrev=r.toPar;} r.rank=scRank; });
     const parTot=pars.reduce((s,v)=>s+(v||0),0);
+    // Which tee each man played, as the same coloured chip the scoring table uses.
+    const teeChip=p=>{
+      const t=String(p.tee||'').trim();
+      if(!t) return '&mdash;';
+      const k=t.toLowerCase().replace(/[^a-z]/g,'');
+      const known=['wht','white','w','gld','gold','g','blu','blue','b','red','r','sil','silver','s','blk','black','grn','green'];
+      return `<span class="pm-chip pm-tee pm-tee-${known.includes(k)?k:'default'}${t.length>4?' pm-tee-long':''}">${esc(t)}</span>`;
+    };
     const cell=r=>`<td class="sc-rank">${r.rank||'&mdash;'}</td>
         <td class="sc-name">${esc(r.p.name)}${r.p.playType==='guest'?'<span class="lb-closie-badge" style="background:#f0f0f0;border-color:#bbb;color:#666;">NO $</span>':(r.p.closieOnly?'<span class="lb-closie-badge">CLOSIES</span>':'')}</td>
+        <td class="sc-tee">${teeChip(r.p)}</td>
         <td class="sc-hcp">${r.hcp||'&mdash;'}</td>
         <td>${subTotHTML(r.p,FRONT)}</td>
         <td>${subTotHTML(r.p,BACK)}</td>
@@ -4261,7 +4296,7 @@ function buildPayoutsView(){
         ${parTot?`<span class="payout-pool-badge">Par ${parTot}</span>`:''}
       </div>
       <div class="skins-tbl-wrap"><table class="skins-tbl sc-tbl">
-        <thead><tr><th>#</th><th style="text-align:left;padding-left:9px;">Player</th><th>Hcp</th><th>OUT</th><th>IN</th><th>TOTAL</th></tr></thead>
+        <thead><tr><th>#</th><th style="text-align:left;padding-left:9px;">Player</th><th>Tee</th><th>Hcp</th><th>OUT</th><th>IN</th><th>TOTAL</th></tr></thead>
         <tbody>
           ${comp.map(r=>`<tr>${cell(r)}</tr>`).join('')}
           ${rest.map(r=>`<tr class="sc-out">${cell(r)}</tr>`).join('')}
@@ -4269,6 +4304,60 @@ function buildPayoutsView(){
       </table></div>
       <div class="sc-legend">Big number = gross &middot; small number = net</div>
     </div>`;
+
+    // ---- HOLE BY HOLE ----------------------------------------------------
+    // The paper card, rebuilt.  Same order as the summary above, gross over net in every
+    // cell, coloured on the eagle/birdie/par/bogey scale from sCls().  Net per hole uses
+    // strokesOnHole() -- the FULL course handicap, double pops above 18 -- so a man's nine
+    // adds up to exactly the OUT / IN net in the summary table.
+    const nineHTML=(label,holeSet,endLabel)=>{
+      const parNine=holeSet.reduce((s,h)=>s+(pars[h-1]||0),0);
+      const hCell=p=>holeSet.map(h=>{
+        const g=(scores[p.id]&&scores[p.id][h]!=null)?scores[p.id][h]:null;
+        if(g===null) return '<td><span class="hbh-box none">&mdash;</span></td>';
+        const par=pars[h-1]||4;
+        const hcp=p.hcp||0;
+        const n=hcp>0?g-strokesOnHole(hcp,strokeIndex[h-1]||h):null;
+        return `<td><span class="hbh-box ${sCls(g,par)}"><span class="hbh-g">${g}</span>${n!==null?`<span class="hbh-n">${n}</span>`:''}</span></td>`;
+      }).join('');
+      const endCell=p=>{
+        const done=holeSet.filter(h=>scores[p.id]&&scores[p.id][h]!=null);
+        if(!done.length) return '<td class="hbh-tot">&mdash;</td>';
+        const g=done.reduce((s,h)=>s+scores[p.id][h],0);
+        const hcp=p.hcp||0;
+        return `<td class="hbh-tot">${g}${hcp>0?`<small>${g-strokesUsedOn(hcp,done)}</small>`:''}</td>`;
+      };
+      const body=comp.concat(rest).map(r=>{
+        const last=String(r.p.name||'').split(',')[0].trim()||r.p.name;
+        return `<tr><td class="hbh-name">${esc(last)}</td>${hCell(r.p)}${endCell(r.p)}</tr>`;
+      }).join('');
+      return `<div class="payout-section">
+        <div class="payout-section-hdr">
+          <span class="payout-section-title">${label}</span>
+          ${parNine?`<span class="payout-pool-badge">Par ${parNine}</span>`:''}
+        </div>
+        <div class="skins-tbl-wrap"><table class="skins-tbl hbh-tbl">
+          <thead>
+            <tr><th class="hbh-name">Hole</th>${holeSet.map(h=>`<th>${h}</th>`).join('')}<th class="hbh-end">${endLabel}</th></tr>
+          </thead>
+          <tbody>
+            <tr class="hbh-sub"><td class="hbh-name">Par</td>${holeSet.map(h=>`<td>${pars[h-1]||''}</td>`).join('')}<td>${parNine||''}</td></tr>
+            <tr class="hbh-sub"><td class="hbh-name">Hcp</td>${holeSet.map(h=>`<td>${strokeIndex[h-1]||''}</td>`).join('')}<td></td></tr>
+            ${body}
+          </tbody>
+        </table></div>
+      </div>`;
+    };
+    scorecardHTML+=nineHTML('&#9971; FRONT NINE',FRONT,'OUT')
+                  +nineHTML('&#9971; BACK NINE',BACK,'IN')
+                  +`<div class="payout-section"><div class="hbh-key">
+        <span class="hbh-box eagle" style="padding:1px 6px;">Eagle+</span>
+        <span class="hbh-box birdie" style="padding:1px 6px;">Birdie</span>
+        <span class="hbh-box par-s" style="padding:1px 6px;">Par</span>
+        <span class="hbh-box bogey" style="padding:1px 6px;">Bogey</span>
+        <span class="hbh-box double" style="padding:1px 6px;">Double</span>
+        <span class="hbh-box triple" style="padding:1px 6px;">Triple+</span>
+      </div><div class="sc-legend">Big number = gross &middot; small number = net</div></div>`;
   }
 
   // The event-summary screenshot has to carry the date, so mirror it into the header.
