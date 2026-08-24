@@ -524,6 +524,8 @@ try {
       <div id="load-status" style="display:none;" class="status-msg"></div>
       <button type="button" class="add-player-row" style="margin-top:8px;" onclick="toggleRecoverList()">↩️ Recover a Recent Sheet ID</button>
       <div id="recover-list" style="display:none;margin-top:8px;"></div>
+      <button type="button" class="add-player-row" style="margin-top:8px;" onclick="toggleRestoreScores()">📤 Restore Scores to a Sheet</button>
+      <div id="restore-scores-list" style="display:none;margin-top:8px;"></div>
       <button type="button" class="add-player-row" style="margin-top:8px;" onclick="showPastRounds()">📅 View Past Rounds</button>
     </div>
     <div class="setup-card">
@@ -1678,6 +1680,72 @@ function applyRecovered(i){
   if(r.course) document.getElementById('inp-course').value=r.course;
   document.getElementById('recover-list').style.display='none';
   showStatus(document.getElementById('load-status'),'✅ Sheet ID recovered from a previously ended round.','ok');
+}
+
+// ── RESTORE SCORES TO A SHEET ─────────────────────────────────────
+// End Round archives the whole card to sgf/endedRounds, so a wiped GROSS.SCORES tab is
+// never actually lost - it just needed somebody with a terminal.  This puts it back.
+// Only rounds that HAVE scores are offered, so this can never be the thing that blanks
+// a sheet.  Only the OUT and IN string columns (B and D) are written; the G-X cells are
+// formulas and are never touched.
+function archScore_(sc,pid,hole){
+  if(!sc) return null;
+  const row=Array.isArray(sc)?sc[pid]:(sc[pid]!==undefined?sc[pid]:sc[String(pid)]);
+  if(!row) return null;
+  const v=Array.isArray(row)?row[hole]:(row[hole]!==undefined?row[hole]:row[String(hole)]);
+  return (v===undefined||v===null)?null:v;
+}
+function archScoredPlayers_(r){
+  return ((r&&r.players)||[]).filter(p=>p&&p.name&&HOLES.some(h=>archScore_(r.scores,p.id,h)!=null));
+}
+async function toggleRestoreScores(){
+  const box=document.getElementById('restore-scores-list');
+  if(box.style.display==='block'){ box.style.display='none'; return; }
+  box.style.display='block';
+  box.innerHTML='<div style="font-size:0.8rem;color:var(--muted);font-weight:700;">Loading\u2026</div>';
+  try{
+    const snap=await firebase.database().ref('sgf/endedRounds').limitToLast(20).once('value');
+    const data=snap.val()||{};
+    const rows=Object.values(data)
+      .filter(r=>r&&r.sheetId&&archScoredPlayers_(r).length)
+      .sort((a,b)=>(b.endedAt||0)-(a.endedAt||0));
+    window._restoreRounds=rows;
+    if(!rows.length){ box.innerHTML='<div style="font-size:0.8rem;color:var(--muted);font-weight:700;">No archived round has scores to restore.</div>'; return; }
+    box.innerHTML=rows.map((r,i)=>`
+      <div style="padding:10px;border:1.5px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;" onclick="restoreScoresToSheet(${i})">
+        <div style="font-weight:800;font-size:0.85rem;">${esc(r.course||'(no course)')}</div>
+        <div style="font-size:0.72rem;color:var(--muted);">${esc(r.date||'')} — ${archScoredPlayers_(r).length} player(s) with scores</div>
+      </div>`).join('');
+  }catch(e){ box.innerHTML='<div style="font-size:0.8rem;color:#c0392b;font-weight:700;">Error loading: '+e.message+'</div>'; }
+}
+async function restoreScoresToSheet(i){
+  const r=(window._restoreRounds||[])[i];
+  if(!r) return;
+  const pl=archScoredPlayers_(r);
+  if(!pl.length){ alert('That round has no scores to restore.'); return; }
+  if(!confirm('Write '+pl.length+' player card(s) from\n\n'+(r.course||'')+' — '+(r.date||'')
+    +'\n\nback into the GROSS.SCORES tab of that round\'s sheet?\n\nOnly the OUT and IN score columns are touched.')) return;
+  const box=document.getElementById('restore-scores-list');
+  box.innerHTML='<div style="font-size:0.8rem;color:var(--muted);font-weight:700;">Writing to the sheet\u2026</div>';
+  try{
+    const payload={spreadsheetId:r.sheetId||'',players:pl.map(p=>{
+      const out=FRONT.map(h=>{const v=archScore_(r.scores,p.id,h);return v==null?'':v;});
+      const inn=BACK.map(h=>{const v=archScore_(r.scores,p.id,h);return v==null?'':v;});
+      const full=a=>a.every(v=>v!=='');
+      return{ name:p.name, hcp:p.hcp||0, tee:p.tee||'',
+        out:out.join(','), in:inn.join(','),
+        outTotal:full(out)?out.reduce((s,v)=>s+v,0):'',
+        inTotal:full(inn)?inn.reduce((s,v)=>s+v,0):'' };
+    })};
+    const res=await postToScript(payload);
+    if(res.confirmed&&res.ok){
+      box.innerHTML='<div style="font-size:0.8rem;color:#1a5518;font-weight:700;">✅ '+esc(res.data.message||'Scores written.')+'</div>';
+    }else if(res.confirmed){
+      box.innerHTML='<div style="font-size:0.8rem;color:#c0392b;font-weight:700;">❌ '+esc(res.data.message||'The sheet rejected it.')+'</div>';
+    }else{
+      box.innerHTML='<div style="font-size:0.8rem;color:#c0392b;font-weight:700;">⚠️ '+esc(res.reason||'Could not confirm the write.')+'</div>';
+    }
+  }catch(e){ box.innerHTML='<div style="font-size:0.8rem;color:#c0392b;font-weight:700;">Error: '+esc(e.message)+'</div>'; }
 }
 
 // ── Past Rounds (read-only history) ──────────────────────────────────────────
@@ -3636,6 +3704,15 @@ async function pushToSheets(silent=false){
     if(!silent) showSync('⚠️ No players loaded. Start a round first.',false);
     return;
   }
+  // 8/23/2026 (Santa Barbara Muni): a BACKGROUND write must never be able to erase a card.
+  // Chris ended the round on one device while a second admin device still had the scoring
+  // screen open.  Every live listener points at the SHARED path sgf/activeRound, so that
+  // device quietly picked up the next round's roster and its empty scores - while
+  // window.activeSheetId stayed frozen on the Santa Barbara spreadsheet.  Two minutes
+  // later the silent auto-push wrote empty strings over GROSS.SCORES columns B and D.
+  // Only a deliberate press of "Push to Sheets" may now blank a card.
+  const anyScores=players.some(p=>HOLES.some(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined));
+  if(silent&&!anyScores){ console.log('Auto-push skipped: no scores in memory - refusing to blank the sheet'); return; }
   try{
     const payload={spreadsheetId:window.activeSheetId||'',players:players.filter(p=>!noShows[p.id]).map(p=>{
       const frontFilled=FRONT.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
