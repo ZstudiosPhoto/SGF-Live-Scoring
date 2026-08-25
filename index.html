@@ -4359,7 +4359,7 @@ function buildPayoutsView(){
           </thead>
           <tbody>
             <tr class="hbh-sub"><td class="hbh-name">Par</td>${holeSet.map(h=>`<td>${pars[h-1]||''}</td>`).join('')}<td>${parNine||''}</td>${withTot?`<td>${parAll||''}</td>`:''}</tr>
-            <tr class="hbh-sub"><td class="hbh-name">Hcp</td>${holeSet.map(h=>`<td>${strokeIndex[h-1]||''}</td>`).join('')}<td>G/N</td>${withTot?'<td>G/N</td>':''}</tr>
+            <tr class="hbh-sub"><td class="hbh-name">SI</td>${holeSet.map(h=>`<td>${strokeIndex[h-1]||''}</td>`).join('')}<td>G/N</td>${withTot?'<td>G/N</td>':''}</tr>
             ${body}
           </tbody>
         </table></div>
