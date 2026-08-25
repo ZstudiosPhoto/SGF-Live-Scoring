@@ -410,6 +410,11 @@
   /* Room at the bottom so the last scorecard row clears the floating gear / lock buttons
      -- this screen gets screenshotted for the group's summary email. */
   #screen-payouts .lb-body{padding-bottom:76px;}
+  /* Results-link view: a permanent, read-only page for ONE archived round.  No admin
+     gear, no lock, and the LIVE badge reads FINAL so nobody thinks it is still running. */
+  body.results-view #floating-btns{display:none !important;}
+  .live-badge.is-final{background:rgba(240,204,112,0.18);border-color:rgba(240,204,112,0.55);color:#f0cc70;}
+  .live-badge.is-final .live-dot{background:#f0cc70;animation:none;}
   /* closie-only badge on leaderboard */
   .lb-closie-badge{display:inline-block;background:#fff9e0;border:1px solid #f0cc70;color:#8a6d1f;border-radius:8px;padding:1px 6px;font-size:0.6rem;font-weight:800;margin-left:5px;vertical-align:middle;}
   /* INFO screen */
@@ -1055,8 +1060,13 @@ window.addEventListener('DOMContentLoaded',()=>{
   applyAdminUI();
   try{
     if(!db) db=firebase.database();
-    watchConnection();
-    checkForActiveRound();
+    // A ?r=<key> link opens one archived round, read-only.  It must never join the live
+    // round, so this branches BEFORE checkForActiveRound() and before the connection
+    // watcher relabels the badge.
+    var _rKey=null;
+    try{ _rKey=new URLSearchParams(location.search).get('r'); }catch(e){}
+    if(_rKey){ openResultsLink(_rKey); }
+    else { watchConnection(); checkForActiveRound(); }
   }catch(e){
     console.log('Firebase error:',e);
     setConnState('dead');
@@ -1796,6 +1806,87 @@ async function restoreScoresToSheet(i){
   }catch(e){ box.innerHTML='<div style="font-size:0.8rem;color:#c0392b;font-weight:700;">Error: '+esc(e.message)+'</div>'; }
 }
 
+// ---- PERMANENT RESULTS LINK ------------------------------------------------
+// Every ended round is archived under sgf/endedRounds/<key>.  ?r=<key> opens that one
+// round read-only on the Payouts screen, so the group's summary email can carry a URL
+// instead of a screenshot, and it keeps working for good.
+// Nothing in here writes: no listeners are attached, auto-push is never started, and
+// activeSheetId stays empty so refreshMoneyForScreen() returns immediately - an old
+// round must show the pot it was PLAYED for, not today's sheet.
+function resultsUrl(key){
+  return location.origin + location.pathname + '?r=' + encodeURIComponent(key);
+}
+function copyResultsLink(key){
+  const url=resultsUrl(key);
+  const done=()=>{ if(typeof showSync==='function') showSync('\u2705 Results link copied - paste it into the email.',true); else alert(url); };
+  try{
+    navigator.clipboard.writeText(url).then(done).catch(()=>{
+      const el=document.createElement('textarea');
+      el.value=url; document.body.appendChild(el); el.select();
+      document.execCommand('copy'); document.body.removeChild(el); done();
+    });
+  }catch(e){ prompt('Copy this results link:', url); }
+}
+async function openResultsLink(key){
+  window.isResultsView=true;
+  window.isSpectator=true;
+  isAdmin=false;
+  window.activeSheetId='';
+  document.body.classList.add('results-view');
+  try{
+    if(!db) db=firebase.database();
+    const snap=await firebase.database().ref('sgf/endedRounds/'+key).once('value');
+    const data=snap.val();
+    if(!data){
+      showConnError('That results link is no longer available. Ask Chris for a new one.');
+      return;
+    }
+    players=(data.players||[]).filter(p=>p&&p.name&&String(p.name).trim());
+    const gmap=data.groups||{};
+    players.forEach(p=>{
+      const g=(gmap[p.id]!==undefined&&gmap[p.id]!==null)?gmap[p.id]:p.group;
+      p.group=parseInt(g)||1;
+    });
+    // The archive stores scores as a 1-based array OR an object, depending on how
+    // Firebase felt about the key spacing that day.  Handle both.
+    const raw=data.scores||{};
+    scores={};
+    players.forEach(p=>{
+      scores[p.id]={};
+      const row=Array.isArray(raw)?raw[p.id]:(raw[p.id]!==undefined?raw[p.id]:raw[String(p.id)]);
+      HOLES.forEach(h=>{
+        let v=null;
+        if(row) v=Array.isArray(row)?row[h]:(row[h]!==undefined?row[h]:row[String(h)]);
+        scores[p.id][h]=(v===undefined||v===null||v==='')?null:v;
+      });
+    });
+    closies={};
+    Object.keys(data.closies||{}).forEach(h=>{ closies[parseInt(h)]=data.closies[h]; });
+    payments=data.payments||{};
+    noShows={}; playerOrder={};
+    pars=data.pars&&data.pars.length?data.pars:pars;
+    strokeIndex=data.strokeIndex&&data.strokeIndex.length?data.strokeIndex:strokeIndex;
+    moneySetup=data.moneySetup||null;
+    viewMode='wholeField'; myGroup=null;
+    const course=data.course||'SGF Round Results';
+    const date=data.date||'';
+    document.getElementById('hdr-course').textContent=course;
+    document.getElementById('hdr-date').textContent=date;
+    ['lb-sub','skins-sub','closies-sub','payouts-sub','settle-sub'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.textContent=course;
+    });
+    document.querySelectorAll('.live-badge').forEach(b=>{
+      b.classList.add('is-final');
+      b.classList.remove('is-offline','is-dead');
+      b.innerHTML='<div class="live-dot"></div>FINAL';
+    });
+    applyAdminUI();
+    showScreen('screen-payouts');
+  }catch(e){
+    showConnError('Could not load those results: '+e.message);
+  }
+}
+
 // ── Past Rounds (read-only history) ──────────────────────────────────────────
 let _pastRounds=[];
 
@@ -1852,6 +1943,7 @@ async function showPastRounds(){
           <div class="hist-round-date">${esc(dt)}</div>
           <div class="hist-round-meta">${playerCount} player${playerCount!==1?'s':''}</div>
         </div>
+        <button onclick="event.stopPropagation();copyResultsLink('${r.key}')" style="background:none;border:none;font-size:1rem;cursor:pointer;padding:4px 6px;color:var(--sgf-green-dark);flex-shrink:0;" title="Copy the permanent results link">&#128279;</button>
         ${delBtn}
       </div>`;
     }).join('');
@@ -1951,18 +2043,20 @@ async function endRound(){
         const snap=await firebase.database().ref('sgf/activeRound').once('value');
         const data=snap.val();
         if(data){
-          await firebase.database().ref('sgf/endedRounds').push({
+          // push() with no argument mints the key synchronously, so we can hand Chris the
+          // permanent results URL in the very same breath.
+          const archRef=firebase.database().ref('sgf/endedRounds').push();
+          // groups is archived too now: the Payouts scorecard splits the hole-by-hole card
+          // by foursome, and without it every man in an old round reads as Group 1.
+          await archRef.set({
             course:data.course||'', date:data.date||'', sheetId:data.sheetId||'', code:data.code||'', endedAt:Date.now(),
             players:data.players||[], scores:data.scores||{}, pars:data.pars||[], strokeIndex:data.strokeIndex||[],
-            closies:data.closies||{}, moneySetup:data.moneySetup||null, payments:data.payments||{}
+            closies:data.closies||{}, moneySetup:data.moneySetup||null, payments:data.payments||{},
+            groups:data.groups||{}
           });
-          const histSnap=await firebase.database().ref('sgf/endedRounds').once('value');
-          const hist=histSnap.val()||{};
-          const keys=Object.keys(hist).sort();
-          if(keys.length>20){
-            const toRemove=keys.slice(0,keys.length-20);
-            await Promise.all(toRemove.map(k=>firebase.database().ref('sgf/endedRounds/'+k).remove()));
-          }
+          window.__lastResultsKey=archRef.key;
+          // Rounds are NOT trimmed any more (it used to keep 20).  One round is about 10KB,
+          // so a whole season is a couple of megabytes and every ?r= link stays good.
         }
       }catch(e){ console.log('Backup before end round failed:',e); }
       await firebase.database().ref('sgf/activeRound').remove();
@@ -1973,7 +2067,9 @@ async function endRound(){
       // Auto-generate a new 4-digit event code for the next round
       const newCode = String(Math.floor(1000 + Math.random() * 9000));
       document.getElementById('inp-eventcode').value = newCode;
-      alert('✅ Round ended! App reset for all players.\n\n🔑 New event code for next round: ' + newCode);
+      const _rurl=window.__lastResultsKey?resultsUrl(window.__lastResultsKey):'';
+      alert('✅ Round ended! App reset for all players.\n\n🔑 New event code for next round: ' + newCode
+        + (_rurl?'\n\n🔗 Permanent results link (also under 📅 View Past Rounds):\n'+_rurl:''));
     } else if(choice === 'reset'){
       if(!confirm('Reset all scores? Player list and round setup will stay intact.')) return;
       // Wipe scores in Firebase
