@@ -862,6 +862,7 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
       <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
       <button class="hdr-btn settle-nav" onclick="showScreen('screen-settle')" style="background:rgba(120,190,255,0.22);border-color:rgba(120,190,255,0.5);color:#bfe2ff;">🧾 Settle</button>
+      <button class="hdr-btn rs-pdf-btn" onclick="printResultsSheet()" title="Save these results as a sharp, zoomable PDF">&#128196; PDF</button>
     </div>
   </div>
   <div class="lb-body" id="payouts-content">
@@ -2398,6 +2399,75 @@ async function pushSettleToSheet(sendEmail){
 // Prints from the live round, so the names are always right.  The Won $ column fills
 // itself in if the payouts have been computed, so the same sheet works printed on the
 // first tee (blank) or after results (pre-filled).
+function printResultsSheet(){
+  const host=document.getElementById('payouts-content');
+  const bodyHTML=host?host.innerHTML:'';
+  if(!bodyHTML.trim()||host.querySelector('.skins-empty')){
+    alert('There are no results on this screen yet.\n\nLoad a round (or open a results link) and try again.');
+    return;
+  }
+  const course=((document.getElementById('hdr-course')||{}).textContent||'SGF Live Round').trim();
+  const dateTxt=((document.getElementById('hdr-date')||{}).textContent||'').trim();
+  const logoEl=document.getElementById('logo-payouts');
+  // .src (not getAttribute) so we get an ABSOLUTE url — the print window is
+  // about:blank, where a relative path would resolve to nothing.
+  const logoSrc=(logoEl&&logoEl.src)||'';
+  const appCSS=(document.querySelector('style')||{textContent:''}).textContent;
+
+  const PRINT_CSS=''
+    +'html,body{height:auto !important;overflow:visible !important;background:#fff !important;display:block !important;}'
+    +'body{padding:0;margin:0;font-size:15px;}'
+    +'*{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}'
+    +'.rs-bar{background:#1a5518;color:#fff;padding:9px 14px;display:flex;align-items:center;gap:12px;'
+      +'font-family:Nunito,sans-serif;font-size:.78rem;font-weight:700;}'
+    +'.rs-bar button{background:#3aaa35;color:#fff;border:none;border-radius:18px;padding:8px 18px;'
+      +'font-family:Nunito,sans-serif;font-weight:800;font-size:.85rem;cursor:pointer;}'
+    +'.rs-wrap{max-width:7.7in;margin:0 auto;padding:14px 10px 24px;}'
+    +'.rs-hdr{display:flex;align-items:center;gap:12px;border-bottom:3px solid var(--sgf-green);'
+      +'padding-bottom:9px;margin-bottom:12px;}'
+    +'.rs-hdr img{width:58px;height:58px;object-fit:contain;flex-shrink:0;}'
+    +'.rs-hdr .rs-t{flex:1;min-width:0;}'
+    +'.rs-brand{font-family:"Bebas Neue",sans-serif;font-size:1.5rem;line-height:1;letter-spacing:2.4px;'
+      +'color:var(--sgf-green-darker);}'
+    +'.rs-course{font-size:1.05rem;font-weight:900;color:var(--sgf-green-dark);line-height:1.25;}'
+    +'.rs-date{font-size:.86rem;font-weight:800;color:var(--muted);}'
+    /* neutralise the app shell rules that only make sense on a phone screen */
+    +'#payouts-content,.lb-body{padding:0 !important;overflow:visible !important;height:auto !important;flex:none !important;}'
+    +'.payout-section{box-shadow:none !important;border:1.5px solid var(--border) !important;'
+      +'margin-bottom:10px;page-break-inside:avoid;break-inside:avoid;}'
+    +'.payout-section-hdr{page-break-after:avoid;break-after:avoid;}'
+    +'.payout-row,tr{page-break-inside:avoid;break-inside:avoid;}'
+    +'thead{display:table-header-group;}'
+    +'.rs-wrap button,.rs-hide{display:none !important;}'
+    +'@page{size:letter portrait;margin:.4in;}'
+    +'@media print{.rs-bar{display:none !important;}.rs-wrap{max-width:none;padding:0;}}';
+
+  const title='SGF Results — '+course+(dateTxt?' — '+dateTxt:'');
+  const doc='<!DOCTYPE html><html><head><meta charset="utf-8">'
+    +'<meta name="viewport" content="width=device-width,initial-scale=1">'
+    +'<title>'+esc(title)+'</title>'
+    +'<style>'+appCSS+'</style>'
+    +'<style>'+PRINT_CSS+'</style>'
+    +'</head><body>'
+    +'<div class="rs-bar"><button onclick="window.print()">&#128196; Save as PDF</button>'
+    +'<span>Choose <b>Save as PDF</b> (or AirPrint &rarr; Save to Files). The text stays sharp at any zoom.</span></div>'
+    +'<div class="rs-wrap">'
+    +'<div class="rs-hdr">'+(logoSrc?'<img src="'+esc(logoSrc)+'" alt="" onerror="this.style.display=\'none\'">':'')
+    +'<div class="rs-t"><div class="rs-brand">SATURDAY GOLF FRIENDS</div>'
+    +'<div class="rs-course">'+esc(course)+'</div>'
+    +'<div class="rs-date">'+esc(dateTxt)+'</div></div></div>'
+    +bodyHTML
+    +'</div>'
+    +'<scr'+'ipt>(function(){function go(){try{window.focus();window.print();}catch(e){}}'
+    +'if(document.readyState==="complete"){setTimeout(go,400);}'
+    +'else{window.addEventListener("load",function(){setTimeout(go,400);});}})();<\/scr'+'ipt>'
+    +'</body></html>';
+
+  const w=window.open('','_blank');
+  if(!w){ alert('Your browser blocked the results window.\n\nAllow pop-ups for this site, then tap 📄 PDF again.'); return; }
+  w.document.open(); w.document.write(doc); w.document.close();
+}
+
 function printPaymentSheet(){
   const ap=players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name'&&!noShows[p.id]);
   if(!ap.length){ alert('No players loaded yet — load the players from your sheet first.'); return; }
