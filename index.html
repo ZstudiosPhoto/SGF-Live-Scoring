@@ -2401,8 +2401,10 @@ async function pushSettleToSheet(sendEmail){
 // first tee (blank) or after results (pre-filled).
 function printResultsSheet(){
   const host=document.getElementById('payouts-content');
-  const bodyHTML=host?host.innerHTML:'';
-  if(!bodyHTML.trim()||host.querySelector('.skins-empty')){
+  let bodyHTML=host?host.innerHTML:'';
+  const isPlaceholder=!host||host.children.length===0||
+    (host.children.length===1&&host.firstElementChild.classList.contains('skins-empty'));
+  if(!bodyHTML.trim()||isPlaceholder){
     alert('There are no results on this screen yet.\n\nLoad a round (or open a results link) and try again.');
     return;
   }
@@ -2413,6 +2415,24 @@ function printResultsSheet(){
   // about:blank, where a relative path would resolve to nothing.
   const logoSrc=(logoEl&&logoEl.src)||'';
   const appCSS=(document.querySelector('style')||{textContent:''}).textContent;
+
+  // Group FRONT NINE + BACK NINE + the colour key into one block so the printer
+  // keeps them together when they fit on a page — and, when the field is too
+  // big for that, falls back to breaking BETWEEN the two nines (each nine still
+  // carries its own break-inside:avoid) rather than through the middle of one.
+  try{
+    const tmp=document.createElement('div');
+    tmp.innerHTML=bodyHTML;
+    const kids=[].slice.call(tmp.children);
+    const first=kids.findIndex(function(el){ return el.querySelector && el.querySelector('.hbh-tbl'); });
+    if(first>-1){
+      const wrap=document.createElement('div');
+      wrap.className='rs-nines';
+      kids.slice(first).forEach(function(el){ wrap.appendChild(el); });
+      tmp.appendChild(wrap);
+      bodyHTML=tmp.innerHTML;
+    }
+  }catch(e){ /* keep the un-wrapped body rather than lose the sheet */ }
 
   const PRINT_CSS=''
     +'html,body{height:auto !important;overflow:visible !important;background:#fff !important;display:block !important;}'
@@ -2437,6 +2457,17 @@ function printResultsSheet(){
       +'margin-bottom:10px;page-break-inside:avoid;break-inside:avoid;}'
     +'.payout-section-hdr{page-break-after:avoid;break-after:avoid;}'
     +'.payout-row,tr{page-break-inside:avoid;break-inside:avoid;}'
+    /* keep both nines + the key on one sheet when they fit */
+    +'.rs-nines{page-break-inside:avoid;break-inside:avoid;}'
+    /* and buy the ~75px that makes them fit for a normal field, without
+       shrinking a single number: the savings all come out of padding */
+    +'.hbh-tbl th,.hbh-tbl td{padding:0 1px !important;}'
+    +'.hbh-tbl thead th{padding:2px 1px !important;}'
+    +'.hbh-tbl tr.hbh-grp td{padding:1px 7px !important;}'
+    +'.rs-nines .payout-section-hdr{padding:4px 13px !important;}'
+    +'.rs-nines .payout-section{margin-bottom:6px !important;}'
+    +'.hbh-key{padding:4px 8px !important;}'
+    +'.sc-legend{padding:4px 13px !important;}'
     +'thead{display:table-header-group;}'
     +'.rs-wrap button,.rs-hide{display:none !important;}'
     +'@page{size:letter portrait;margin:.4in;}'
