@@ -1075,6 +1075,131 @@ window.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
+/* ================= OFFLINE SAFETY NET  (added 2026-09-01) ==================
+   Firebase's WEB sdk queues writes in MEMORY only -- they are gone if the tab
+   is discarded, reloaded or the battery dies.  iOS/Android drop backgrounded
+   tabs routinely, so a phone in a pocket between holes can lose a whole nine
+   without anyone noticing.  Three things live here:
+
+     1. every score is written to localStorage BEFORE it is sent, and only
+        cleared once the server acknowledges it;
+     2. the whole sgf/activeRound snapshot is mirrored, so the app can open
+        and score with no signal at all;
+     3. anything still held is replayed the moment the connection returns.
+
+   Every function is wrapped so a storage failure (private browsing, full
+   quota) can never block scoring -- worst case it behaves exactly as before.
+=========================================================================== */
+var SGF_LS_ROUND = 'sgf_off_round';
+var SGF_LS_PEND  = 'sgf_off_pending';
+window.sgfOfflineBoot = false;
+
+function sgfGet_(k){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch(e){ return null; } }
+function sgfSet_(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); return true; }catch(e){ return false; } }
+function sgfRoundKey(){
+  try{ return String(activeRoundStart||localStorage.getItem('sgf_lastRoundStart')||''); }catch(e){ return ''; }
+}
+
+/* ---- 2. mirror of sgf/activeRound ------------------------------------- */
+function sgfMirrorRound(data){
+  if(!data) return;
+  try{ sgfSet_(SGF_LS_ROUND,{startedAt:String(data.startedAt||''),savedAt:Date.now(),data:data}); }catch(e){}
+}
+function sgfMirrorScores(){
+  try{
+    var m=sgfGet_(SGF_LS_ROUND);
+    if(!m||!m.data) return;
+    if(String(m.startedAt)!==sgfRoundKey()) return;   // never mix rounds
+    m.data.scores=scores; m.savedAt=Date.now();
+    sgfSet_(SGF_LS_ROUND,m);
+  }catch(e){}
+}
+function sgfMirroredRound(){
+  var m=sgfGet_(SGF_LS_ROUND);
+  return (m&&m.data)?m:null;
+}
+/* Resolve the round snapshot: the server if it answers, otherwise the copy
+   saved on this phone.  If there is no local copy this behaves exactly like
+   the old code -- the caller's own bail timeout still fires. */
+function sgfRoundSnapshot(ref, ms){
+  return new Promise(function(resolve,reject){
+    var done=false;
+    var t=setTimeout(function(){
+      if(done) return;
+      var m=sgfMirroredRound();
+      if(m){ done=true; window.sgfOfflineBoot=true; console.log('SGF: booting from the copy saved on this phone'); resolve(m.data); }
+    }, ms||7000);
+    try{
+      ref.once('value').then(function(snap){
+        if(done) return; done=true; clearTimeout(t);
+        var d=snap.val();
+        if(d) sgfMirrorRound(d);
+        resolve(d);
+      }).catch(function(err){
+        if(done) return;
+        var m=sgfMirroredRound();
+        done=true; clearTimeout(t);
+        if(m){ window.sgfOfflineBoot=true; resolve(m.data); } else { reject(err); }
+      });
+    }catch(err2){
+      if(done) return; done=true; clearTimeout(t);
+      var m2=sgfMirroredRound();
+      if(m2){ window.sgfOfflineBoot=true; resolve(m2.data); } else { reject(err2); }
+    }
+  });
+}
+
+/* ---- 1. the held-score queue ------------------------------------------ */
+function sgfPend_(){
+  var p=sgfGet_(SGF_LS_PEND);
+  if(!p||p.round!==sgfRoundKey()) p={round:sgfRoundKey(),items:{}};
+  return p;
+}
+function sgfHold(pid,hole,val){
+  try{ var p=sgfPend_(); p.items[pid+'|'+hole]={v:(val===undefined?null:val),t:Date.now()}; sgfSet_(SGF_LS_PEND,p); }catch(e){}
+}
+function sgfConfirm(pid,hole){
+  try{ var p=sgfPend_(); delete p.items[pid+'|'+hole]; sgfSet_(SGF_LS_PEND,p); sgfPaintHeld(); }catch(e){}
+}
+function sgfHeldCount(){ try{ return Object.keys(sgfPend_().items).length; }catch(e){ return 0; } }
+/* Re-apply anything the server has not acknowledged on top of a server
+   snapshot, so a fresh snapshot can never blank a score this phone still holds. */
+function sgfApplyPending(){
+  try{
+    var items=sgfPend_().items;
+    Object.keys(items).forEach(function(k){
+      var a=k.split('|'), pid=parseInt(a[0],10), hole=parseInt(a[1],10);
+      if(isNaN(pid)||isNaN(hole)) return;
+      if(!scores[pid]) scores[pid]={};
+      scores[pid][hole]=items[k].v;
+    });
+  }catch(e){}
+}
+function sgfFlush(){
+  if(!db) return;
+  try{
+    var items=sgfPend_().items, keys=Object.keys(items);
+    if(!keys.length) return;
+    console.log('SGF: replaying '+keys.length+' held score(s)');
+    keys.forEach(function(k){
+      var a=k.split('|'), pid=a[0], hole=a[1], v=items[k].v;
+      var ref=firebase.database().ref('sgf/activeRound/scores/'+pid+'/'+hole);
+      var pr=(v===null||v===undefined)?ref.remove():ref.set(v);
+      if(pr&&pr.then) pr.then(function(){ sgfConfirm(pid,hole); }).catch(function(){});
+    });
+  }catch(e){}
+}
+function sgfPaintHeld(){ try{ setConnState(connState); }catch(e){} }
+
+/* ---- service worker: lets the app OPEN with no signal ------------------ */
+if('serviceWorker' in navigator && window.isSecureContext){   /* https, and localhost for testing */
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').then(function(){
+      console.log('SGF: offline support registered');
+    }).catch(function(e){ console.log('SGF: sw register failed',e&&e.message); });
+  });
+}
+
 // ===== CONNECTION STATE =====
 // Three states: 'ok' (synced), 'offline' (SDK loaded, no signal - RTDB queues writes and
 // replays them on reconnect), 'dead' (SDK never initialised - nothing is being saved at all).
@@ -1084,14 +1209,16 @@ function setConnState(state){
   document.querySelectorAll('.live-badge').forEach(b=>{
     b.classList.toggle('is-offline',state==='offline');
     b.classList.toggle('is-dead',state==='dead');
-    b.innerHTML='<div class="live-dot"></div>'+(state==='ok'?'LIVE':state==='offline'?'OFFLINE':'NOT SAVING');
+    var held=(typeof sgfHeldCount==='function')?sgfHeldCount():0;
+    b.innerHTML='<div class="live-dot"></div>'+(state==='ok'?'LIVE':state==='offline'?'OFFLINE':'NOT SAVING')+(held?' \u00b7 '+held:'');
   });
   const ban=document.getElementById('conn-banner');
   if(!ban) return;
   ban.className='';
   if(state==='offline'){
     ban.className='warn';
-    ban.textContent='No signal - you can keep scoring. Entries are held on this phone and sync when you reconnect. Do not close this tab.';
+    var heldB=(typeof sgfHeldCount==='function')?sgfHeldCount():0;
+    ban.textContent='No signal - keep scoring. '+(heldB?heldB+' entr'+(heldB===1?'y is':'ies are'):'Entries are')+' saved on this phone and will sync when you get a bar. Safe to lock the screen.';
   } else if(state==='dead'){
     ban.className='dead';
     ban.textContent='Not connected to the scoring server - scores are NOT being saved. Reload when you have signal.';
@@ -1101,7 +1228,9 @@ function watchConnection(){
   if(!db){ setConnState('dead'); return; }
   try{
     firebase.database().ref('.info/connected').on('value',snap=>{
-      setConnState(snap.val()===true?'ok':'offline');
+      const up=snap.val()===true;
+      setConnState(up?'ok':'offline');
+      if(up) sgfFlush();          // send anything this phone is still holding
     });
   }catch(e){ console.log('connection watch failed:',e); }
 }
@@ -1138,9 +1267,8 @@ function checkForActiveRound(){
     if(settled) return; settled=true;
     showConnError('Still trying to reach the scoring server. This is almost always signal - move somewhere with a bar or two and try again.');
   },12000);
-  ref.once('value').then(snap=>{
+  sgfRoundSnapshot(ref).then(data=>{
     if(settled) return; settled=true; clearTimeout(bail);
-    const data=snap.val();
     if(data && data.active){
       // If this is a different round than the last one this device joined, clear stale
       // local state and force a fresh network load so cached HTML/JS is never an issue.
@@ -1241,9 +1369,8 @@ function joinRound(){
     if(joined) return; joined=true;
     showConnError('Could not load the round. Check your signal and try again.');
   },12000);
-  roundRef.once('value').then(snap=>{
+  sgfRoundSnapshot(roundRef).then(data=>{
     if(joined) return; joined=true; clearTimeout(bailJoin);
-    const data=snap.val();
     if(!data){
       if(isAdmin){ return showScreen('screen-setup'); }
       return showConnError('That round is no longer running. Ask Chris if it was reset.');
@@ -1255,6 +1382,7 @@ function joinRound(){
     teeData=data.teeData||{};
     roundCourseSymbol=data.courseSymbol||''; roundTeeSymbol=data.teeSymbol||'';
     scores=data.scores||{};
+    sgfApplyPending();
     closies=data.closies||{};
     // Firebase live groups are authoritative (admin can reassign without resetting the round);
     // fall back to whatever group was already seeded on the player object.
@@ -1310,6 +1438,8 @@ function listenForScoreUpdates(){
         });
       });
     }
+    sgfApplyPending();   // unsynced local entries win over a snapshot that predates them
+    sgfMirrorScores();
     buildTable();
     if(document.getElementById('screen-lb').classList.contains('active')) buildLB();
     if(document.getElementById('screen-skins').classList.contains('active')) buildSkinsView();
@@ -1332,9 +1462,13 @@ function listenForClosieUpdates(){
 
 function pushScoreToFirebase(pid, hole, val){
   if (spectatorBlocked_()) return;
-  if(!db) return;
+  sgfHold(pid, hole, val);        // on this phone FIRST -- survives reload / discarded tab
+  sgfMirrorScores();
+  if(!db){ sgfPaintHeld(); return; }
   const ref=firebase.database().ref(`sgf/activeRound/scores/${pid}/${hole}`);
-  if(val===null||val===undefined){ ref.remove(); } else { ref.set(val); }
+  const done=(val===null||val===undefined)? ref.remove() : ref.set(val);
+  if(done&&done.then) done.then(()=>sgfConfirm(pid,hole)).catch(()=>{});
+  sgfPaintHeld();
 }
 
 // Spectators are view-only.  The nav does NOT hide the Closies screen, and spectators
