@@ -882,6 +882,7 @@ try {
       <div class="live-badge"><div class="live-dot"></div>LIVE</div>
       <button class="hdr-btn" onclick="showScreen('screen-scoring')">Scores</button>
       <button class="hdr-btn" onclick="showScreen('screen-payouts')">💰</button>
+      <button class="hdr-btn" onclick="printLowGrossSheet()" title="Print the $5 Low Gross buy-in sheet">&#9971; Low Gross</button>
       <button class="hdr-btn" onclick="printPaymentSheet()">🖨️</button>
     </div>
   </div>
@@ -2630,6 +2631,99 @@ function printResultsSheet(){
 
   const w=window.open('','_blank');
   if(!w){ alert('Your browser blocked the results window.\n\nAllow pop-ups for this site, then tap 📄 PDF again.'); return; }
+  w.document.open(); w.document.write(doc); w.document.close();
+}
+
+function printLowGrossSheet(){
+  const ENTRY=5;                                  // $5.00 buy-in
+  const ap=players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name'&&!noShows[p.id]);
+  if(!ap.length){ alert('No players loaded yet - load the players from your sheet first.'); return; }
+
+  // Sorted by handicap index, low to high. Anyone with no index yet - a closie-only
+  // entry, or a walk-on added by hand - drops to the bottom and prints an em dash.
+  const rows=ap.slice().sort(function(a,b){
+    const av=parseFloat(a.index), bv=parseFloat(b.index);
+    const an=isNaN(av), bn=isNaN(bv);
+    if(an&&bn) return String(a.name).localeCompare(String(b.name));
+    if(an) return 1;
+    if(bn) return -1;
+    return (av-bv) || String(a.name).localeCompare(String(b.name));
+  });
+
+  const course=(document.getElementById('hdr-course')||{}).textContent||'SGF Live Round';
+  const dateTxt=(document.getElementById('hdr-date')||{}).textContent||'';
+  const BLANKS=2;                                 // write-in lines for a first-tee walk-on
+
+  let bodyHTML='',n=0;
+  rows.forEach(function(p){
+    n++;
+    const raw=String(p.index==null?'':p.index).trim();
+    const iv=parseFloat(raw);
+    // Print one decimal the way a GHIN index reads (17 -> 17.0), and keep the
+    // leading + of a plus handicap, which parseFloat would quietly throw away.
+    const idx=isNaN(iv)?'&mdash;':(raw.charAt(0)==='+'?'+'+iv.toFixed(1):iv.toFixed(1));
+    bodyHTML+='<tr class="'+(n%2===0?'alt':'')+'">'
+      +'<td class="c-num">'+n+'</td>'
+      +'<td class="c-name">'+esc(p.name)+'</td>'
+      +'<td class="c-idx">'+idx+'</td>'
+      +'<td class="c-in"></td></tr>';
+  });
+  for(let extra=0;extra<BLANKS;extra++){
+    n++;
+    bodyHTML+='<tr class="'+(n%2===0?'alt ':'')+'blank">'
+      +'<td class="c-num">'+n+'</td><td class="c-name"></td>'
+      +'<td class="c-idx"></td><td class="c-in"></td></tr>';
+  }
+
+  const countTxt=rows.length+(rows.length===1?' player':' players');
+  const doc='<!DOCTYPE html><html><head><meta charset="utf-8"><title>SGF Low Gross - '+esc(course)+'</title><style>'
+    +':root{--gd:#1a4a1a;--g:#2d6a2d;--rule:#b9b9b9;--soft:#dcdcdc;--box:#5a5a5a;}'
+    +'*{box-sizing:border-box}html,body{margin:0;padding:0}'
+    +'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#1c1c1c;background:#eceee9;'
+    +'-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
+    +'.bar{background:linear-gradient(135deg,var(--gd),var(--g));color:#fff;padding:11px 16px;display:flex;gap:12px;align-items:center;font-weight:800;font-size:.9rem;}'
+    +'.bar button{font:inherit;font-weight:800;font-size:.82rem;padding:8px 16px;border:none;border-radius:7px;background:#fff;color:var(--gd);cursor:pointer;}'
+    +'.bar span{opacity:.9;font-weight:600;font-size:.76rem;}'
+    +'.sheet{max-width:760px;margin:16px auto 40px;background:#fff;padding:26px 30px 20px;box-shadow:0 2px 10px rgba(0,0,0,.1);}'
+    +'.title{font-size:1.75rem;font-weight:900;letter-spacing:.3px;color:var(--gd);line-height:1.15;}'
+    +'.sub{font-size:1rem;font-weight:700;color:#2b2b2b;margin-top:4px;}'
+    +'.entry{font-size:1rem;font-weight:900;color:#1c1c1c;margin-top:2px;}'
+    +'.rule{border-bottom:2.5px solid var(--gd);margin:9px 0 14px;}'
+    +'table{width:100%;border-collapse:collapse;table-layout:fixed;border:1.8px solid var(--box);}'
+    +'thead th{font-size:.72rem;font-weight:900;letter-spacing:1.1px;text-transform:uppercase;color:#fff;background:var(--gd);'
+    +'padding:8px 6px;border:1px solid var(--gd);vertical-align:middle;}'
+    +'tbody td{border:1px solid var(--soft);padding:0;height:38px;}'
+    +'td.c-num{text-align:center;font-size:.8rem;font-weight:800;color:#8a938a;}'
+    +'td.c-name{padding:0 10px;font-size:1rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}'
+    +'td.c-idx{text-align:center;font-size:1rem;font-weight:800;color:var(--gd);border-left:2px solid var(--box);}'
+    +'td.c-in{border-left:2px solid var(--box);}'
+    +'tbody tr.alt td{background:#f7f9f7;}'
+    +'.foot{margin-top:12px;font-size:.78rem;color:#6a736a;font-weight:600;font-style:italic;}'
+    +'.tot{display:flex;align-items:flex-end;gap:10px;margin-top:14px;font-size:.95rem;font-weight:800;color:#1c1c1c;}'
+    +'.tot .sig{flex:0 0 190px;border-bottom:1.5px solid var(--box);height:20px;}'
+    +'@page{size:letter portrait;margin:.5in;}'
+    +'@media print{body{background:#fff}.bar{display:none !important}'
+    +'.sheet{max-width:none;margin:0;padding:0;box-shadow:none}tbody tr,thead tr{page-break-inside:avoid}}'
+    +'</style></head><body>'
+    +'<div class="bar"><button onclick="window.print()">&#128424; Print</button>'
+    +'<span>Portrait, letter. If the print dialog did not open, tap Print.</span></div>'
+    +'<div class="sheet">'
+    +'<div class="title">Saturday Golf Friends</div>'
+    +'<div class="sub">Low Gross Competition &nbsp;&bull;&nbsp; '+esc(course)+(dateTxt?' &nbsp;&bull;&nbsp; '+esc(dateTxt):'')+'</div>'
+    +'<div class="entry">Entry: $'+ENTRY.toFixed(2)+' &nbsp;&bull;&nbsp; '+countTxt+'</div>'
+    +'<div class="rule"></div>'
+    +'<table><thead><tr>'
+    +'<th style="width:8%">#</th><th style="width:47%">Name</th>'
+    +'<th style="width:18%">Index</th><th style="width:27%">In / Paid</th>'
+    +'</tr></thead><tbody>'+bodyHTML+'</tbody></table>'
+    +'<div class="foot">Sorted by handicap index, low to high.</div>'
+    +'<div class="tot"><span>Total collected:</span><span class="sig"></span>'
+    +'<span style="margin-left:auto">Low gross winner:</span><span class="sig"></span></div>'
+    +'</div><script>setTimeout(function(){try{window.focus();window.print();}catch(e){}},600);<\/script>'
+    +'</body></html>';
+
+  const w=window.open('','_blank');
+  if(!w){ alert('Your browser blocked the print window.\n\nAllow pop-ups for this site, then tap the Low Gross button again.'); return; }
   w.document.open(); w.document.write(doc); w.document.close();
 }
 
