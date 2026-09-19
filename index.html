@@ -142,7 +142,7 @@
   .pm-tee-gld,.pm-tee-gold,.pm-tee-g{background:#c9a227;}
   .pm-tee-blu,.pm-tee-blue,.pm-tee-b{background:#1565c0;}
   .pm-tee-red,.pm-tee-r{background:#c62828;}
-  .pm-tee-sil,.pm-tee-silver,.pm-tee-s{background:#78909c;}
+  .pm-tee-sil,.pm-tee-silver,.pm-tee-s,.pm-tee-slv{background:#78909c;} .pm-tee-cpr,.pm-tee-copper{background:#b5651d;}
   .pm-tee-blk,.pm-tee-black{background:#242424;}
   .pm-tee-grn,.pm-tee-green{background:#2e7d32;}
   .pm-tee-default{background:#5c6b5a;}
@@ -2934,7 +2934,7 @@ function playerMetaHTML(p){
   const hcp=(p.hcp||p.hcp===0)?String(p.hcp):'';
   if(!idx&&!tee&&!hcp) return '';
   const teeKey=tee.toLowerCase().replace(/[^a-z]/g,'');
-  const known=['wht','white','w','gld','gold','g','blu','blue','b','red','r','sil','silver','s','blk','black','grn','green'];
+  const known=['wht','white','w','gld','gold','g','blu','blue','b','red','r','sil','silver','s','slv','cpr','copper','blk','black','grn','green'];
   const teeCls='pm-tee-'+(known.includes(teeKey)?teeKey:'default');
   let h='<div class="td-pmeta">';
   if(idx) h+='<span class="pm-chip pm-idx" title="Handicap Index">'+esc(idx)+'</span>';
@@ -4707,7 +4707,7 @@ function buildPayoutsView(){
       const t=String(p.tee||'').trim();
       if(!t) return '&mdash;';
       const k=t.toLowerCase().replace(/[^a-z]/g,'');
-      const known=['wht','white','w','gld','gold','g','blu','blue','b','red','r','sil','silver','s','blk','black','grn','green'];
+      const known=['wht','white','w','gld','gold','g','blu','blue','b','red','r','sil','silver','s','slv','cpr','copper','blk','black','grn','green'];
       return `<span class="pm-chip pm-tee pm-tee-${known.includes(k)?k:'default'}${t.length>4?' pm-tee-long':''}">${esc(t)}</span>`;
     };
     const cell=r=>`<td class="sc-rank">${r.rank||'&mdash;'}</td>
