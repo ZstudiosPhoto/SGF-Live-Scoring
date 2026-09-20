@@ -1236,6 +1236,33 @@ function watchConnection(){
   }catch(e){ console.log('connection watch failed:',e); }
 }
 
+/* ---- extra flush triggers (added 2026-09-19) ---------------------------
+   A phone that goes fully backgrounded (screen off, in a pocket for a nine)
+   can have Android/Chrome freeze or discard its JS well before the tab is
+   reopened. When that happens the Firebase SDK's own reconnect + our
+   .info/connected callback above may not get a chance to run at the exact
+   moment signal returns -- the phone can sit in a bar with a full signal,
+   foregrounded, and simply never re-check. These three triggers nudge a
+   reconnect + flush attempt directly off signals the browser fires whether
+   or not Firebase's own listener happens to be scheduled right then.
+   All are safe to call anytime: goOnline() on an already-connected client
+   is a no-op, and sgfFlush() with nothing held is a no-op. */
+function sgfNudgeReconnect(){
+  try{ if(db) firebase.database().goOnline(); }catch(e){}
+  try{ sgfFlush(); }catch(e){}
+}
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState==='visible') sgfNudgeReconnect();
+});
+window.addEventListener('pageshow', function(e){
+  if(e.persisted) sgfNudgeReconnect();     // restored from the browser's bfcache
+});
+window.addEventListener('online', sgfNudgeReconnect);
+/* Belt-and-suspenders for a flapping signal (common on a back nine): if we
+   still think we're offline, keep nudging every 45s rather than waiting
+   indefinitely on a single .info/connected transition. */
+setInterval(function(){ if(connState==='offline') sgfNudgeReconnect(); }, 45000);
+
 // Replace the loading spinner with a readable error + retry.  Never dumps a player on the
 // admin Setup screen, and never claims "no round" when the truth is "no signal".
 function showConnError(msg){
