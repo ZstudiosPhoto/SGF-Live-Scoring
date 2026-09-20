@@ -281,6 +281,19 @@
   #lock-btn.locked{background:rgba(192,57,43,0.85);border-color:rgba(255,100,80,0.5);}
   #admin-gear-float{margin-right:26px;width:42px;height:42px;border-radius:50%;border:2px solid rgba(192,57,43,0.5);background:rgba(192,57,43,0.3);color:#fff;font-size:1.15rem;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,0.45);}
   /* ===== CUSTOM SCORE PAD ===== */
+  /* Player scorecard popup (Leaderboard tap-to-view) -- reuses .payout-section /
+     .hbh-tbl / .hbh-box from the Payouts hole-by-hole grid so the colours and
+     numbers match exactly what the group sees in the event summary. */
+  #player-card{position:fixed;inset:0;z-index:20000;display:none;}
+  #player-card.open{display:block;}
+  #pcard-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.55);}
+  #pcard-panel{position:absolute;top:5%;left:50%;transform:translateX(-50%);width:min(560px,94vw);max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--card-bg);border-radius:16px;box-shadow:0 12px 50px rgba(0,0,0,0.5);padding:14px 12px calc(16px + env(safe-area-inset-bottom,0px));}
+  #pcard-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:10px;}
+  #pcard-name{font-size:1.05rem;font-weight:900;color:var(--text);letter-spacing:0.2px;}
+  #pcard-meta{margin-top:5px;}
+  #pcard-closebtn{background:rgba(0,0,0,0.06);border:none;color:var(--muted);font-size:0.78rem;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer;padding:6px 12px;border-radius:20px;line-height:1;white-space:nowrap;flex-shrink:0;}
+  #pcard-closebtn:hover{background:rgba(0,0,0,0.12);color:var(--text);}
+  .lb-row{cursor:pointer;}
   #score-pad{position:fixed;inset:0;z-index:20000;display:none;}
   #score-pad.open{display:block;}
   #score-pad-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.55);}
@@ -4140,9 +4153,9 @@ function buildLB(){
       const rowCls=p.rank===1?'top1':p.tbWinner?'tb-winner':'';
       const tbNote=p.tbWinner?` · TB: Low H${p.tbHole||''}`:'' ;
       const teeStr=p.tee?` · ${p.tee}`:'';
-      return`<div class="lb-row ${rowCls}"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">Gross ${p.gross} · Hcp ${p.hcp}${teeStr} · ${thru}${tbNote}</div></div><div class="lb-net">${p.net}</div><div class="lb-vp ${vc}" title="Net vs par over holes played">${vs}</div></div>`;
+      return`<div class="lb-row ${rowCls}" onclick="openPlayerScorecard(${p.id})"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">Gross ${p.gross} · Hcp ${p.hcp}${teeStr} · ${thru}${tbNote}</div></div><div class="lb-net">${p.net}</div><div class="lb-vp ${vc}" title="Net vs par over holes played">${vs}</div></div>`;
     }
-    return`<div class="lb-row"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">No scores · Hcp ${p.hcp||0}</div></div><div class="lb-inc">—</div></div>`;
+    return`<div class="lb-row" onclick="openPlayerScorecard(${p.id})"><div class="lb-pos">${pos}</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}</div><div class="lb-holes">No scores · Hcp ${p.hcp||0}</div></div><div class="lb-inc">—</div></div>`;
   }).join('');
 
   // Render closie-only players at the bottom (show gross scores, no net ranking)
@@ -4150,17 +4163,76 @@ function buildLB(){
     const done=HOLES.filter(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
     const gross=done.length?done.reduce((s,h)=>s+scores[p.id][h],0):null;
     const thru=done.length===18?'F':done.length>0?`Thru ${done.length}`:'No scores';
-    return`<div class="lb-row" style="opacity:0.7;"><div class="lb-pos" style="font-size:0.9rem;color:#bbb;">—</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}<span class="lb-closie-badge">CLOSIES ONLY</span></div><div class="lb-holes">${thru}${gross!==null?' · Gross '+gross:''}</div></div><div class="lb-inc" style="font-size:0.82rem;color:#bbb;">${gross!==null?gross:'—'}</div></div>`;
+    return`<div class="lb-row" style="opacity:0.7;" onclick="openPlayerScorecard(${p.id})"><div class="lb-pos" style="font-size:0.9rem;color:#bbb;">—</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}<span class="lb-closie-badge">CLOSIES ONLY</span></div><div class="lb-holes">${thru}${gross!==null?' · Gross '+gross:''}</div></div><div class="lb-inc" style="font-size:0.82rem;color:#bbb;">${gross!==null?gross:'—'}</div></div>`;
   }).join('');
   // Render no-games players (NO$ on sheet — scores tracked but not in any game pot)
   const noGamesHTML=noGamesPlayers.map(p=>{
     const done=HOLES.filter(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
     const gross=done.length?done.reduce((s,h)=>s+scores[p.id][h],0):null;
     const thru=done.length===18?'F':done.length>0?`Thru ${done.length}`:'No scores';
-    return`<div class="lb-row" style="opacity:0.6;"><div class="lb-pos" style="font-size:0.9rem;color:#bbb;">—</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}<span class="lb-closie-badge" style="background:#888;">SCORES ONLY</span></div><div class="lb-holes">${thru}${gross!==null?' · Gross '+gross:''}</div></div><div class="lb-inc" style="font-size:0.82rem;color:#bbb;">${gross!==null?gross:'—'}</div></div>`;
+    return`<div class="lb-row" style="opacity:0.6;" onclick="openPlayerScorecard(${p.id})"><div class="lb-pos" style="font-size:0.9rem;color:#bbb;">—</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}<span class="lb-closie-badge" style="background:#888;">SCORES ONLY</span></div><div class="lb-holes">${thru}${gross!==null?' · Gross '+gross:''}</div></div><div class="lb-inc" style="font-size:0.82rem;color:#bbb;">${gross!==null?gross:'—'}</div></div>`;
   }).join('');
 
   document.getElementById('lb-card').innerHTML=competingHTML+closieOnlyHTML+noGamesHTML;
+}
+
+/* ---- Player scorecard popup (added 2026-09-19) --------------------------
+   Tapping a name on the Leaderboard opens this instead of making the group
+   wait for the end-of-round Payouts summary. Builds the SAME front/back nine
+   grid as buildPayoutsView()'s hole-by-hole section -- same sCls() colouring,
+   same strokesOnHole()/strokesUsedOn() net math -- for just this one player,
+   so the numbers always agree with Payouts and LOW.NET. Works mid-round:
+   holes not yet entered just show the "-" none box like everywhere else. */
+function buildPlayerScorecardHTML(p){
+  const nineHTML=(label,holeSet,endLabel,withTot)=>{
+    const parNine=holeSet.reduce((s,h)=>s+(pars[h-1]||0),0);
+    const parAll=pars.reduce((s,v)=>s+(v||0),0);
+    const hCell=holeSet.map(h=>{
+      const g=(scores[p.id]&&scores[p.id][h]!=null)?scores[p.id][h]:null;
+      if(g===null) return '<td><span class="hbh-box none">&mdash;</span></td>';
+      const par=pars[h-1]||4;
+      const hcp=p.hcp||0;
+      const n=hcp>0?g-strokesOnHole(hcp,strokeIndex[h-1]||h):null;
+      return `<td><span class="hbh-box ${sCls(g,par)}"><span class="hbh-g">${g}</span>${n!==null?`<span class="hbh-n">${n}</span>`:''}</span></td>`;
+    }).join('');
+    const endCell=(set)=>{
+      const done=set.filter(h=>scores[p.id]&&scores[p.id][h]!=null);
+      if(!done.length) return '<td class="hbh-tot">&mdash;</td>';
+      const g=done.reduce((s,h)=>s+scores[p.id][h],0);
+      const hcp=p.hcp||0;
+      return `<td class="hbh-tot">${g}${hcp>0?`<small>${g-strokesUsedOn(hcp,done)}</small>`:''}</td>`;
+    };
+    const nm=String(p.name||'Player '+p.id).trim();
+    return `<div class="payout-section">
+      <div class="payout-section-hdr">
+        <span class="payout-section-title">${label}</span>
+        ${parNine?`<span class="payout-pool-badge">Par ${parNine}</span>`:''}
+      </div>
+      <div class="skins-tbl-wrap"><table class="skins-tbl hbh-tbl">
+        <thead><tr><th class="hbh-name">Hole</th>${holeSet.map(h=>`<th>${h}</th>`).join('')}<th class="hbh-end">${endLabel}</th>${withTot?'<th class="hbh-end">TOT</th>':''}</tr></thead>
+        <tbody>
+          <tr class="hbh-sub"><td class="hbh-name">Par</td>${holeSet.map(h=>`<td>${pars[h-1]||''}</td>`).join('')}<td>${parNine||''}</td>${withTot?`<td>${parAll||''}</td>`:''}</tr>
+          <tr class="hbh-sub"><td class="hbh-name">SI</td>${holeSet.map(h=>`<td>${strokeIndex[h-1]||''}</td>`).join('')}<td>G/N</td>${withTot?'<td>G/N</td>':''}</tr>
+          <tr><td class="hbh-name" title="${esc(nm)}">${esc(nm)}</td>${hCell}${endCell(holeSet)}${withTot?endCell(HOLES):''}</tr>
+        </tbody>
+      </table></div>
+    </div>`;
+  };
+  return nineHTML('&#9971; FRONT NINE',FRONT,'OUT',false)+nineHTML('&#9971; BACK NINE',BACK,'IN',true);
+}
+function openPlayerScorecard(pid){
+  const p=players.find(x=>x.id===pid);
+  if(!p) return;
+  const anyScore=HOLES.some(h=>scores[p.id]&&scores[p.id][h]!=null);
+  document.getElementById('pcard-name').textContent=p.name||('Player '+p.id);
+  document.getElementById('pcard-meta').innerHTML=playerMetaHTML(p);
+  document.getElementById('pcard-body').innerHTML=anyScore
+    ? buildPlayerScorecardHTML(p)
+    : '<div style="padding:26px 10px;text-align:center;color:var(--muted);font-weight:700;">No scores entered yet.</div>';
+  document.getElementById('player-card').classList.add('open');
+}
+function closePlayerScorecard(){
+  document.getElementById('player-card').classList.remove('open');
 }
 
 // Every POST to the Apps Script goes through here.
@@ -4988,6 +5060,19 @@ function showLockToast(msg){
 }
 </script>
 <!-- Custom Score Pad -->
+<div id="player-card">
+  <div id="pcard-backdrop" onclick="closePlayerScorecard()"></div>
+  <div id="pcard-panel">
+    <div id="pcard-hdr">
+      <div>
+        <div id="pcard-name"></div>
+        <div id="pcard-meta"></div>
+      </div>
+      <button id="pcard-closebtn" onclick="closePlayerScorecard()">&#10005; Close</button>
+    </div>
+    <div id="pcard-body"></div>
+  </div>
+</div>
 <div id="score-pad">
   <div id="score-pad-backdrop" onclick="closeScorePad()"></div>
   <div id="score-pad-panel">
