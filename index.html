@@ -212,6 +212,22 @@
     .lb-inc{font-size:0.68rem;}
     .lb-closie-badge{font-size:0.55rem;padding:1px 5px;margin-left:4px;}
   }
+  .lb-mode{display:flex;gap:6px;margin-bottom:9px;}
+  .lb-mode button{flex:1;padding:7px 8px;border-radius:18px;border:1.5px solid rgba(255,255,255,0.35);background:rgba(255,255,255,0.08);color:#dfeedd;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.8rem;cursor:pointer;}
+  .lb-mode button.on{background:#fff;color:var(--sgf-green-darker);border-color:#fff;}
+  .lg-lb-head{padding:6px 12px;background:#fffbef;border-bottom:1px solid var(--gold-light);font-size:0.7rem;font-weight:800;color:#8a6d1f;}
+  .lg-tools{display:flex;gap:7px;margin:0 0 9px;}
+  .lg-tools button{flex:1;padding:8px;border-radius:9px;border:1.5px solid rgba(255,255,255,0.35);background:rgba(255,255,255,0.1);color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.8rem;cursor:pointer;}
+  .lg-row{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:none;border-bottom:1px solid var(--border);background:#fff;font-family:'Nunito',sans-serif;text-align:left;cursor:pointer;color:var(--text);}
+  .lg-row:last-child{border-bottom:none;}
+  .lg-row.in{background:linear-gradient(90deg,#f0fced 0%,#fff 100%);}
+  .lg-box{width:24px;height:24px;border-radius:6px;border:2px solid #b8c4b6;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.95rem;font-weight:900;color:#fff;}
+  .lg-row.in .lg-box{background:var(--sgf-green);border-color:var(--sgf-green);}
+  .lg-name{flex:1;min-width:0;font-weight:800;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .lg-idx{font-size:0.72rem;font-weight:800;color:var(--muted);flex-shrink:0;}
+  .lg-score{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--text);min-width:34px;text-align:right;flex-shrink:0;}
+  .lg-row:not(.in) .lg-score{color:#c5ccc4;}
+  .lg-note{margin:10px 2px 0;font-size:0.72rem;font-weight:700;color:#cfe5cc;line-height:1.5;}
   .back-btn{display:block;width:calc(100% - 26px);margin:13px auto 0;padding:13px;background:var(--sgf-green);color:white;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.93rem;cursor:pointer;}
   .loading-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
   .spinner{width:40px;height:40px;border:4px solid rgba(58,170,53,0.2);border-top-color:var(--sgf-green);border-radius:50%;animation:spin 0.8s linear infinite;}
@@ -769,7 +785,7 @@ try {
   <div class="app-header">
     <div class="sgf-logo"><img id="logo3" alt="SGF"></div>
     <div class="header-text">
-      <div class="header-brand">Net Leaderboard</div>
+      <div class="header-brand" id="lb-brand">Net Leaderboard</div>
       <div class="header-sub" id="lb-sub">Live Standings</div>
     </div>
     <div class="header-actions">
@@ -781,6 +797,7 @@ try {
     </div>
   </div>
   <div class="lb-body">
+    <div class="lb-mode" id="lb-mode" style="display:none;"></div>
     <div class="lb-card" id="lb-card"></div>
     <button class="back-btn" onclick="showScreen('screen-scoring')">← Back to Scorecard</button>
   </div>
@@ -895,7 +912,7 @@ try {
       <div class="live-badge"><div class="live-dot"></div>LIVE</div>
       <button class="hdr-btn" onclick="showScreen('screen-scoring')">Scores</button>
       <button class="hdr-btn" onclick="showScreen('screen-payouts')">💰</button>
-      <button class="hdr-btn" onclick="printLowGrossSheet()" title="Print the $5 Low Gross buy-in sheet">&#9971; Low Gross</button>
+      <button class="hdr-btn" onclick="showScreen('screen-lowgross')" title="Low Gross entries and standings">&#9971; Low Gross</button>
       <button class="hdr-btn" onclick="printPaymentSheet()">🖨️</button>
     </div>
   </div>
@@ -906,6 +923,26 @@ try {
     <button class="sync-btn btn-sheets" onclick="pushSettleToSheet(false)">📊 Save to Sheet</button>
     <button class="sync-btn btn-sheets" onclick="pushSettleToSheet(true)">✉️ Save + Email Me</button>
     <div id="settle-sync-result" class="sync-result" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- ===== LOW GROSS SCREEN (admin only) ===== -->
+<div id="screen-lowgross" class="screen">
+  <div class="app-header">
+    <div class="sgf-logo"><img id="logo-lowgross" alt="SGF"></div>
+    <div class="header-text">
+      <div class="header-brand">&#9971; Low Gross</div>
+      <div class="header-sub" id="lowgross-sub">Who's in</div>
+    </div>
+    <div class="header-actions">
+      <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+      <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
+      <button class="hdr-btn" onclick="showScreen('screen-settle')">&#129534; Settle</button>
+      <button class="hdr-btn" onclick="printLowGrossSheet()" title="Print the paper sign-up sheet">&#128424;&#65039;</button>
+    </div>
+  </div>
+  <div class="lb-body" id="lowgross-content">
+    <div class="skins-empty">Start a round to run Low Gross.</div>
   </div>
 </div>
 
@@ -989,6 +1026,8 @@ let activeRoundStart=null; // startedAt of the live round; scopes the remembered
 let myGroup=null, viewMode='myFoursome', groupsRef=null; // foursome isolation state
 let playerOrder={}, orderRef=null;  // {pid: n} - display order WITHIN a group
 let noShows={}, noShowRef=null; // no-show tracking {pid: true}
+let lowGross={}, lowGrossRef=null, lbMode='net'; // Low Gross side game: {pid:true} = paid the buy-in
+const LOW_GROSS_ENTRY=5;                          // $5.00, winner takes all
 let payments={}, paymentsRef=null; // settle-up: {pid:{in:'venmo',out:'cash'}}
 let moneySetup=null; // loaded from SETUP.MONEY tab, stored in Firebase with round
 
@@ -1065,7 +1104,7 @@ function applyAdminUI(){
 }
 
 window.addEventListener('DOMContentLoaded',()=>{
-  ['logo1','logo2','logo3','logo4','logo5','logo-skins','logo-closies','logo-payouts','logo-settle','logo-info','logo-grouppick','logo-history','logo-history2','logo-welcome','logo-welcome-big'].forEach(id=>{
+  ['logo1','logo2','logo3','logo4','logo5','logo-skins','logo-closies','logo-payouts','logo-settle','logo-lowgross','logo-info','logo-grouppick','logo-history','logo-history2','logo-welcome','logo-welcome-big'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.src=SGF_LOGO;
   });
   document.getElementById('inp-date').value=new Date().toISOString().slice(0,10);
@@ -1445,6 +1484,7 @@ function joinRound(){
     listenForGroupUpdates();
     listenForNoShowUpdates();
     listenForPaymentUpdates();
+    listenForLowGrossUpdates();
     listenForOrderUpdates();
     listenForPlayerOverrides();
     listenForPlayerUpdates();   // must come AFTER the overrides listener -- it re-applies them
@@ -1485,6 +1525,7 @@ function listenForScoreUpdates(){
     if(document.getElementById('screen-lb').classList.contains('active')) buildLB();
     if(document.getElementById('screen-skins').classList.contains('active')) buildSkinsView();
     if(document.getElementById('screen-payouts').classList.contains('active')) buildPayoutsView();
+    if(document.getElementById('screen-lowgross').classList.contains('active')) buildLowGrossView();
   });
 }
 
@@ -1714,6 +1755,7 @@ async function startRound(){
     listenForGroupUpdates();
     listenForNoShowUpdates();
     listenForPaymentUpdates();
+    listenForLowGrossUpdates();
     listenForOrderUpdates();
     listenForPlayerOverrides();
     listenForPlayerUpdates();   // must come AFTER the overrides listener -- it re-applies them
@@ -2039,6 +2081,7 @@ async function openResultsLink(key){
     closies={};
     Object.keys(data.closies||{}).forEach(h=>{ closies[parseInt(h)]=data.closies[h]; });
     payments=data.payments||{};
+    lowGross=data.lowGross||{};
     noShows={}; playerOrder={};
     pars=data.pars&&data.pars.length?data.pars:pars;
     strokeIndex=data.strokeIndex&&data.strokeIndex.length?data.strokeIndex:strokeIndex;
@@ -2227,7 +2270,7 @@ async function endRound(){
           await archRef.set({
             course:data.course||'', date:data.date||'', sheetId:data.sheetId||'', code:data.code||'', endedAt:Date.now(),
             players:data.players||[], scores:data.scores||{}, pars:data.pars||[], strokeIndex:data.strokeIndex||[],
-            closies:data.closies||{}, moneySetup:data.moneySetup||null, payments:data.payments||{},
+            closies:data.closies||{}, moneySetup:data.moneySetup||null, payments:data.payments||{}, lowGross:data.lowGross||{},
             groups:data.groups||{}
           });
           window.__lastResultsKey=archRef.key;
@@ -2236,7 +2279,7 @@ async function endRound(){
         }
       }catch(e){ console.log('Backup before end round failed:',e); }
       await firebase.database().ref('sgf/activeRound').remove();
-      players=[];scores={};payments={};playerOrder={};
+      players=[];scores={};payments={};lowGross={};playerOrder={};
       renderPlayerList();
       showScreen('screen-setup');
       applyAdminUI();
@@ -2674,8 +2717,206 @@ function printResultsSheet(){
   w.document.open(); w.document.write(doc); w.document.close();
 }
 
+/* ---- LOW GROSS side game (added 2026-09-24) -------------------------------
+   Optional $5 buy-in, winner takes all.  Chris ticks who's in on the Low Gross
+   screen (Settle Up -> Low Gross); the ticks live at sgf/activeRound/lowGross/{pid}
+   and are archived with the round, so ?r= results links show the winner too.
+   Ranking: gross vs par over holes played (same idea as the Net board mid-round),
+   more holes played breaks a mid-round tie, then the SGF card-off: lowest GROSS on
+   the #1 handicap hole, then #2, and so on to #18.  Two cards identical on all 18
+   holes split the pot. */
+function lowGrossEntrants(){
+  return players.filter(p=>p&&p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name'
+    &&!noShows[p.id]&&lowGross&&lowGross[p.id]);
+}
+function lgHoleGross(pid,h){return(scores[pid]&&scores[pid][h]!=null)?scores[pid][h]:999;}
+// First handicap hole (SI 1, 2, 3...) where the two cards differ.  d<0 means a wins.
+function lgCardOff(a,b){
+  for(let si=1;si<=18;si++){
+    const idx=strokeIndex.indexOf(si); if(idx<0) continue;
+    const h=HOLES[idx];
+    const d=lgHoleGross(a.id,h)-lgHoleGross(b.id,h);
+    if(d!==0) return {d,h};
+  }
+  return {d:0,h:null};
+}
+function rankLowGross(){
+  const rows=lowGrossEntrants().map(p=>{
+    const done=HOLES.filter(h=>scores[p.id]&&scores[p.id][h]!=null);
+    if(!done.length) return {p,hp:0,gross:null,toPar:null};
+    const gross=done.reduce((s,h)=>s+scores[p.id][h],0);
+    const parPlayed=done.reduce((s,h)=>s+(pars[h-1]||4),0);
+    return {p,hp:done.length,gross,toPar:gross-parPlayed};
+  }).sort((a,b)=>{
+    if(!a.hp&&!b.hp) return String(a.p.name).localeCompare(String(b.p.name));
+    if(!a.hp) return 1; if(!b.hp) return -1;
+    if(a.toPar!==b.toPar) return a.toPar-b.toPar;
+    if(a.hp!==b.hp) return b.hp-a.hp;
+    return lgCardOff(a.p,b.p).d;
+  });
+  // Winner takes all, so the card-off decides every place: positions are 1, 2, 3...
+  // and only two cards identical on all 18 holes share a position.
+  rows.forEach((r,i)=>{
+    const prev=rows[i-1];
+    const same=prev&&r.hp&&prev.hp===r.hp&&prev.toPar===r.toPar&&lgCardOff(prev.p,r.p).d===0;
+    r.rank=same?prev.rank:i+1;
+    r.tbWinner=false; r.tbHole=null; r.split=false;
+  });
+  // Every man who beats the next tied man on the card-off gets "TB: Low H#".
+  rows.forEach((r,i)=>{
+    if(!r.hp) return;
+    const nxt=rows[i+1];
+    if(!nxt||!nxt.hp||nxt.toPar!==r.toPar||nxt.hp!==r.hp) return;  // no tie (or mid-round, holes played decides)
+    const c=lgCardOff(r.p,nxt.p);
+    if(c.d===0){ r.split=true; nxt.split=true; }
+    else { r.tbWinner=true; r.tbHole=c.h; }
+  });
+  const scored=rows.filter(r=>r.hp);
+  const final=rows.length>0&&rows.every(r=>r.hp===18);
+  let winners=[];
+  if(scored.length){
+    const top=scored[0];
+    winners=scored.filter(r=>r.hp===top.hp&&r.toPar===top.toPar&&lgCardOff(top.p,r.p).d===0);
+  }
+  const pot=rows.length*LOW_GROSS_ENTRY;
+  return {rows,final,winners,pot};
+}
+function lgMoney(v){return '$'+(Math.round(v*100)%100?v.toFixed(2):String(Math.round(v)));}
+function lgToPar(v){return v===0?'E':v>0?'+'+v:String(v);}
+function lgIdx(p){
+  const raw=String(p.index==null?'':p.index).trim(), iv=parseFloat(raw);
+  return isNaN(iv)?'&mdash;':(raw.charAt(0)==='+'?'+'+iv.toFixed(1):iv.toFixed(1));
+}
+function setLbMode(m){ lbMode=m; buildLB(); }
+
+function listenForLowGrossUpdates(){
+  if(!db) return;
+  if(lowGrossRef) lowGrossRef.off('value');
+  lowGrossRef=firebase.database().ref('sgf/activeRound/lowGross');
+  lowGrossRef.on('value', snap=>{
+    lowGross=snap.val()||{};
+    repaintActiveScreen();
+  });
+}
+
+function toggleLowGross(pid){
+  if(!isAdmin||window.isSpectator) return;
+  if(!lowGross||typeof lowGross!=='object') lowGross={};
+  const on=!lowGross[pid];
+  if(on) lowGross[pid]=true; else delete lowGross[pid];
+  buildLowGrossView();                       // repaint now; Firebase confirms behind it
+  if(db){
+    try{ firebase.database().ref('sgf/activeRound/lowGross/'+pid).set(on?true:null); }
+    catch(e){ console.log('Low Gross write failed:',e.message); }
+  }
+}
+function setAllLowGross(on){
+  if(!isAdmin||window.isSpectator) return;
+  const ap=players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name'&&!noShows[p.id]);
+  if(!on&&!confirm('Take everyone out of Low Gross?')) return;
+  const obj={};
+  if(on) ap.forEach(p=>{obj[p.id]=true;});
+  lowGross=obj;
+  buildLowGrossView();
+  if(db){
+    try{ firebase.database().ref('sgf/activeRound/lowGross').set(on?obj:null); }
+    catch(e){ console.log('Low Gross write failed:',e.message); }
+  }
+}
+
+// Summary line for a Low Gross row: "Gross 78 (+6) · Thru 14 · TB: Low H7"
+function lgMeta(r){
+  if(!r.hp) return 'No scores yet';
+  return 'Gross '+r.gross+' ('+lgToPar(r.toPar)+') &middot; '+(r.hp===18?'F':'Thru '+r.hp)
+    +(r.tbWinner?' &middot; TB: Low H'+r.tbHole:'')+(r.split?' &middot; identical cards':'');
+}
+
+function buildLowGrossView(){
+  const box=document.getElementById('lowgross-content');
+  if(!box) return;
+  const sub=document.getElementById('lowgross-sub');
+  if(sub) sub.textContent=(document.getElementById('hdr-course')||{}).textContent||"Who's in";
+  if(!isAdmin||window.isSpectator){
+    box.innerHTML='<div class="skins-empty">&#128274; Low Gross entries are only on the device that started the round. Everyone can follow it on the Leaderboard.</div>';
+    return;
+  }
+  const ap=players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name'&&!noShows[p.id]);
+  if(!ap.length){ box.innerHTML='<div class="skins-empty">No players loaded yet.</div>'; return; }
+  const R=rankLowGross();
+  const byId={}; R.rows.forEach(r=>{byId[r.p.id]=r;});
+  const n=R.rows.length;
+  let lead='&mdash;';
+  if(R.winners.length===1) lead=esc(String(R.winners[0].p.name).split(',')[0].trim());
+  else if(R.winners.length>1) lead=R.winners.length+'-way tie';
+  let html='<div class="settle-summary"><div class="settle-stats">'
+    +'<div class="settle-stat"><b>In</b><i>'+n+' / '+ap.length+'</i></div>'
+    +'<div class="settle-stat"><b>Pot</b><i>'+lgMoney(R.pot)+'</i></div>'
+    +'<div class="settle-stat"><b>'+(R.final?'Winner':'Leader')+'</b><i>'+lead+'</i></div>'
+    +'</div></div>';
+  html+='<div class="lg-tools"><button onclick="setAllLowGross(true)">&#10003; Everyone in</button>'
+    +'<button onclick="setAllLowGross(false)">Clear all</button></div>';
+  html+='<div class="lb-card">'+sortPlayers(ap).map(p=>{
+    const r=byId[p.id];
+    const score=r&&r.hp?(r.hp===18?String(r.gross):lgToPar(r.toPar)):'';
+    return '<button class="lg-row'+(r?' in':'')+'" onclick="toggleLowGross('+p.id+')" aria-pressed="'+(r?'true':'false')+'">'
+      +'<span class="lg-box">'+(r?'&#10003;':'')+'</span>'
+      +'<span class="lg-name">'+esc(p.name)+'</span>'
+      +'<span class="lg-idx">'+lgIdx(p)+'</span>'
+      +'<span class="lg-score">'+score+'</span></button>';
+  }).join('')+'</div>';
+  html+='<div class="lg-note">Tap a name to put him in or take him out. $'+LOW_GROSS_ENTRY
+    +' each, winner takes all, paid from the buy-ins (not the games pot). '
+    +'Ties go to the lower gross on the #1 handicap hole, then #2, and so on.</div>';
+  box.innerHTML=html;
+}
+
+function buildLowGrossLB(){
+  const R=rankLowGross();
+  const m=['&#129351;','&#129352;','&#129353;'];
+  const head='<div class="lg-lb-head">&#9971; '+R.rows.length+' in &middot; '+lgMoney(R.pot)+' winner takes all</div>';
+  const rowsHTML=R.rows.map(r=>{
+    const p=r.p;
+    if(!r.hp){
+      return '<div class="lb-row" onclick="openPlayerScorecard('+p.id+')"><div class="lb-pos">&mdash;</div><div class="lb-info"><div class="lb-name">'
+        +esc(p.name)+'</div><div class="lb-holes">No scores &middot; Idx '+lgIdx(p)+'</div></div><div class="lb-inc">&mdash;</div></div>';
+    }
+    const pos=r.rank<=3?m[r.rank-1]:String(r.rank);
+    const vc=r.toPar<0?'under':r.toPar===0?'even':'over';
+    const cls=r.rank===1?'top1':(r.tbWinner?'tb-winner':'');
+    const meta='Idx '+lgIdx(p)+(p.tee?' &middot; '+esc(p.tee):'')+' &middot; '+(r.hp===18?'F':'Thru '+r.hp)
+      +(r.tbWinner?' &middot; TB: Low H'+r.tbHole:'')+(r.split?' &middot; Tied':'');
+    return '<div class="lb-row '+cls+'" onclick="openPlayerScorecard('+p.id+')"><div class="lb-pos">'+pos+'</div>'
+      +'<div class="lb-info"><div class="lb-name">'+esc(p.name)+'</div><div class="lb-holes">'+meta+'</div></div>'
+      +'<div class="lb-gross">'+r.gross+'</div><div class="lb-vp '+vc+'" title="Gross vs par over holes played">'+lgToPar(r.toPar)+'</div></div>';
+  }).join('');
+  document.getElementById('lb-card').innerHTML=head+rowsHTML;
+}
+
+function buildLowGrossPayoutHTML(){
+  const R=rankLowGross();
+  if(!R.rows.length) return '';
+  const share=R.winners.length?R.pot/R.winners.length:0;
+  let rows='';
+  if(!R.winners.length){
+    rows='<div class="skins-empty" style="padding:16px;">No scores yet.</div>';
+  }else{
+    const label=R.final?(R.winners.length>1?'Winner (tie, pot split)':'Winner'):'Leading';
+    rows=R.winners.map(w=>'<div class="payout-row"><div class="payout-place-icon">&#129351;</div><div style="flex:1;">'
+      +'<div class="payout-place-label">'+label+'</div><div class="payout-name">'+esc(w.p.name)+'</div>'
+      +'<div class="payout-sub">'+(R.winners.length>1?'Gross '+w.gross+' ('+lgToPar(w.toPar)+') &middot; '+(w.hp===18?'F':'Thru '+w.hp)+' &middot; identical cards':lgMeta(w))+'</div></div>'
+      +(R.pot>0?'<div class="payout-amount">'+lgMoney(share)+'</div>':'')+'</div>').join('');
+  }
+  const names=R.rows.map(r=>esc(r.p.name)).join(', ');
+  return '<div class="payout-section"><div class="payout-section-hdr">'
+    +'<span class="payout-section-title">&#9971; LOW GROSS</span>'
+    +'<span class="payout-pool-badge">'+lgMoney(R.pot)+' pot &middot; '+R.rows.length+' in</span></div>'
+    +rows
+    +'<div style="padding:7px 13px;border-top:1px solid var(--border);font-size:0.7rem;font-weight:700;color:var(--muted);line-height:1.45;">'
+    +'In: '+names+'. $'+LOW_GROSS_ENTRY+' buy-in, paid separately from the games pot.</div></div>';
+}
+
 function printLowGrossSheet(){
-  const ENTRY=5;                                  // $5.00 buy-in
+  const ENTRY=LOW_GROSS_ENTRY;                    // $5.00 buy-in
   const ap=players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name'&&!noShows[p.id]);
   if(!ap.length){ alert('No players loaded yet - load the players from your sheet first.'); return; }
 
@@ -3186,6 +3427,7 @@ function repaintActiveScreen(){
   if(on('screen-skins')) buildSkinsView();
   if(on('screen-closies')) buildClosiesView();
   if(on('screen-payouts')) buildPayoutsView();
+  if(on('screen-lowgross')) buildLowGrossView();
   if(on('screen-settle')){
     // Same rule as the payments listener: a repaint mid-typing blows away the amount box.
     const ae=document.activeElement;
@@ -4081,6 +4323,18 @@ function sCls(val,par){
 function switchNine(n){activeNine=n;document.getElementById('tab-front').classList.toggle('active',n==='front');document.getElementById('tab-back').classList.toggle('active',n==='back');buildTable();}
 
 function buildLB(){
+  // Net / Low Gross toggle -- only appears once somebody has been ticked into Low Gross.
+  const _lgIn=lowGrossEntrants();
+  const _tog=document.getElementById('lb-mode');
+  if(!_lgIn.length) lbMode='net';
+  if(_tog){
+    _tog.style.display=_lgIn.length?'':'none';
+    _tog.innerHTML=_lgIn.length?'<button class="'+(lbMode==='net'?'on':'')+'" onclick="setLbMode(\'net\')">Net</button>'
+      +'<button class="'+(lbMode==='gross'?'on':'')+'" onclick="setLbMode(\'gross\')">&#9971; Low Gross</button>':'';
+  }
+  const _brand=document.getElementById('lb-brand');
+  if(_brand) _brand.textContent=lbMode==='gross'?'Low Gross':'Net Leaderboard';
+  if(lbMode==='gross'){ buildLowGrossLB(); return; }
   // Helper: get a player's gross on a given hole (999 if not yet scored)
   function holeGross(pid,holeNum){return(scores[pid]&&scores[pid][holeNum]!=null)?scores[pid][holeNum]:999;}
 
@@ -4405,6 +4659,7 @@ function showScreen(id){
   if(id==='screen-closies')buildClosiesView();
   if(id==='screen-payouts')buildPayoutsView();
   if(id==='screen-settle')buildSettleView();
+  if(id==='screen-lowgross')buildLowGrossView();
   if(id==='screen-payouts'||id==='screen-settle') refreshMoneyForScreen(id);
   // Show floating buttons on game screens; auto-unlock when leaving them
   const floatContainer=document.getElementById('floating-btns');
@@ -4415,7 +4670,7 @@ function showScreen(id){
       // Settle Up is wall-to-wall tap targets — the fixed ⚙️/🔒 sit right on top of the
       // rightmost chips, so a tap meant for "Apple" would hit the gear.  Hide them here;
       // the header already links to Scores, Payouts and the printable sheet.
-      if(id==='screen-settle') floatContainer.style.display='none';
+      if(id==='screen-settle'||id==='screen-lowgross') floatContainer.style.display='none';
     } else {
       floatContainer.style.display='none';
       if(isLocked) toggleLock();
@@ -4697,6 +4952,11 @@ function buildPayoutsView(){
     </div>`).join('')}
   </div>`;
 
+  // ── LOW GROSS (optional $5 side game, winner takes all) ──────────────────
+  // Paid out of the $5 buy-ins, NOT the games pot, so it stays out of the pot summary,
+  // the TOTAL $ TO GIVE OUT list and Settle Up -- those must keep matching the sheet.
+  const lowGrossHTML=buildLowGrossPayoutHTML();
+
   // ── POT SUMMARY (built now that all ACTUAL payouts are known) ────────────
   // Buckets show what's really paid out; they always sum to the Total Pot,
   // matching the Google Sheet's ACTUAL awards row.
@@ -4911,7 +5171,7 @@ function buildPayoutsView(){
     if(_dt) _dt.textContent=(_d&&_d!=='Live Round')?_d:'';
   }catch(e){}
 
-  document.getElementById('payouts-content').innerHTML=potHTML+noMoneyNote+closieNote+closiesHTML+skinsHTML+lowNetHTML+playerTotalsHTML+scorecardHTML;
+  document.getElementById('payouts-content').innerHTML=potHTML+noMoneyNote+closieNote+closiesHTML+skinsHTML+lowNetHTML+lowGrossHTML+playerTotalsHTML+scorecardHTML;
 }
 
 function buildSkinsView(){
@@ -5027,7 +5287,7 @@ function fmtDate(d){const dt=new Date(d+'T12:00:00');return dt.toLocaleDateStrin
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 /* ===== LOCK / UNLOCK ===== */
-const GAME_SCREENS=['screen-scoring','screen-lb','screen-skins','screen-closies','screen-payouts','screen-settle','screen-info'];
+const GAME_SCREENS=['screen-scoring','screen-lb','screen-skins','screen-closies','screen-payouts','screen-settle','screen-lowgross','screen-info'];
 let isLocked=false;
 
 function toggleLock(){
