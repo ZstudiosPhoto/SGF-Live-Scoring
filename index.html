@@ -2935,6 +2935,13 @@ function printLowGrossSheet(){
   const dateTxt=(document.getElementById('hdr-date')||{}).textContent||'';
   const BLANKS=2;                                 // write-in lines for a first-tee walk-on
 
+  // Who's ticked in on the Low Gross screen (sgf/activeRound/lowGross) prints as
+  // a check in the In / Paid box, so the paper sheet matches the app.  Men not
+  // ticked keep an empty box to mark by hand.
+  const isIn=function(p){return !!(lowGross&&typeof lowGross==='object'&&lowGross[p.id]);};
+  const nIn=rows.filter(isIn).length;
+  const CHECK='<svg class="ck" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" fill="none" stroke="#1a4a1a" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
   let bodyHTML='',n=0;
   rows.forEach(function(p){
     n++;
@@ -2943,11 +2950,12 @@ function printLowGrossSheet(){
     // Print one decimal the way a GHIN index reads (17 -> 17.0), and keep the
     // leading + of a plus handicap, which parseFloat would quietly throw away.
     const idx=isNaN(iv)?'&mdash;':(raw.charAt(0)==='+'?'+'+iv.toFixed(1):iv.toFixed(1));
-    bodyHTML+='<tr class="'+(n%2===0?'alt':'')+'">'
+    const inn=isIn(p);
+    bodyHTML+='<tr class="'+(n%2===0?'alt':'')+(inn?' in':'')+'">'
       +'<td class="c-num">'+n+'</td>'
       +'<td class="c-name">'+esc(p.name)+'</td>'
       +'<td class="c-idx">'+idx+'</td>'
-      +'<td class="c-in"></td></tr>';
+      +'<td class="c-in">'+(inn?CHECK+'<span class="ck-t">In</span>':'')+'</td></tr>';
   });
   for(let extra=0;extra<BLANKS;extra++){
     n++;
@@ -2956,7 +2964,9 @@ function printLowGrossSheet(){
       +'<td class="c-idx"></td><td class="c-in"></td></tr>';
   }
 
-  const countTxt=rows.length+(rows.length===1?' player':' players');
+  const countTxt=rows.length+(rows.length===1?' player':' players')
+    +(nIn?' &nbsp;&bull;&nbsp; '+nIn+' in &nbsp;&bull;&nbsp; Pot $'+(nIn*ENTRY).toFixed(2):'');
+  const asOf=new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
   const doc='<!DOCTYPE html><html><head><meta charset="utf-8"><title>SGF Low Gross - '+esc(course)+'</title><style>'
     +':root{--gd:#1a4a1a;--g:#2d6a2d;--rule:#b9b9b9;--soft:#dcdcdc;--box:#5a5a5a;}'
     +'*{box-sizing:border-box}html,body{margin:0;padding:0}'
@@ -2979,6 +2989,11 @@ function printLowGrossSheet(){
     +'td.c-idx{text-align:center;font-size:1rem;font-weight:800;color:var(--gd);border-left:2px solid var(--box);}'
     +'td.c-in{border-left:2px solid var(--box);}'
     +'tbody tr.alt td{background:#f7f9f7;}'
+    +'tbody tr.in td{background:#e4f1e1;}'
+    +'td.c-in{text-align:center;vertical-align:middle;}'
+    +'td.c-in .ck{vertical-align:middle;}'
+    +'td.c-in .ck-t{vertical-align:middle;margin-left:5px;font-size:.9rem;font-weight:900;color:var(--gd);}'
+    +'.tot .sig.filled{font-size:1rem;font-weight:900;color:var(--gd);text-align:center;line-height:18px;}'
     +'.foot{margin-top:12px;font-size:.78rem;color:#6a736a;font-weight:600;font-style:italic;}'
     +'.tot{display:flex;align-items:flex-end;gap:10px;margin-top:14px;font-size:.95rem;font-weight:800;color:#1c1c1c;}'
     +'.tot .sig{flex:0 0 190px;border-bottom:1.5px solid var(--box);height:20px;}'
@@ -2997,8 +3012,10 @@ function printLowGrossSheet(){
     +'<th style="width:8%">#</th><th style="width:47%">Name</th>'
     +'<th style="width:18%">Index</th><th style="width:27%">In / Paid</th>'
     +'</tr></thead><tbody>'+bodyHTML+'</tbody></table>'
-    +'<div class="foot">Sorted by handicap index, low to high.</div>'
-    +'<div class="tot"><span>Total collected:</span><span class="sig"></span>'
+    +'<div class="foot">Sorted by handicap index, low to high.'
+    +(nIn?' Checks are the players marked in on the app as of '+esc(asOf)+'.':'')+'</div>'
+    +'<div class="tot"><span>Total collected:</span>'
+    +(nIn?'<span class="sig filled">$'+(nIn*ENTRY).toFixed(2)+'</span>':'<span class="sig"></span>')
     +'<span style="margin-left:auto">Low gross winner:</span><span class="sig"></span></div>'
     +'</div><script>setTimeout(function(){try{window.focus();window.print();}catch(e){}},600);<\/script>'
     +'</body></html>';
