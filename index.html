@@ -1026,6 +1026,15 @@ let activeRoundStart=null; // startedAt of the live round; scopes the remembered
 let myGroup=null, viewMode='myFoursome', groupsRef=null; // foursome isolation state
 let playerOrder={}, orderRef=null;  // {pid: n} - display order WITHIN a group
 let noShows={}, noShowRef=null; // no-show tracking {pid: true}
+// WD (withdrew mid-round), added 9/26/2026 after Bob Chacon left Ojai after 9 and Chris had to
+// type 9s into his back nine.  {pid:true} at sgf/activeRound/wd.  The holes he DID score stay
+// live; every hole he did NOT score is withdrawn: out of Low Net and Low Gross entirely, out of
+// the skins field on those holes only (front-nine skins still count), entry stays in the pot.
+// The sheet still gets a 9 on each withdrawn hole so LOW.NET can't rank him on half a card.
+let wds={}, wdRef=null;
+const WD_SHEET_SCORE=9;
+function isWD(pid){ return !!(wds&&wds[pid]); }
+function wdHolesPlayed(pid){ return HOLES.filter(h=>scores[pid]&&scores[pid][h]!=null).length; }
 let lowGross={}, lowGrossRef=null, lbMode='net'; // Low Gross side game: {pid:true} = paid the buy-in
 const LOW_GROSS_ENTRY=5;                          // $5.00, winner takes all
 let payments={}, paymentsRef=null; // settle-up: {pid:{in:'venmo',out:'cash'}}
@@ -1483,6 +1492,7 @@ function joinRound(){
     listenForClosieUpdates();
     listenForGroupUpdates();
     listenForNoShowUpdates();
+    listenForWDUpdates();
     listenForPaymentUpdates();
     listenForLowGrossUpdates();
     listenForOrderUpdates();
@@ -1754,6 +1764,7 @@ async function startRound(){
     listenForClosieUpdates();
     listenForGroupUpdates();
     listenForNoShowUpdates();
+    listenForWDUpdates();
     listenForPaymentUpdates();
     listenForLowGrossUpdates();
     listenForOrderUpdates();
@@ -2082,6 +2093,7 @@ async function openResultsLink(key){
     Object.keys(data.closies||{}).forEach(h=>{ closies[parseInt(h)]=data.closies[h]; });
     payments=data.payments||{};
     lowGross=data.lowGross||{};
+    wds=data.wd||{};
     noShows={}; playerOrder={};
     pars=data.pars&&data.pars.length?data.pars:pars;
     strokeIndex=data.strokeIndex&&data.strokeIndex.length?data.strokeIndex:strokeIndex;
@@ -2271,7 +2283,7 @@ async function endRound(){
             course:data.course||'', date:data.date||'', sheetId:data.sheetId||'', code:data.code||'', endedAt:Date.now(),
             players:data.players||[], scores:data.scores||{}, pars:data.pars||[], strokeIndex:data.strokeIndex||[],
             closies:data.closies||{}, moneySetup:data.moneySetup||null, payments:data.payments||{}, lowGross:data.lowGross||{},
-            groups:data.groups||{}
+            groups:data.groups||{}, wd:data.wd||{}
           });
           window.__lastResultsKey=archRef.key;
           // Rounds are NOT trimmed any more (it used to keep 20).  One round is about 10KB,
@@ -2279,7 +2291,7 @@ async function endRound(){
         }
       }catch(e){ console.log('Backup before end round failed:',e); }
       await firebase.database().ref('sgf/activeRound').remove();
-      players=[];scores={};payments={};lowGross={};playerOrder={};
+      players=[];scores={};payments={};lowGross={};playerOrder={};wds={};
       renderPlayerList();
       showScreen('screen-setup');
       applyAdminUI();
@@ -2743,11 +2755,14 @@ function lgCardOff(a,b){
 function rankLowGross(){
   const rows=lowGrossEntrants().map(p=>{
     const done=HOLES.filter(h=>scores[p.id]&&scores[p.id][h]!=null);
-    if(!done.length) return {p,hp:0,gross:null,toPar:null};
+    const wd=isWD(p.id);   // his $5 stays in the pot, but he can't win it on part of a card
+    if(!done.length) return {p,hp:0,gross:null,toPar:null,wd};
     const gross=done.reduce((s,h)=>s+scores[p.id][h],0);
     const parPlayed=done.reduce((s,h)=>s+(pars[h-1]||4),0);
-    return {p,hp:done.length,gross,toPar:gross-parPlayed};
+    return {p,hp:done.length,gross,toPar:gross-parPlayed,wd};
   }).sort((a,b)=>{
+    if(a.wd!==b.wd) return a.wd?1:-1;
+    if(a.wd&&b.wd) return String(a.p.name).localeCompare(String(b.p.name));
     if(!a.hp&&!b.hp) return String(a.p.name).localeCompare(String(b.p.name));
     if(!a.hp) return 1; if(!b.hp) return -1;
     if(a.toPar!==b.toPar) return a.toPar-b.toPar;
@@ -2758,21 +2773,21 @@ function rankLowGross(){
   // and only two cards identical on all 18 holes share a position.
   rows.forEach((r,i)=>{
     const prev=rows[i-1];
-    const same=prev&&r.hp&&prev.hp===r.hp&&prev.toPar===r.toPar&&lgCardOff(prev.p,r.p).d===0;
+    const same=prev&&!r.wd&&!prev.wd&&r.hp&&prev.hp===r.hp&&prev.toPar===r.toPar&&lgCardOff(prev.p,r.p).d===0;
     r.rank=same?prev.rank:i+1;
     r.tbWinner=false; r.tbHole=null; r.split=false;
   });
   // Every man who beats the next tied man on the card-off gets "TB: Low H#".
   rows.forEach((r,i)=>{
-    if(!r.hp) return;
+    if(!r.hp||r.wd) return;
     const nxt=rows[i+1];
-    if(!nxt||!nxt.hp||nxt.toPar!==r.toPar||nxt.hp!==r.hp) return;  // no tie (or mid-round, holes played decides)
+    if(!nxt||!nxt.hp||nxt.wd||nxt.toPar!==r.toPar||nxt.hp!==r.hp) return;  // no tie (or mid-round, holes played decides)
     const c=lgCardOff(r.p,nxt.p);
     if(c.d===0){ r.split=true; nxt.split=true; }
     else { r.tbWinner=true; r.tbHole=c.h; }
   });
-  const scored=rows.filter(r=>r.hp);
-  const final=rows.length>0&&rows.every(r=>r.hp===18);
+  const scored=rows.filter(r=>r.hp&&!r.wd);
+  const final=rows.length>0&&rows.every(r=>r.hp===18||r.wd);
   let winners=[];
   if(scored.length){
     const top=scored[0];
@@ -2826,6 +2841,7 @@ function setAllLowGross(on){
 
 // Summary line for a Low Gross row: "Gross 78 (+6) · Thru 14 · TB: Low H7"
 function lgMeta(r){
+  if(r.wd) return 'WD thru '+r.hp+(r.hp?' &middot; Gross '+r.gross:'');
   if(!r.hp) return 'No scores yet';
   return 'Gross '+r.gross+' ('+lgToPar(r.toPar)+') &middot; '+(r.hp===18?'F':'Thru '+r.hp)
     +(r.tbWinner?' &middot; TB: Low H'+r.tbHole:'')+(r.split?' &middot; identical cards':'');
@@ -2857,7 +2873,7 @@ function buildLowGrossView(){
     +'<button onclick="setAllLowGross(false)">Clear all</button></div>';
   html+='<div class="lb-card">'+sortPlayers(ap).map(p=>{
     const r=byId[p.id];
-    const score=r&&r.hp?(r.hp===18?String(r.gross):lgToPar(r.toPar)):'';
+    const score=r&&r.wd?'WD':(r&&r.hp?(r.hp===18?String(r.gross):lgToPar(r.toPar)):'');
     return '<button class="lg-row'+(r?' in':'')+'" onclick="toggleLowGross('+p.id+')" aria-pressed="'+(r?'true':'false')+'">'
       +'<span class="lg-box">'+(r?'&#10003;':'')+'</span>'
       +'<span class="lg-name">'+esc(p.name)+'</span>'
@@ -2876,6 +2892,10 @@ function buildLowGrossLB(){
   const head='<div class="lg-lb-head">&#9971; '+R.rows.length+' in &middot; '+lgMoney(R.pot)+' winner takes all</div>';
   const rowsHTML=R.rows.map(r=>{
     const p=r.p;
+    if(r.wd){
+      return '<div class="lb-row" style="opacity:0.6;" onclick="openPlayerScorecard('+p.id+')"><div class="lb-pos">&mdash;</div><div class="lb-info"><div class="lb-name">'
+        +esc(p.name)+'<span class="lb-closie-badge" style="background:#ffe0e0;border-color:#e08080;color:#a00;">WD</span></div><div class="lb-holes">'+lgMeta(r)+' &middot; Idx '+lgIdx(p)+'</div></div><div class="lb-inc">'+(r.hp?r.gross:'&mdash;')+'</div></div>';
+    }
     if(!r.hp){
       return '<div class="lb-row" onclick="openPlayerScorecard('+p.id+')"><div class="lb-pos">&mdash;</div><div class="lb-info"><div class="lb-name">'
         +esc(p.name)+'</div><div class="lb-holes">No scores &middot; Idx '+lgIdx(p)+'</div></div><div class="lb-inc">&mdash;</div></div>';
@@ -3280,7 +3300,8 @@ function buildTable(){
     const excluded=p.closieOnly||p.playType==='closie'||p.playType==='guest';
     const excludedBadge=excluded?`<span class="excluded-badge">${p.playType==='guest'?'OPT':'C'}</span>`:'';
     const nameCls=excluded?'td-name-excluded':'';
-    const nsBadge=isNS?'<span class="ns-badge">NS</span>':'';
+    const isWDp=!isNS&&isWD(p.id);
+    const nsBadge=isNS?'<span class="ns-badge">NS</span>':(isWDp?'<span class="ns-badge">WD</span>':'');
     const cellDisabled=(readOnly||isNS);
     const nameHTML=commaIdx>-1
       ?`<div class="td-name-last ${nameCls}">${esc(rawName.slice(0,commaIdx).trim())}${excludedBadge}${nsBadge}</div><div class="td-name-first">${esc(rawName.slice(commaIdx+1).trim())}</div>`
@@ -3291,7 +3312,9 @@ function buildTable(){
         const svNum=sv!==''?parseInt(sv):null;
         const hsi=strokeIndex[HOLES.indexOf(h)]||HOLES.indexOf(h)+1;
         const inner=scoreBtnInner(svNum!==null?svNum:null,p.hcp||0,hsi);
-        return`<td class="td-score"><button class="score-btn ${inner.hasNet?'has-net ':''}${sCls(svNum,ps[i])}" data-pid="${p.id}" data-hole="${h}" ${cellDisabled?'disabled':`onclick="openScorePad(${p.id},${h})"`}>${inner.html}</button></td>`;
+        // A withdrawn hole reads WD and can't be tapped; a hole he DID score stays editable.
+        const wdHole=isWDp&&svNum===null;
+        return`<td class="td-score"><button class="score-btn ${inner.hasNet?'has-net ':''}${sCls(svNum,ps[i])}" data-pid="${p.id}" data-hole="${h}" ${(cellDisabled||wdHole)?'disabled':`onclick="openScorePad(${p.id},${h})"`}>${wdHole?'WD':inner.html}</button></td>`;
       }).join('')+
       `<td class="td-sub" id="sub-${p.id}">${isNS?'NS':subTotHTML(p,holes)}</td>${activeNine==='back'?`<td class="td-sub" id="gtot-${p.id}">${isNS?'NS':subTotHTML(p,HOLES)}</td>`:''}<td class="td-total ${vCls}" id="vp-${p.id}">${vpStr}</td>`;
     tbody.appendChild(tr);
@@ -3417,6 +3440,15 @@ function listenForNoShowUpdates(){
     if(document.getElementById('screen-scoring').classList.contains('active')) buildTable();
   });
 }
+function listenForWDUpdates(){
+  if(!db) return;
+  if(wdRef) wdRef.off('value');
+  wdRef=firebase.database().ref('sgf/activeRound/wd');
+  wdRef.on('value', snap=>{
+    wds=snap.val()||{};
+    repaintActiveScreen();   // WD moves the leaderboard, skins, Low Gross and Payouts, not just the card
+  });
+}
 
 let playerOverridesRef=null, playerOverridesData={};
 // Manual edits made in Manage Players (tee / course handicap / play type).  Kept in a module
@@ -3522,6 +3554,30 @@ function toggleNoShow(pid){
   } else {
     noShows[pid]=true;
     if(db) firebase.database().ref('sgf/activeRound/noShows/'+pid).set(true);
+  }
+  buildTable();
+  openManageGroups();
+}
+
+function toggleWD(pid){
+  if (spectatorBlocked_()) return;
+  if(!isAdmin){ alert('Only the round admin can mark a player WD.'); return; }
+  pid=parseInt(pid);
+  const p=players.find(x=>x.id===pid);
+  const nm=p?String(p.name||'').trim():'this player';
+  if(isWD(pid)){
+    if(!confirm('Put '+nm+' back in the round?\n\nHis unscored holes go back to blank and he returns to Low Net, Low Gross and skins.')) return;
+    delete wds[pid];
+    if(db) firebase.database().ref('sgf/activeRound/wd/'+pid).remove();
+  } else {
+    const hp=wdHolesPlayed(pid);
+    if(!confirm('Mark '+nm+' WD after '+hp+' hole'+(hp!==1?'s':'')+'?\n\n'
+      +'• Out of Low Net and Low Gross\n'
+      +'• Keeps any skins on holes he scored; out of skins on the rest\n'
+      +'• His entry stays in the pot\n'
+      +'• The sheet gets a '+WD_SHEET_SCORE+' on each hole he didn\'t score')) return;
+    wds[pid]=true;
+    if(db) firebase.database().ref('sgf/activeRound/wd/'+pid).set(true);
   }
   buildTable();
   openManageGroups();
@@ -3746,6 +3802,7 @@ function openManageGroups(){
         ${arrows(p)}
         <select onchange="reassignGroup(${p.id},this.value)" style="padding:5px 8px;border-radius:6px;border:1.5px solid #b8ddb5;font-weight:800;flex-shrink:0;font-size:0.82rem;" title="Group">${grpOpts}</select>
         <button class="${nsBtnCls}" onclick="toggleNoShow(${p.id})" style="flex-shrink:0;" title="No Show">${nsBtnTxt}</button>
+        ${isNS?'':`<button class="ns-toggle-btn${isWD(p.id)?' is-ns':''}" onclick="toggleWD(${p.id})" style="flex-shrink:0;" title="Withdrew mid-round">${isWD(p.id)?'✅ WD':'WD'}</button>`}
       </div>
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;padding-left:2px;">
         <span style="font-size:0.65rem;font-weight:800;color:#4a7044;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">Game</span>
@@ -3764,7 +3821,7 @@ function openManageGroups(){
       <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:#1a5518;letter-spacing:1px;margin-bottom:8px;">${viewOnlyOrder?'Your Group Order':'Manage Players'}</div>
       <div style="font-size:0.82rem;color:#4a7044;margin-bottom:16px;font-weight:600;">${viewOnlyOrder
         ? 'Put these in the same order as your printed scorecard. Everyone sees the change.'
-        : 'Order · Group · No Show · Tee · HCP · Game Type — live on all devices.'}</div>
+        : 'Order · Group · No Show · WD · Tee · HCP · Game Type — live on all devices.'}</div>
       <div>${rows}</div>
       <div style="margin-top:14px;padding-top:12px;border-top:2px dashed #b8ddb5;display:${viewOnlyOrder?'none':'block'};">
         <button onclick="addNewPlayersFromSheet()" style="width:100%;padding:11px;background:linear-gradient(135deg,#1a6ea8,#0d3d5e);color:white;border:none;border-radius:9px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">🔄 Sync Players from Sheet</button>
@@ -4306,8 +4363,14 @@ function scorePadCommit(){
   const curBtn=document.querySelector(`.score-btn[data-pid="${padPid}"][data-hole="${padHole}"]`);
   if(curBtn)curBtn.classList.remove('sp-active');
   let nextPid=null,nextHole=padHole;
-  if(curIdx+1<tp.length){nextPid=tp[curIdx+1].id;}
-  else if(holeIdx+1<nine.length){nextHole=nine[holeIdx+1];nextPid=tp[0].id;}
+  // Walk to the next player/hole, stepping over a WD player's withdrawn (unscored) holes.
+  const wdSkip=(pid,h)=>isWD(pid)&&!(scores[pid]&&scores[pid][h]!=null);
+  let ci=curIdx,hi=holeIdx;
+  while(tp.length){
+    ci++;
+    if(ci>=tp.length){ci=0;hi++;if(hi>=nine.length)break;}
+    if(!wdSkip(tp[ci].id,nine[hi])){nextPid=tp[ci].id;nextHole=nine[hi];break;}
+  }
   if(nextPid===null){closeScorePad();return;}
   // Slide panel down, swap content, slide back up
   const panel=document.getElementById('score-pad-panel');
@@ -4356,7 +4419,8 @@ function buildLB(){
   function holeGross(pid,holeNum){return(scores[pid]&&scores[pid][holeNum]!=null)?scores[pid][holeNum]:999;}
 
   // Only full-fee players compete in Low Net; closie-only and no-games players shown separately
-  const competingPlayers=players.filter(p=>!p.closieOnly&&!noShows[p.id]);
+  const competingPlayers=players.filter(p=>!p.closieOnly&&!noShows[p.id]&&!isWD(p.id));
+  const wdPlayers=players.filter(p=>!p.closieOnly&&!noShows[p.id]&&isWD(p.id)&&p.name&&p.name.trim()!=='');
   const closieOnlyPlayers=players.filter(p=>p.closieOnly&&p.playType!=='guest'&&p.name&&p.name.trim()!=='');
   const noGamesPlayers=players.filter(p=>p.playType==='guest'&&p.name&&p.name.trim()!=='');
 
@@ -4444,7 +4508,14 @@ function buildLB(){
     return`<div class="lb-row" style="opacity:0.6;" onclick="openPlayerScorecard(${p.id})"><div class="lb-pos" style="font-size:0.9rem;color:#bbb;">—</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}<span class="lb-closie-badge" style="background:#888;">SCORES ONLY</span></div><div class="lb-holes">${thru}${gross!==null?' · Gross '+gross:''}</div></div><div class="lb-inc" style="font-size:0.82rem;color:#bbb;">${gross!==null?gross:'—'}</div></div>`;
   }).join('');
 
-  document.getElementById('lb-card').innerHTML=competingHTML+closieOnlyHTML+noGamesHTML;
+  // WD players: listed under the field, unranked, with the holes they did play
+  const wdHTML=wdPlayers.map(p=>{
+    const done=HOLES.filter(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
+    const gross=done.length?done.reduce((s,h)=>s+scores[p.id][h],0):null;
+    return`<div class="lb-row" style="opacity:0.6;" onclick="openPlayerScorecard(${p.id})"><div class="lb-pos" style="font-size:0.9rem;color:#bbb;">—</div><div class="lb-info"><div class="lb-name">${esc(p.name||'Player '+p.id)}<span class="lb-closie-badge" style="background:#ffe0e0;border-color:#e08080;color:#a00;">WD</span></div><div class="lb-holes">WD thru ${done.length}${gross!==null?' · Gross '+gross:''} · Hcp ${p.hcp||0}</div></div><div class="lb-inc" style="font-size:0.82rem;color:#bbb;">${gross!==null?gross:'—'}</div></div>`;
+  }).join('');
+
+  document.getElementById('lb-card').innerHTML=competingHTML+wdHTML+closieOnlyHTML+noGamesHTML;
 }
 
 /* ---- Player scorecard popup (added 2026-09-19) --------------------------
@@ -4558,18 +4629,27 @@ async function pushToSheets(silent=false){
   if(silent&&!anyScores){ console.log('Auto-push skipped: no scores in memory - refusing to blank the sheet'); return; }
   try{
     const payload={spreadsheetId:window.activeSheetId||'',players:players.filter(p=>!noShows[p.id]).map(p=>{
-      const frontFilled=FRONT.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
-      const backFilled=BACK.every(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
-      const outTotal=frontFilled?FRONT.reduce((s,h)=>s+scores[p.id][h],0):'';
-      const inTotal=backFilled?BACK.reduce((s,h)=>s+scores[p.id][h],0):'';
+      // A WD player's unscored holes go to the sheet as WD_SHEET_SCORE (9) so LOW.NET, which
+      // subtracts the FULL course handicap, can never rank him on half a card.  The app itself
+      // keeps them blank and excludes him properly.
+      const wdP=isWD(p.id);
+      const sv=h=>{
+        const v=scores[p.id]?scores[p.id][h]:null;
+        if(v!==null&&v!==undefined) return v;
+        return wdP?WD_SHEET_SCORE:'';
+      };
+      const frontFilled=FRONT.every(h=>sv(h)!=='');
+      const backFilled=BACK.every(h=>sv(h)!=='');
+      const outTotal=frontFilled?FRONT.reduce((s,h)=>s+sv(h),0):'';
+      const inTotal=backFilled?BACK.reduce((s,h)=>s+sv(h),0):'';
       return{
         name:p.name||`Player ${p.id}`,
         hcp:p.hcp||0,
         tee:p.tee||'',
-        out:FRONT.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:'').join(','),
-        in:BACK.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:'').join(','),
+        out:FRONT.map(sv).join(','),
+        in:BACK.map(sv).join(','),
         outTotal,inTotal,
-        holes:HOLES.map(h=>scores[p.id]&&scores[p.id][h]!==null?scores[p.id][h]:'')
+        holes:HOLES.map(sv)
       };
     })};
     const res=await postToScript(payload);
@@ -4796,7 +4876,8 @@ function buildPayoutsView(){
   const skinTotals={},skinWins={};
   skinCalcPlayers.forEach(p=>{skinTotals[p.id]=0;skinWins[p.id]=0;});
   // Shotgun-aware play order: find first all-scored hole after a gap, process from there
-  const _pAH=h=>skinCalcPlayers.every(p=>scores[p.id]&&scores[p.id][h]!=null);
+  const _pAHset=skinCalcPlayers.filter(p=>!isWD(p.id));
+  const _pAH=h=>(_pAHset.length>=2?_pAHset:skinCalcPlayers).every(p=>scores[p.id]&&scores[p.id][h]!=null);
   let _pStart=1;
   for(let s=1;s<=18;s++){if(_pAH(s)&&!_pAH(s===1?18:s-1)){_pStart=s;break;}}
   const _pOrder=Array.from({length:18},(_,i)=>((_pStart-1+i)%18)+1);
@@ -4909,7 +4990,7 @@ function buildPayoutsView(){
 
   // ── LOW NET ───────────────────────────────────────────────────────────────
   function holeGrossFF(pid,holeNum){return(scores[pid]&&scores[pid][holeNum]!=null)?scores[pid][holeNum]:999;}
-  const netRanked=fullFeePlayers.map(p=>{
+  const netRanked=fullFeePlayers.filter(p=>!isWD(p.id)).map(p=>{
     const hcp=p.hcp||0;
     const done=HOLES.filter(h=>scores[p.id]&&scores[p.id][h]!==null&&scores[p.id][h]!==undefined);
     const hp=done.length;
@@ -5073,8 +5154,8 @@ function buildPayoutsView(){
       const parPlayed=done.reduce((s,h)=>s+(pars[h-1]||4),0);
       return{p,hcp,hp:done.length,toPar:net-parPlayed};
     };
-    const comp=scored.filter(p=>!p.closieOnly).map(scRow).sort((a,b)=>a.toPar-b.toPar||b.hp-a.hp);
-    const rest=scored.filter(p=>p.closieOnly).map(scRow).sort((a,b)=>a.toPar-b.toPar||b.hp-a.hp);
+    const comp=scored.filter(p=>!p.closieOnly&&!isWD(p.id)).map(scRow).sort((a,b)=>a.toPar-b.toPar||b.hp-a.hp);
+    const rest=scored.filter(p=>p.closieOnly||isWD(p.id)).map(scRow).sort((a,b)=>a.toPar-b.toPar||b.hp-a.hp);
     let scRank=0,scPrev=null;
     comp.forEach((r,i)=>{ if(scPrev===null||r.toPar!==scPrev){scRank=i+1;scPrev=r.toPar;} r.rank=scRank; });
     const parTot=pars.reduce((s,v)=>s+(v||0),0);
@@ -5087,7 +5168,7 @@ function buildPayoutsView(){
       return `<span class="pm-chip pm-tee pm-tee-${known.includes(k)?k:'default'}${t.length>4?' pm-tee-long':''}">${esc(t)}</span>`;
     };
     const cell=r=>`<td class="sc-rank">${r.rank||'&mdash;'}</td>
-        <td class="sc-name">${esc(r.p.name)}${r.p.playType==='guest'?'<span class="lb-closie-badge" style="background:#f0f0f0;border-color:#bbb;color:#666;">NO $</span>':(r.p.closieOnly?'<span class="lb-closie-badge">CLOSIES</span>':'')}</td>
+        <td class="sc-name">${esc(r.p.name)}${isWD(r.p.id)?'<span class="lb-closie-badge" style="background:#ffe0e0;border-color:#e08080;color:#a00;">WD</span>':''}${r.p.playType==='guest'?'<span class="lb-closie-badge" style="background:#f0f0f0;border-color:#bbb;color:#666;">NO $</span>':(r.p.closieOnly?'<span class="lb-closie-badge">CLOSIES</span>':'')}</td>
         <td class="sc-tee">${teeChip(r.p)}</td>
         <td class="sc-hcp">${r.hcp||'&mdash;'}</td>
         <td>${subTotHTML(r.p,FRONT)}</td>
@@ -5211,7 +5292,8 @@ function buildSkinsView(){
   const skinTotals={},skinWins={};
   skinAp.forEach(p=>{skinTotals[p.id]=0;skinWins[p.id]=0;});
   // Shotgun-aware play order: find first all-scored hole after a gap, process from there
-  const _sAH=h=>skinAp.every(p=>scores[p.id]&&scores[p.id][h]!=null);
+  const _sAHset=skinAp.filter(p=>!isWD(p.id));
+  const _sAH=h=>(_sAHset.length>=2?_sAHset:skinAp).every(p=>scores[p.id]&&scores[p.id][h]!=null);
   let _sStart=1;
   for(let s=1;s<=18;s++){if(_sAH(s)&&!_sAH(s===1?18:s-1)){_sStart=s;break;}}
   const _sOrder=Array.from({length:18},(_,i)=>((_sStart-1+i)%18)+1);
@@ -5280,9 +5362,13 @@ function skinParticipation(playersArr, order){
   });
   const vals = playersArr.map(p=>lastPos[p.id]);
   const fieldMax = vals.length ? Math.max(...vals) : -1;
-  const stalled = playersArr.filter(p => (fieldMax - lastPos[p.id]) >= SKIN_STALL_GAP);
+  // A WD player is never "stalled" (nobody is waiting on him) and is in the field ONLY on the
+  // holes he actually scored - so a front-nine skin he won still stands.
+  const stalled = playersArr.filter(p => !isWD(p.id) && (fieldMax - lastPos[p.id]) >= SKIN_STALL_GAP);
   // in the field for the hole at play-order position i?
-  const inAt = (p,i) => lastPos[p.id] >= i || (fieldMax - lastPos[p.id]) < SKIN_STALL_GAP;
+  const inAt = (p,i) => isWD(p.id)
+    ? !!(scores[p.id] && scores[p.id][order[i]]!=null)
+    : (lastPos[p.id] >= i || (fieldMax - lastPos[p.id]) < SKIN_STALL_GAP);
   const holeOf = i => order[i];
   return { lastPos, fieldMax, stalled, inAt, holeOf };
 }
