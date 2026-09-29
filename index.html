@@ -5342,6 +5342,16 @@ function buildPayoutsView(){
     // Add low net (reconciled amounts)
     if(lowNet1st&&actualLowNet1>0) totals[lowNet1st.id]=(totals[lowNet1st.id]||0)+actualLowNet1;
     if(lowNet2nd&&actualLowNet2>0) totals[lowNet2nd.id]=(totals[lowNet2nd.id]||0)+actualLowNet2;
+    // Add Low Gross (9/29/26): the $5 side pot is collected separately, but the winner is
+    // handed it with everything else, so it belongs in his total -- Settle Up, the payment
+    // sheet and Save to Sheet all read these totals.  Only once the result is final.
+    try{
+      const LG=rankLowGross();
+      if(LG.final&&LG.winners.length&&LG.pot>0){
+        const share=Math.round(LG.pot/LG.winners.length*100)/100;
+        LG.winners.forEach(w=>{ totals[w.p.id]=Math.round(((totals[w.p.id]||0)+share)*100)/100; });
+      }
+    }catch(e){ console.log('Low Gross total skipped:',e.message); }
 
     window.__payoutTotals=totals;
     const winners=ap.filter(p=>totals[p.id]>0).sort((a,b)=>totals[b.id]-totals[a.id]);
