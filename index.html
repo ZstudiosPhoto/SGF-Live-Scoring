@@ -530,6 +530,25 @@
   .gf-box{font-family:'Nunito',sans-serif;font-weight:800;font-size:0.8rem;padding:7px 8px;min-height:36px;
     border-radius:8px;border:1.5px solid #cfd8ce;background:#fbfdfb;color:#2c4a2b;flex:1;min-width:0;text-align:center;}
   .gf-box.set{border-color:#7fae7a;background:linear-gradient(135deg,#eaf5e8,#dcefd9);color:#1a4a1a;}
+  /* Split payment: one payment made up of more than one method (e.g. $52 cash + $100 Venmo). */
+  .mchip.split{flex:0.9;}
+  .mchip.split.on{background:linear-gradient(135deg,#6b3fa0,#46256e);border-color:#46256e;color:#fff;}
+  .split-ed{margin-top:7px;border:1.5px solid #b9a3d6;background:#f8f4fd;border-radius:10px;padding:8px 9px 9px;}
+  .split-ttl{font-size:0.62rem;font-weight:900;letter-spacing:0.7px;text-transform:uppercase;color:#5a3a86;margin-bottom:4px;}
+  .split-ln{display:flex;align-items:center;gap:6px;margin-top:5px;}
+  .split-ln span{font-family:'Nunito',sans-serif;font-weight:800;font-size:0.8rem;color:#3c3050;min-width:52px;}
+  .split-box{font-family:'Nunito',sans-serif;font-weight:800;font-size:0.85rem;padding:7px 8px;min-height:36px;
+    border-radius:8px;border:1.5px solid #cbbde0;background:#fff;color:#2c1f40;flex:1;min-width:0;text-align:center;}
+  .split-box:focus{outline:none;border-color:#6b3fa0;}
+  .split-sum{font-size:0.72rem;font-weight:800;margin-top:7px;padding:5px 8px;border-radius:7px;line-height:1.4;}
+  .split-sum.bad{color:#8a6d1f;background:#fff9e0;border:1px solid #f0cc70;}
+  .split-sum.good{color:#2c6b26;background:#e9f6e7;border:1px solid #a9d9a4;}
+  .split-btns{display:flex;gap:6px;margin-top:8px;}
+  .split-btns button{font-family:'Nunito',sans-serif;font-weight:800;font-size:0.78rem;min-height:36px;border-radius:8px;
+    padding:7px 10px;cursor:pointer;flex:1;border:1.5px solid #cfd8ce;background:#fff;color:#4a4a4a;}
+  .split-btns button.go{background:linear-gradient(135deg,#6b3fa0,#46256e);border-color:#46256e;color:#fff;}
+  .split-btns button.go:disabled{opacity:0.45;cursor:default;}
+  .split-btns button.rm{color:#a33;border-color:#e2b4b4;}
 </style>
 </head>
 <body>
@@ -2432,23 +2451,211 @@ function listenForPaymentUpdates(){
     payments=snap.val()||{};
     // A repaint mid-typing would blow away the manual amount box, so hold off while it has focus.
     const ae=document.activeElement;
-    if(ae&&ae.classList&&(ae.classList.contains('amt-box')||ae.classList.contains('fee-box')||ae.classList.contains('gf-box'))) return;
+    if(ae&&ae.classList&&(ae.classList.contains('amt-box')||ae.classList.contains('fee-box')||ae.classList.contains('gf-box')||ae.classList.contains('split-box'))) return;
     if(document.getElementById('screen-settle').classList.contains('active')) buildSettleView();
   });
 }
 
 // Tap a chip to set it, tap the same chip again to clear it.
+// Picking a single method also throws away any split that was on that line.
 function setPayMethod(pid,field,method){
   if(!isAdmin||window.isSpectator) return;
   const cur=(payments[pid]||{})[field]||null;
   const val=(cur===method)?null:method;
   if(!payments[pid]) payments[pid]={};
   if(val===null) delete payments[pid][field]; else payments[pid][field]=val;
+  delete payments[pid][field+'Split'];
+  closeSplit(pid,field);
   buildSettleView();                      // repaint now; Firebase confirms behind it
   if(db){
-    try{ firebase.database().ref('sgf/activeRound/payments/'+pid+'/'+field).set(val); }
+    try{
+      const upd={}; upd[field]=val; upd[field+'Split']=null;
+      firebase.database().ref('sgf/activeRound/payments/'+pid).update(upd);
+    }
     catch(e){ console.log('Payment write failed:',e.message); }
   }
+}
+
+// ── SPLIT PAYMENTS ───────────────────────────────────────────────────────────
+// Sunset Hills: Nick Nickson won $152 and got $52 in cash plus $100 by Venmo.  One chip
+// could not say that.  A split is stored as  in/out:'split'  plus  inSplit/outSplit:
+// {cash:'52.00', venmo:'100.00'}.  Keeping in/out truthy means every "has he paid /
+// been paid" count keeps working without knowing splits exist.
+let splitDraft={};   // 'pid|field' -> {cash:'52', venmo:'100', ...} while the editor is open
+
+function splitKey(pid,field){ return pid+'|'+field; }
+function closeSplit(pid,field){ delete splitDraft[splitKey(pid,field)]; }
+
+function money(n){
+  n=parseFloat(n)||0;
+  return '$'+(Math.abs(n-Math.round(n))<0.005?String(Math.round(n)):n.toFixed(2));
+}
+
+// The split for one line, as [{k,l,amt}], in chip order, zero amounts dropped.
+function splitParts(pay,field){
+  const s=(pay&&pay[field]==='split')?(pay[field+'Split']||{}):null;
+  if(!s) return [];
+  return PAY_METHODS.filter(m=>parseFloat(s[m.k])>0).map(m=>({k:m.k,l:m.l,amt:parseFloat(s[m.k])}));
+}
+function splitTotal(pay,field){ return splitParts(pay,field).reduce((t,x)=>t+x.amt,0); }
+
+// "Cash $52 + Venmo $100" for a split, otherwise just the method name.
+function payHowLabel(pay,field){
+  if(!pay||!pay[field]) return '';
+  if(pay[field]==='split'){
+    const parts=splitParts(pay,field);
+    return parts.length?parts.map(x=>x.l+' '+money(x.amt)).join(' + '):'Split';
+  }
+  return methodLabel(pay[field]);
+}
+
+// What the split has to add up to.  Paid back: what he won.  Paid in: games + SGF fee
+// + green fee, i.e. everything he handed over.
+function splitTarget(pid,field){
+  if(field==='out') return (window.__payoutTotals||{})[pid]||0;
+  return (parseFloat(payAmountOf(pid))||0)+(parseFloat(feeAmountOf(pid))||0)+(parseFloat(greenFeeOf(pid))||0);
+}
+
+function openSplit(pid,field){
+  if(!isAdmin||window.isSpectator) return;
+  const key=splitKey(pid,field);
+  if(splitDraft[key]){ delete splitDraft[key]; buildSettleView(); return; }   // tap again = close
+  const pay=payments[pid]||{};
+  const d={};
+  if(pay[field]==='split'){
+    splitParts(pay,field).forEach(x=>{ d[x.k]=String(+x.amt.toFixed(2)); });
+  }else if(pay[field]){
+    const t=splitTarget(pid,field);          // start from what is ticked, full amount
+    if(t>0) d[pay[field]]=String(+t.toFixed(2));
+  }
+  splitDraft[key]=d;
+  buildSettleView();
+  const first=document.getElementById('splitbox-'+pid+'-'+field+'-'+(Object.keys(d)[0]||'cash'));
+  if(first){ first.focus(); if(first.select) first.select(); }
+}
+
+function draftTotal(d){ return Object.keys(d||{}).reduce((t,k)=>t+(parseFloat(d[k])||0),0); }
+
+// Paid back must match what he won to the penny.  Paid in only warns -- guys round up,
+// throw in an extra buck, and the amount boxes above can be fixed afterwards.
+function splitSumHTML(pid,field,d){
+  const t=draftTotal(d), target=splitTarget(pid,field);
+  const used=Object.keys(d).filter(k=>parseFloat(d[k])>0).length;
+  const diff=+(target-t).toFixed(2);
+  if(!(target>0)) return '<div class="split-sum good" id="splitsum-'+pid+'-'+field+'">Total '+money(t)+'</div>';
+  if(Math.abs(diff)<0.005){
+    return '<div class="split-sum '+(used>=2?'good':'bad')+'" id="splitsum-'+pid+'-'+field+'">Total '+money(t)+' of '+money(target)
+      +(used>=2?' &#10003;':' &mdash; enter at least two methods')+'</div>';
+  }
+  return '<div class="split-sum bad" id="splitsum-'+pid+'-'+field+'">Total '+money(t)+' of '+money(target)
+    +' &mdash; '+(diff>0?money(diff)+' still to go':money(-diff)+' too much')+'</div>';
+}
+function splitCanSave(pid,field,d){
+  const used=Object.keys(d).filter(k=>parseFloat(d[k])>0).length;
+  if(used<2) return false;
+  if(field!=='out') return true;
+  return Math.abs(draftTotal(d)-splitTarget(pid,field))<0.005;
+}
+
+// Typing only updates the draft and the running total -- no repaint, so the keyboard stays up.
+function onSplitInput(pid,field,k,raw){
+  const d=splitDraft[splitKey(pid,field)]; if(!d) return;
+  const v=String(raw==null?'':raw).replace(/[^0-9.]/g,'');
+  if(v==='') delete d[k]; else d[k]=v;
+  const sum=document.getElementById('splitsum-'+pid+'-'+field);
+  if(sum) sum.outerHTML=splitSumHTML(pid,field,d);
+  const btn=document.getElementById('splitgo-'+pid+'-'+field);
+  if(btn) btn.disabled=!splitCanSave(pid,field,d);
+}
+
+// Fill whatever is left over into one method -- type $52 cash, tap "Rest" on Venmo, done.
+function splitFillRest(pid,field,k){
+  const d=splitDraft[splitKey(pid,field)]; if(!d) return;
+  const others=Object.keys(d).filter(x=>x!==k).reduce((t,x)=>t+(parseFloat(d[x])||0),0);
+  const rest=+(splitTarget(pid,field)-others).toFixed(2);
+  if(rest>0) d[k]=String(rest); else delete d[k];
+  buildSettleView();
+}
+
+function saveSplit(pid,field){
+  if(!isAdmin||window.isSpectator) return;
+  const key=splitKey(pid,field), d=splitDraft[key]; if(!d) return;
+  if(!splitCanSave(pid,field,d)) return;
+  if(field!=='out'){
+    const t=draftTotal(d), target=splitTarget(pid,field);
+    if(target>0&&Math.abs(t-target)>=0.005&&
+       !confirm('This split adds up to '+money(t)+' but games + fees come to '+money(target)+'.\n\nSave it anyway?')) return;
+  }
+  const s={};
+  PAY_METHODS.forEach(m=>{ const n=parseFloat(d[m.k]); if(n>0) s[m.k]=n.toFixed(2); });
+  if(!payments[pid]) payments[pid]={};
+  payments[pid][field]='split';
+  payments[pid][field+'Split']=s;
+  delete splitDraft[key];
+  buildSettleView();
+  if(db){
+    try{
+      const upd={}; upd[field]='split'; upd[field+'Split']=s;
+      firebase.database().ref('sgf/activeRound/payments/'+pid).update(upd);
+    }
+    catch(e){ console.log('Split write failed:',e.message); }
+  }
+}
+
+function removeSplit(pid,field){
+  if(!isAdmin||window.isSpectator) return;
+  const pay=payments[pid]||{};
+  closeSplit(pid,field);
+  if(pay[field]==='split'){
+    delete pay[field]; delete pay[field+'Split'];
+    if(db){
+      try{ const upd={}; upd[field]=null; upd[field+'Split']=null;
+        firebase.database().ref('sgf/activeRound/payments/'+pid).update(upd); }
+      catch(e){ console.log('Split clear failed:',e.message); }
+    }
+  }
+  buildSettleView();
+}
+
+// The chip row for Paid in / Paid back, with the Split chip on the end and, when open,
+// the editor underneath it.
+function payChipsHTML(p,pay,field){
+  const back=field==='out';
+  const isSplit=pay[field]==='split';
+  const parts=isSplit?splitParts(pay,field):[];
+  let h=PAY_METHODS.map(m=>{
+    const on=pay[field]===m.k||parts.some(x=>x.k===m.k);
+    return '<button class="mchip'+(back?' back':'')+(on?' on':'')+'" onclick="setPayMethod('+p.id+',\''+field+'\',\''+m.k+'\')">'+m.l+'</button>';
+  }).join('');
+  const open=!!splitDraft[splitKey(p.id,field)];
+  h+='<button class="mchip split'+((isSplit||open)?' on':'')+'" onclick="openSplit('+p.id+',\''+field+'\')">Split</button>';
+  return h;
+}
+
+function splitEditorHTML(p,field){
+  const d=splitDraft[splitKey(p.id,field)];
+  if(!d) return '';
+  const target=splitTarget(p.id,field);
+  const isSplit=(payments[p.id]||{})[field]==='split';
+  let h='<div class="split-ed"><div class="split-ttl">'
+    +(field==='out'?'Split his '+money(target)+' winnings':'Split what he paid in'+(target>0?' ('+money(target)+')':''))
+    +'</div>';
+  PAY_METHODS.forEach(m=>{
+    const v=d[m.k]===undefined?'':d[m.k];
+    h+='<div class="split-ln"><span>'+m.l+'</span>'
+      +'<input id="splitbox-'+p.id+'-'+field+'-'+m.k+'" class="split-box" type="text" inputmode="decimal" placeholder="$0" value="'+esc(v)+'"'
+      +' oninput="onSplitInput('+p.id+',\''+field+'\',\''+m.k+'\',this.value)">'
+      +(target>0?'<button class="mchip" style="flex:0 0 52px" onclick="splitFillRest('+p.id+',\''+field+'\',\''+m.k+'\')">Rest</button>':'')
+      +'</div>';
+  });
+  h+=splitSumHTML(p.id,field,d)
+    +'<div class="split-btns">'
+    +'<button onclick="closeSplit('+p.id+',\''+field+'\');buildSettleView()">Cancel</button>'
+    +(isSplit?'<button class="rm" onclick="removeSplit('+p.id+',\''+field+'\')">Remove split</button>':'')
+    +'<button class="go" id="splitgo-'+p.id+'-'+field+'"'+(splitCanSave(p.id,field,d)?'':' disabled')
+    +' onclick="saveSplit('+p.id+',\''+field+'\')">Save split</button>'
+    +'</div></div>';
+  return h;
 }
 
 function buildSettleView(){
@@ -2496,7 +2703,7 @@ function buildSettleView(){
   }else if(owed.length){
     html+='<div class="settle-todo">Still to pay: '+owed.map(p=>{
       const how=(payments[p.id]||{}).in;
-      return esc((p.name||'').split(',')[0].trim())+' $'+totals[p.id]+(how?' ('+methodLabel(how)+')':'');
+      return esc((p.name||'').split(',')[0].trim())+' $'+totals[p.id]+(how?' ('+esc(payHowLabel(payments[p.id],'in'))+')':'');
     }).join(' &middot; ')+'</div>';
   }else if(winners.length){
     html+='<div class="settle-done">&#9989; Everyone who won has been paid back.</div>';
@@ -2512,8 +2719,12 @@ function buildSettleView(){
       +'<div class="settle-hdr"><div class="settle-name">'+esc(p.name)+'</div>'
       +'<div class="settle-won'+(won>0?'':' zero')+'">'+(won>0?'$'+won:(scored?'&mdash;':''))+'</div></div>'
       +'<div class="settle-line"><span class="settle-lbl">Paid in</span>'
-      +PAY_METHODS.map(m=>'<button class="mchip'+(pay.in===m.k?' on':'')+'" onclick="setPayMethod('+p.id+',\'in\',\''+m.k+'\')">'+m.l+'</button>').join('')
-      +'</div>';
+      +payChipsHTML(p,pay,'in')
+      +'</div>'
+      +splitEditorHTML(p,'in');
+    if(pay.in==='split'&&!splitDraft[splitKey(p.id,'in')]){
+      html+='<div class="settle-hint ok">Paid in: '+esc(payHowLabel(pay,'in'))+'.</div>';
+    }
     // How much he handed over.  Preset amounts in the dropdown, "Other" reveals a box.
     // Green (.set) means the amount is confirmed: either it was explicitly chosen, OR a
     // paid-in method is ticked -- in which case the $30 default IS what gets recorded on
@@ -2554,14 +2765,24 @@ function buildSettleView(){
       +'</div>';
     if(showBack){
       html+='<div class="settle-line"><span class="settle-lbl">Paid back</span>'
-        +PAY_METHODS.map(m=>'<button class="mchip back'+(pay.out===m.k?' on':'')+'" onclick="setPayMethod('+p.id+',\'out\',\''+m.k+'\')">'+m.l+'</button>').join('')
-        +'</div>';
-      if(owes&&pay.in){
-        html+='<div class="settle-hint">He paid by '+methodLabel(pay.in)+' &mdash; send his $'+won+' back the same way.</div>';
+        +payChipsHTML(p,pay,'out')
+        +'</div>'
+        +splitEditorHTML(p,'out');
+      const splitOff=pay.out==='split'&&won>0&&Math.abs(splitTotal(pay,'out')-won)>=0.005;
+      if(splitDraft[splitKey(p.id,'out')]){
+        // editor is open -- its own running total says everything
+      }else if(owes&&pay.in){
+        html+='<div class="settle-hint">He paid by '+esc(payHowLabel(pay,'in'))+' &mdash; send his $'+won+' back the same way'
+          +(pay.in==='split'?'':' (tap Split if you pay it more than one way)')+'.</div>';
       }else if(owes){
         html+='<div class="settle-hint">Owed $'+won+' &mdash; nothing ticked yet.</div>';
+      }else if(splitOff){
+        html+='<div class="settle-hint">Paid back '+esc(payHowLabel(pay,'out'))+' = '+money(splitTotal(pay,'out'))
+          +', but he won $'+won+' &mdash; tap Split to fix.</div>';
+      }else if(pay.out==='split'){
+        html+='<div class="settle-hint ok">&#9989; Paid back: '+esc(payHowLabel(pay,'out'))+'.</div>';
       }else if(pay.out&&pay.in&&pay.out!==pay.in){
-        html+='<div class="settle-hint">Paid in by '+methodLabel(pay.in)+', paid back in '+methodLabel(pay.out)+'.</div>';
+        html+='<div class="settle-hint">Paid in by '+esc(payHowLabel(pay,'in'))+', paid back in '+methodLabel(pay.out)+'.</div>';
       }else if(pay.out){
         html+='<div class="settle-hint ok">&#9989; Paid back in '+methodLabel(pay.out)+'.</div>';
       }
@@ -2605,7 +2826,8 @@ async function pushSettleToSheet(sendEmail){
              amount:(pay.amt||pay.in)?payAmountOf(p.id):'',
              fee:(pay.fee||pay.in)?feeAmountOf(p.id):'',
              green:greenFeeOf(p.id),
-             paidIn:pay.in?methodLabel(pay.in):'', paidBack:pay.out?methodLabel(pay.out):''};
+             // A split goes to the sheet as "Cash $52 + Venmo $100" in the same column.
+             paidIn:payHowLabel(pay,'in'), paidBack:payHowLabel(pay,'out')};
     })
   };
 
@@ -3071,15 +3293,20 @@ function printPaymentSheet(){
     // Anything already ticked in Settle Up prints as a filled box, so the paper copy
     // is a record of what you did rather than a blank form.
     const pay=payments[p.id]||{};
+    // A split ticks every method it used; the amounts go in Notes.
+    const hit=(field,method)=>pay[field]===method||splitParts(pay,field).some(x=>x.k===method);
     const cell=(field,method,edge)=>'<td class="c-box'+(edge?' '+edge:'')+'"><span class="tick'
-      +(pay[field]===method?' ticked':'')+'">'+(pay[field]===method?'&#10003;':'')+'</span></td>';
+      +(hit(field,method)?' ticked':'')+'">'+(hit(field,method)?'&#10003;':'')+'</span></td>';
+    const notes=[];
+    if(pay.in==='split') notes.push('In: '+payHowLabel(pay,'in'));
+    if(pay.out==='split') notes.push('Back: '+payHowLabel(pay,'out'));
     bodyHTML+='<tr'+(n%2===0?' class="alt"':'')+'>'
       +'<td class="c-num">'+n+'</td>'
       +'<td class="c-name">'+esc(p.name)+'</td>'
       +cell('in','cash','grp-edge')+cell('in','venmo')+cell('in','zelle')+cell('in','apple')
       +'<td class="c-won">'+won+'</td>'
       +cell('out','cash')+cell('out','venmo')+cell('out','zelle')+cell('out','apple','grp-edge-r')
-      +'<td class="c-notes"></td></tr>';
+      +'<td class="c-notes" style="font-size:.66rem;font-weight:700">'+esc(notes.join(' · '))+'</td></tr>';
   });
   for(let extra=n;extra<MIN_ROWS;extra++){
     n++;
