@@ -418,6 +418,15 @@
   .hbh-tbl thead th{padding:3px 1px;font-size:0.6rem;}
   .hbh-tbl .hbh-name{text-align:left;padding-left:6px;font-size:0.62rem;font-weight:800;width:90px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .hbh-tbl .hbh-end{width:32px;}
+  /* Event-summary nines: Name | Index | CH | Tee on one line, score cells narrower and squarer.
+     Scoped to .hbh-meta so the single-player scorecard keeps its old look. */
+  .hbh-tbl.hbh-meta .hbh-name{width:40%;max-width:none;overflow:visible;}
+  .hbh-nmg{display:grid;grid-template-columns:minmax(0,80px) 24px 17px 27px;column-gap:1px;justify-content:start;align-items:center;}
+  @media (min-width:560px){.hbh-tbl.hbh-meta .hbh-name{width:24%;}}
+  .hbh-nmg .hbh-nt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .hbh-nmg .pm-chip{display:block;text-align:center;padding:2px 0;box-sizing:border-box;overflow:hidden;}
+  .hbh-nmg .hbh-lbl{font-size:0.5rem;font-weight:800;letter-spacing:.3px;text-align:center;color:#3f5c3d;text-transform:uppercase;}
+  .hbh-nmg .pm-idx.nh{background:#f1f1f1;color:#888;}
   /* Foursome divider -- the card reads group by group, the way the scoring screen does. */
   .hbh-tbl tr.hbh-grp td{background:var(--sgf-green-dark);color:#fff;text-align:left;padding:3px 7px;font-size:0.6rem;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;}
   .hbh-tbl tr.hbh-sub td{background:#eef3ee;color:#3f5c3d;font-weight:800;border-bottom:1px solid var(--border);}
@@ -5465,16 +5474,23 @@ function buildPayoutsView(){
         let label;
         if(ci>-1){ const fi=nm.slice(ci+1).trim().charAt(0); label=nm.slice(0,ci).trim()+(fi?', '+fi:''); }
         else { const w=nm.split(/\s+/); label=w.length>1?w.slice(1).join(' ')+', '+w[0].charAt(0):nm; }
-        body+=`<tr><td class="hbh-name" title="${esc(nm)}">${esc(label)}</td>${hCell(p)}${endCell(p,holeSet)}${withTot?endCell(p,HOLES):''}</tr>`;
+        const ix=String(p.index===0||p.index?p.index:'').trim();
+        const hasIx=ix!==''&&!isNaN(parseFloat(ix));
+        const chv=(p.hcp||p.hcp===0)?p.hcp:null;
+        const chTxt=(!hasIx||chv===null)?'&ndash;':(chv<0?'+'+Math.abs(chv):String(chv));
+        const metaCells=`<span class="pm-chip pm-idx${hasIx?'':' nh'}" title="Handicap Index">${hasIx?esc(ix):'NH'}</span>`
+          +`<span class="pm-chip pm-hcp" title="Course Handicap">${chTxt}</span>`
+          +`<span class="hbh-teecell" title="Tee played">${teeChip(p)}</span>`;
+        body+=`<tr><td class="hbh-name" title="${esc(nm)}"><div class="hbh-nmg"><span class="hbh-nt">${esc(label)}</span>${metaCells}</div></td>${hCell(p)}${endCell(p,holeSet)}${withTot?endCell(p,HOLES):''}</tr>`;
       });
       return `<div class="payout-section">
         <div class="payout-section-hdr">
           <span class="payout-section-title">${label}</span>
           ${parNine?`<span class="payout-pool-badge">Par ${parNine}</span>`:''}
         </div>
-        <div class="skins-tbl-wrap"><table class="skins-tbl hbh-tbl">
+        <div class="skins-tbl-wrap"><table class="skins-tbl hbh-tbl hbh-meta">
           <thead>
-            <tr><th class="hbh-name">Hole</th>${holeSet.map(h=>`<th>${h}</th>`).join('')}<th class="hbh-end">${endLabel}</th>${withTot?'<th class="hbh-end">TOT</th>':''}</tr>
+            <tr><th class="hbh-name"><div class="hbh-nmg"><span class="hbh-nt" style="text-align:left">Hole</span><span class="hbh-lbl">Idx</span><span class="hbh-lbl">CH</span><span class="hbh-lbl">Tee</span></div></th>${holeSet.map(h=>`<th>${h}</th>`).join('')}<th class="hbh-end">${endLabel}</th>${withTot?'<th class="hbh-end">TOT</th>':''}</tr>
           </thead>
           <tbody>
             <tr class="hbh-sub"><td class="hbh-name">Par</td>${holeSet.map(h=>`<td>${pars[h-1]||''}</td>`).join('')}<td>${parNine||''}</td>${withTot?`<td>${parAll||''}</td>`:''}</tr>
