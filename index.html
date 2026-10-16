@@ -4331,11 +4331,39 @@ async function addNewPlayersFromSheet(){
     });
     if(db&&(changed.length||newRows.length)) await firebase.database().ref('sgf/activeRound/players').set(players);
 
+    // ── PLAYERS TAKEN OFF THE SHEET → NO SHOW ─────────────────────
+    // Sync used to only ADD and UPDATE.  Replace a man on the sheet (10/16: Snyder out, Custer in)
+    // and the old name stayed in the round, still counted in the pot and on the card.  There is no
+    // delete for a live round, so anyone no longer on the sheet is marked No Show - the same
+    // reversible flag as the NS button in Manage Players.  Three safety rails:
+    //  1. an empty sheet read is ignored (never blank the field because of a bad fetch);
+    //  2. a man who already has a score entered is NOT touched - he is reported instead;
+    //  3. if more than half the field would go, assume the wrong sheet and touch nobody.
+    const removed=[], keptWithScores=[];
+    let removeBlocked='';
+    if(Object.keys(sheetByName).length){
+      const gone=players.filter(p=>{
+        const nm=String(p.name||'').trim();
+        return nm && !sheetByName[nm.toLowerCase()] && !noShows[p.id];
+      });
+      if(gone.length*2>players.length){
+        removeBlocked=gone.length+' of '+players.length+' players are missing from the sheet - nobody was removed. Check the Sheet ID.';
+      } else {
+        for(const p of gone){
+          const sc=scores[p.id]||{};
+          if(HOLES.some(h=>sc[h]!==null&&sc[h]!==undefined&&sc[h]!=='')){ keptWithScores.push(p.name); continue; }
+          noShows[p.id]=true;
+          if(db){ try{ await firebase.database().ref('sgf/activeRound/noShows/'+p.id).set(true); }catch(ne){} }
+          removed.push(p.name);
+        }
+      }
+    }
+
     // The pot is sized from the sheet's player count, so it MUST be re-read now or every
     // payout stays scaled to the old field size.  See refreshMoneySetup() above.
     const newPot=await refreshMoneySetup(sheetId);
     buildTable();
-    if(newRows.length){
+    if(newRows.length||removed.length){
       // Refresh the manage dialog so the new player shows immediately
       document.getElementById('manage-groups-dialog')?.remove();
       openManageGroups();   // was showManageGroups() - no such function; threw after adding a player
@@ -4344,6 +4372,9 @@ async function addNewPlayersFromSheet(){
     const bits=[];
     if(newRows.length) bits.push(`Added ${newRows.length} new player(s) — set their group in Manage Players`);
     if(changed.length) bits.push(`Updated ${changed.length}: ${changed.join('; ')}`);
+    if(removed.length) bits.push(`Marked No Show (no longer on sheet): ${removed.join(', ')}`);
+    if(keptWithScores.length) bits.push(`NOT on sheet but already have scores, left in: ${keptWithScores.join(', ')}`);
+    if(removeBlocked) bits.push('⚠️ '+removeBlocked);
     if(!bits.length) bits.push('Everything already matches the sheet');
     // Same pre-flight as round start, but only for the men actually in this round.
     const inRound=new Set(players.map(p=>String(p.name||'').trim().toLowerCase()));
