@@ -4860,12 +4860,14 @@ function hvOk(){
   // the ONLY blank is the player already selected (e.g. you just cleared his score), say so
   // instead of silently staying put.
   const miss=hvPlayers().filter(p=>hvNeeds(p.id,hv.hole));
+  const who=miss.map(p=>hvNameOf(p)).join(', ');
   if(miss.length&&miss.every(p=>p.id===hv.pid)){
-    hvHint('Enter a score for '+hvNameOf(miss[0])+' on hole '+hv.hole);
+    hvHint('Enter a score for '+who+' on hole '+hv.hole);
     return;
   }
   hvAdvance(hv.pid===null?-1:hv.pid,hv.hole);   // skip to the next player still waiting
   hvRender();
+  hvHint('Still need '+(miss.length>1?miss.length+' scores':'a score')+' on hole '+hv.hole+': '+who);
 }
 // Short message in the strip under the header (the same strip Push All reports to).
 let hvHintTimer=null;
