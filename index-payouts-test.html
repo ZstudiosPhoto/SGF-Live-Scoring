@@ -653,7 +653,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   ['logo1','logo2','logo3','logo4','logo5','logo-skins','logo-closies','logo-payouts','logo-grouppick','logo-history','logo-history2','logo-welcome','logo-welcome-big'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.src=SGF_LOGO;
   });
-  document.getElementById('inp-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('inp-date').value=new Date().toLocaleDateString('en-CA',{timeZone:'America/Los_Angeles'});
   document.getElementById('inp-sheetid').value=localStorage.getItem('sgf_sheetId')||'';
   buildParInputs();
   renderPlayerList();
