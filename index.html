@@ -518,6 +518,8 @@
   .hv-skip-b button{flex:1;padding:13px 0;border-radius:10px;border:none;font-family:'Nunito',sans-serif;font-weight:900;font-size:0.95rem;cursor:pointer;touch-action:manipulation;}
   .hv-skip-stay{background:var(--sgf-green);color:#fff;}
   .hv-skip-go{background:#e8ece7;color:#333;}
+  .hv-nudge{animation:hvnudge 0.45s;}
+  @keyframes hvnudge{0%,100%{transform:translateX(0);}20%{transform:translateX(-6px);}40%{transform:translateX(6px);}60%{transform:translateX(-4px);}80%{transform:translateX(4px);}}
   #hv-status{display:none;background:#1a1a1a;color:#aac8e0;font-size:0.74rem;font-weight:800;padding:6px 12px;line-height:1.35;white-space:pre-line;flex-shrink:0;}
   #btn-hdr-push{display:none;}
   #screen-scoring.hole-mode #btn-hdr-push{display:inline-block;}
@@ -4854,8 +4856,25 @@ function hvOk(){
     if(hv.hole<18) hvShowHole(hv.hole+1); else showScreen('screen-lb');
     return;
   }
+  // Nothing typed and the hole isn't finished.  Move to the next player still waiting -- but if
+  // the ONLY blank is the player already selected (e.g. you just cleared his score), say so
+  // instead of silently staying put.
+  const miss=hvPlayers().filter(p=>hvNeeds(p.id,hv.hole));
+  if(miss.length&&miss.every(p=>p.id===hv.pid)){
+    hvHint('Enter a score for '+hvNameOf(miss[0])+' on hole '+hv.hole);
+    return;
+  }
   hvAdvance(hv.pid===null?-1:hv.pid,hv.hole);   // skip to the next player still waiting
   hvRender();
+}
+// Short message in the strip under the header (the same strip Push All reports to).
+let hvHintTimer=null;
+function hvHint(msg){
+  const e=document.getElementById('hv-status'); if(!e) return;
+  e.style.display='block'; e.style.color='#f0cc70'; e.textContent=msg;
+  const b=document.querySelector('#hv-players .hv-row.active .hv-box');
+  if(b){ b.classList.remove('hv-nudge'); void b.offsetWidth; b.classList.add('hv-nudge'); }
+  clearTimeout(hvHintTimer); hvHintTimer=setTimeout(()=>{ e.style.display='none'; },3500);
 }
 
 // showScreen() hook: keep the floating lock/gear buttons where they belong for the screen shown.
