@@ -510,6 +510,9 @@
   #screen-scoring.hole-mode .legend-bar,#screen-scoring.hole-mode .score-table-wrap,#screen-scoring.hole-mode .sync-bar,#screen-scoring.hole-mode .nine-tabs{display:none;}
   #screen-scoring.hole-mode .scoring-meta-bar .mode-tabs{flex:1;}
   #screen-scoring.hole-mode .scoring-meta-bar .mode-tab{flex:1;}
+  #hv-status{display:none;background:#1a1a1a;color:#aac8e0;font-size:0.74rem;font-weight:800;padding:6px 12px;line-height:1.35;white-space:pre-line;flex-shrink:0;}
+  #btn-hdr-push{display:none;}
+  #screen-scoring.hole-mode #btn-hdr-push{display:inline-block;}
   .hv-nav{display:flex;align-items:stretch;background:#3d5a3b;color:#fff;flex-shrink:0;}
   .hv-arrow{flex:0 0 27%;background:transparent;border:none;color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.8rem;padding:0 6px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;min-height:42px;}
   .hv-arrow:active{background:rgba(255,255,255,0.15);}
@@ -832,6 +835,7 @@ try {
       <button class="hdr-btn settle-nav" onclick="showScreen('screen-settle')" style="background:rgba(120,190,255,0.22);border-color:rgba(120,190,255,0.5);color:#bfe2ff;">🧾 Settle</button>
       <button class="hdr-btn" onclick="showScreen('screen-info')">ℹ️</button>
       <button class="hdr-btn" id="btn-manage-groups" onclick="openManageGroups()">👥 Groups</button>
+      <button class="hdr-btn" id="btn-hdr-push" onclick="pushAllToSheets()" title="Push scores, closies and settle-up to the Google Sheet">📊</button>
     </div>
   </div>
   <div id="spectator-banner-scoring" class="spectator-banner" style="display:none;">👁️ Spectator Mode — Read Only</div>
@@ -856,6 +860,7 @@ try {
     <div class="legend-item" style="margin-left:auto;gap:0;flex-direction:column;line-height:1.1;text-align:center;opacity:0.65;"><span>G</span><span style="font-size:0.55rem;">N</span></div>
   </div>
   <div id="hole-view">
+    <div id="hv-status" onclick="this.style.display='none'"></div>
     <div class="hv-nav">
       <button class="hv-arrow" id="hv-prev" onclick="hvGo(-1)">&lsaquo; Hole</button>
       <div class="hv-title"><div class="hv-hole" id="hv-hole">Hole 1</div><div class="hv-sub" id="hv-sub"></div></div>
@@ -884,7 +889,7 @@ try {
     </table>
   </div>
   <div class="sync-bar">
-    <button class="sync-btn btn-sheets" onclick="pushToSheets()">📊 Push to Sheets</button>
+    <button class="sync-btn btn-sheets" onclick="pushAllToSheets()">📊 Push All to Sheet</button>
     <button class="sync-btn btn-link" onclick="copyLiveLink()">🔗 Copy Live Link</button>
     <button class="sync-btn btn-lb" onclick="showScreen('screen-lb')">🏆 Leaderboard</button>
     <div id="sync-result" class="sync-result" style="display:none;"></div>
@@ -983,7 +988,7 @@ try {
     <div class="skins-empty">Start a round to enter Closies.</div>
   </div>
   <div class="sync-bar">
-    <button class="sync-btn btn-sheets" onclick="pushClosiesToSheet()">📊 Push Closies to Sheet</button>
+    <button class="sync-btn btn-sheets" onclick="pushAllToSheets()">📊 Push All to Sheet</button>
     <div id="closies-sync-result" class="sync-result" style="display:none;"></div>
   </div>
 </div>
@@ -1031,8 +1036,8 @@ try {
     <div class="skins-empty">Start a round to settle up.</div>
   </div>
   <div class="sync-bar" id="settle-sync-bar" style="display:none;">
-    <button class="sync-btn btn-sheets" onclick="pushSettleToSheet(false)">📊 Save to Sheet</button>
-    <button class="sync-btn btn-sheets" onclick="pushSettleToSheet(true)">✉️ Save + Email Me</button>
+    <button class="sync-btn btn-sheets" onclick="pushAllToSheets(false)">📊 Push All to Sheet</button>
+    <button class="sync-btn btn-sheets" onclick="pushAllToSheets(true)">✉️ Push All + Email Me</button>
     <div id="settle-sync-result" class="sync-result" style="display:none;"></div>
   </div>
 </div>
@@ -3110,6 +3115,7 @@ function rankLowGross(){
   const pot=rows.length*LOW_GROSS_ENTRY;
   return {rows,final,winners,pot};
 }
+function lgFirstLast(n){ n=String(n||'').trim(); const c=n.indexOf(','); return c>-1?(n.slice(c+1).trim()+' '+n.slice(0,c).trim()).trim():n; }
 function lgMoney(v){return '$'+(Math.round(v*100)%100?v.toFixed(2):String(Math.round(v)));}
 function lgToPar(v){return v===0?'E':v>0?'+'+v:String(v);}
 function lgIdx(p){
@@ -3240,7 +3246,7 @@ function buildLowGrossPayoutHTML(){
       +'<div class="payout-sub">'+(R.winners.length>1?'Gross '+w.gross+' ('+lgToPar(w.toPar)+') &middot; '+(w.hp===18?'F':'Thru '+w.hp)+' &middot; identical cards':lgMeta(w))+'</div></div>'
       +(R.pot>0?'<div class="payout-amount">'+lgMoney(share)+'</div>':'')+'</div>').join('');
   }
-  const names=R.rows.map(r=>esc(r.p.name)).join(', ');
+  const names=R.rows.map(r=>esc(lgFirstLast(r.p.name))).join(', ');
   return '<div class="payout-section"><div class="payout-section-hdr">'
     +'<span class="payout-section-title">&#9971; LOW GROSS</span>'
     +'<span class="payout-pool-badge">'+lgMoney(R.pot)+' pot &middot; '+R.rows.length+' in</span></div>'
@@ -5239,6 +5245,68 @@ async function pushToSheets(silent=false){
     if(!silent) showSync(`Network error: ${e.message}`,false);
     else console.log('Auto-push error:',e.message);
   }
+}
+
+// ===== PUSH EVERYTHING TO THE SHEET =====
+// One press writes all three things the sheet needs: the scores (GROSS.SCORES), the closie
+// winners (CLOSIES tab) and the settle-up record (PAYMENTS tab).  It simply runs the three
+// existing push functions one after another and reports them together, so each one keeps
+// exactly the safety checks it always had.  Closies are skipped while none are set (so an
+// empty list can never blank what is already in the sheet) and settle-up only runs from the
+// admin device.  The 2-minute auto-push is untouched and still sends scores only.
+let pushAllBusy=false;
+async function pushAllToSheets(sendEmail){
+  if (spectatorBlocked_('View only - nothing was sent to the sheet.')) return;
+  if(pushAllBusy) return;
+  const scr=['screen-scoring','screen-closies','screen-settle'].find(id=>document.getElementById(id).classList.contains('active'))||'screen-scoring';
+  // In Hole view the bottom sync bar is hidden, so the report goes to the strip under the header.
+  const holeView=document.getElementById('screen-scoring').classList.contains('hole-mode')&&scr==='screen-scoring';
+  const out=document.getElementById(holeView?'hv-status':{'screen-scoring':'sync-result','screen-closies':'closies-sync-result','screen-settle':'settle-sync-result'}[scr]);
+  const say=(msg,ok)=>{ if(!out) return; out.style.display='block'; out.style.whiteSpace='pre-line';
+    out.style.color=ok===true?'#7dcea0':ok===false?'#f08080':'#aac8e0'; out.textContent=msg; };
+  const read=id=>{ const e=document.getElementById(id); return e?String(e.textContent||'').trim():''; };
+  const clear=id=>{ const e=document.getElementById(id); if(e) e.textContent=''; };
+  if(!players||players.length===0){ say('\u26a0\ufe0f No players loaded. Start a round first.',false); return; }
+  pushAllBusy=true;
+  const parts=[];
+  try{
+    say('Pushing everything to the sheet\u2026 scores',null);
+    clear('sync-result');
+    await pushToSheets(false);
+    parts.push({k:'Scores',t:read('sync-result')});
+
+    if(Object.keys(closies||{}).length){
+      say('Pushing everything to the sheet\u2026 closies',null);
+      clear('closies-sync-result');
+      await pushClosiesToSheet();
+      parts.push({k:'Closies',t:read('closies-sync-result')});
+    } else {
+      parts.push({k:'Closies',t:'\u2796 none entered yet - skipped',skip:true});
+    }
+
+    if(isAdmin && !window.isSpectator){
+      say('Pushing everything to the sheet\u2026 settle-up',null);
+      clear('settle-sync-result');
+      await pushSettleToSheet(!!sendEmail);
+      parts.push({k:'Settle-up',t:read('settle-sync-result')});
+    } else {
+      parts.push({k:'Settle-up',t:'\u2796 admin device only - skipped',skip:true});
+    }
+  }catch(e){
+    parts.push({k:'Error',t:'\u274c '+e.message});
+  }
+  pushAllBusy=false;
+  const ok=parts.every(p=>p.skip||p.t.indexOf('\u2705')===0);
+  const stamp=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  const warn=parts.filter(p=>p.t.indexOf('\u26a0')>0).map(p=>p.k+': '+p.t.slice(p.t.indexOf('\u26a0')));
+  if(ok){
+    const did=parts.filter(p=>!p.skip).map(p=>p.k.toLowerCase()).join(', ');
+    const skipped=parts.filter(p=>p.skip).map(p=>p.k+' '+p.t.slice(2)).join('; ');
+    say('\u2705 Pushed to the sheet: '+did+' ('+stamp+')'+(skipped?'\n'+skipped:'')+(warn.length?'\n'+warn.join('\n'):''),true);
+  } else {
+    say(parts.map(p=>p.k+': '+(p.t||'no reply')).join('\n'),false);
+  }
+  if(out) setTimeout(()=>{ if(ok){ out.style.display='none'; } },12000);
 }
 
 let autoPushInterval = null;
