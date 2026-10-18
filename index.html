@@ -510,6 +510,14 @@
   #screen-scoring.hole-mode .legend-bar,#screen-scoring.hole-mode .score-table-wrap,#screen-scoring.hole-mode .sync-bar,#screen-scoring.hole-mode .nine-tabs{display:none;}
   #screen-scoring.hole-mode .scoring-meta-bar .mode-tabs{flex:1;}
   #screen-scoring.hole-mode .scoring-meta-bar .mode-tab{flex:1;}
+  #hv-skip{position:fixed;inset:0;z-index:20001;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;padding:24px;}
+  .hv-skip-box{background:#fff;border-radius:14px;padding:18px 18px 14px;max-width:340px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.5);font-family:'Nunito',sans-serif;}
+  .hv-skip-t{font-size:1.05rem;font-weight:900;color:var(--text);}
+  .hv-skip-n{font-size:0.92rem;font-weight:700;color:#5b6b5a;margin-top:6px;line-height:1.35;}
+  .hv-skip-b{display:flex;gap:10px;margin-top:16px;}
+  .hv-skip-b button{flex:1;padding:13px 0;border-radius:10px;border:none;font-family:'Nunito',sans-serif;font-weight:900;font-size:0.95rem;cursor:pointer;touch-action:manipulation;}
+  .hv-skip-stay{background:var(--sgf-green);color:#fff;}
+  .hv-skip-go{background:#e8ece7;color:#333;}
   #hv-status{display:none;background:#1a1a1a;color:#aac8e0;font-size:0.74rem;font-weight:800;padding:6px 12px;line-height:1.35;white-space:pre-line;flex-shrink:0;}
   #btn-hdr-push{display:none;}
   #screen-scoring.hole-mode #btn-hdr-push{display:inline-block;}
@@ -4745,7 +4753,27 @@ function hvShowHole(n){
   hvAutoPick();
   hvRender();
 }
-function hvGo(d){ if(isLocked) return; hvShowHole(hv.hole+d); }
+function hvGo(d){
+  if(isLocked) return;
+  if(d>0){
+    hvCommitPending();                          // a held "1" counts as entered
+    const miss=hvPlayers().filter(p=>hvNeeds(p.id,hv.hole));
+    if(miss.length){ hvAskSkip(miss,hv.hole+d); return; }
+  }
+  hvShowHole(hv.hole+d);
+}
+// Forward arrow with scores still missing: ask first, so a stray tap can't leave a blank hole.
+function hvAskSkip(miss,target){
+  const old=document.getElementById('hv-skip'); if(old) old.remove();
+  const names=miss.map(p=>hvNameOf(p));
+  const who=names.length>3?names.slice(0,3).join(', ')+' +'+(names.length-3)+' more':names.join(', ');
+  const d=document.createElement('div'); d.id='hv-skip';
+  d.innerHTML='<div class="hv-skip-box"><div class="hv-skip-t">Hole '+hv.hole+' is missing '+(miss.length>1?miss.length+' scores':'a score')+'</div>'
+    +'<div class="hv-skip-n">'+esc(who)+'</div>'
+    +'<div class="hv-skip-b"><button class="hv-skip-stay" onclick="document.getElementById(\'hv-skip\').remove()">Stay</button>'
+    +'<button class="hv-skip-go" onclick="document.getElementById(\'hv-skip\').remove();hvShowHole('+target+')">Go anyway</button></div></div>';
+  document.body.appendChild(d);
+}
 
 function hvSelect(pid){
   if(!hvGuard()) return;
