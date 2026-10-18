@@ -511,21 +511,21 @@
   #screen-scoring.hole-mode .scoring-meta-bar .mode-tabs{flex:1;}
   #screen-scoring.hole-mode .scoring-meta-bar .mode-tab{flex:1;}
   .hv-nav{display:flex;align-items:stretch;background:#3d5a3b;color:#fff;flex-shrink:0;}
-  .hv-arrow{flex:0 0 27%;background:transparent;border:none;color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.82rem;padding:0 6px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;min-height:50px;}
+  .hv-arrow{flex:0 0 27%;background:transparent;border:none;color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.8rem;padding:0 6px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;min-height:42px;}
   .hv-arrow:active{background:rgba(255,255,255,0.15);}
   .hv-arrow[disabled]{opacity:0.25;}
   .hv-arrow.go{background:var(--sgf-green);animation:hvpulse 1.2s infinite;}
   @keyframes hvpulse{0%,100%{box-shadow:inset 0 0 0 0 rgba(255,255,255,0);}50%{box-shadow:inset 0 0 0 3px rgba(255,255,255,0.55);}}
-  .hv-title{flex:1;text-align:center;padding:5px 0 4px;}
-  .hv-hole{font-family:'Bebas Neue',sans-serif;font-size:1.7rem;letter-spacing:1.5px;line-height:1;}
-  .hv-sub{font-size:0.74rem;font-weight:800;color:#bfe6bc;margin-top:2px;}
-  .hv-players{flex:1 1 0;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:6px 6px 6px;display:flex;flex-direction:column;gap:5px;}
-  .hv-row{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid #dcdcdc;border-left:6px solid #dcdcdc;border-radius:8px;height:clamp(46px,7.6dvh,66px);padding:0 10px 0 12px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;}
+  .hv-title{flex:1;text-align:center;padding:3px 0 3px;}
+  .hv-hole{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:1.5px;line-height:1;}
+  .hv-sub{font-size:0.7rem;font-weight:800;color:#bfe6bc;margin-top:1px;}
+  .hv-players{flex:0 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:6px 6px 6px;display:flex;flex-direction:column;gap:5px;}
+  .hv-row{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid #dcdcdc;border-left:6px solid #dcdcdc;border-radius:8px;height:clamp(40px,6.8dvh,60px);padding:0 10px 0 12px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;}
   .hv-row.active{border-color:var(--sgf-green);background:#f1fbf0;box-shadow:0 0 0 2px rgba(58,170,53,0.25);}
   .hv-row.dim{opacity:0.9;}
-  .hv-name{font-size:1.02rem;font-weight:800;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .hv-name{font-size:1rem;font-weight:800;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .hv-hcp{font-weight:700;color:#5b6b5a;}
-  .hv-box{position:relative;flex:0 0 auto;width:64px;height:78%;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Nunito',sans-serif;font-weight:900;font-size:1.9rem;color:var(--text);border-bottom:3px solid #c9c9c9;}
+  .hv-box{position:relative;flex:0 0 auto;width:58px;height:80%;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Nunito',sans-serif;font-weight:900;font-size:min(1.8rem,4.6dvh);color:var(--text);border-bottom:3px solid #c9c9c9;}
   .hv-row.active .hv-box{border-bottom-color:var(--sgf-green);}
   .hv-box.typing{color:var(--sgf-green-dark);}
   .hv-box.typing::after{content:'';position:absolute;right:9px;top:22%;bottom:22%;width:2px;background:var(--sgf-green);animation:hvblink 1s steps(1) infinite;}
@@ -538,15 +538,23 @@
   .hv-box.triple{background:var(--triple-bg);color:var(--triple-fg);border-bottom-color:var(--triple-bg);}
   .hv-dots{position:absolute;top:1px;right:5px;font-size:0.95rem;line-height:1;color:currentColor;letter-spacing:-1px;}
   .hv-empty{color:#c4c4c4;font-weight:700;}
-  .hv-keys{flex:0 0 auto;height:clamp(170px,36dvh,310px);display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;gap:1px;background:#d6d6d6;border-top:1px solid #d6d6d6;padding-bottom:env(safe-area-inset-bottom,0px);}
-  .hv-key{border:none;background:#fff;font-family:'Nunito',sans-serif;font-size:2rem;font-weight:600;color:#111;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;}
+  .hv-keys{flex:1 0 clamp(160px,32dvh,300px);display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;gap:1px;background:#d6d6d6;border-top:1px solid #d6d6d6;padding-bottom:env(safe-area-inset-bottom,0px);}
+  .hv-key{border:none;background:#fff;font-family:'Nunito',sans-serif;font-size:min(1.9rem,4.4dvh);font-weight:600;color:#111;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;}
   .hv-key:active{background:#cfeccc;}
   .hv-key.act{font-size:1.05rem;font-weight:800;color:#444;}
   .hv-key.ok{font-size:1.5rem;font-weight:900;color:#fff;background:var(--sgf-green);}
   .hv-key.ok:active{background:var(--sgf-green-dark);}
   .hv-key.ok.next{font-size:1.05rem;}
   .hv-key.ok.dis{background:#c9d8c8;color:#fff;}
-  @media(max-height:700px){.hv-box{font-size:1.6rem;width:58px;}.hv-key{font-size:1.7rem;}.hv-arrow{min-height:44px;}.hv-hole{font-size:1.45rem;}}
+  #screen-scoring.hole-mode .app-header{padding:5px 10px;gap:8px;}
+  #screen-scoring.hole-mode .sgf-logo{width:30px;height:30px;}
+  #screen-scoring.hole-mode .header-brand{font-size:1.1rem;}
+  #screen-scoring.hole-mode .header-sub{display:none;}
+  #screen-scoring.hole-mode .header-actions{padding-top:4px;margin-top:0;}
+  #screen-scoring.hole-mode .hdr-btn{padding:4px 8px;font-size:0.66rem;}
+  #screen-scoring.hole-mode .scoring-meta-bar{padding-top:4px;padding-bottom:4px;}
+  #screen-scoring.hole-mode .mode-tab{padding:5px 14px;}
+  body.hv-float #lock-btn,body.hv-float #admin-gear-float{width:34px;height:34px;font-size:1rem;}
   /* Past results on welcome */
   .welcome-past-btn{display:block;width:100%;max-width:280px;margin:12px auto 0;padding:12px 20px;background:transparent;border:2px solid rgba(58,170,53,0.4);border-radius:12px;color:#b8e6b5;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;letter-spacing:0.3px;}
   .welcome-past-btn:active{background:rgba(58,170,53,0.12);}
@@ -4660,11 +4668,12 @@ function hvPlaceFloating(){
   if(onScoring && hvOn()){
     // The lock / gear buttons normally float over the bottom-right corner -- right on top of the
     // keypad's check key.  In Hole view they ride at the right end of the Hole|Card bar instead.
-    mb.style.paddingRight=(isAdmin?'132px':'66px');
+    document.body.classList.add('hv-float');
+    mb.style.paddingRight=(isAdmin?'118px':'56px');
     const r=mb.getBoundingClientRect();
-    fb.style.bottom='auto'; fb.style.top=Math.max(0,Math.round(r.top+(r.height-42)/2))+'px'; fb.style.right='8px';
+    fb.style.bottom='auto'; fb.style.top=Math.max(0,Math.round(r.top+(r.height-34)/2))+'px'; fb.style.right='8px';
   } else {
-    mb.style.paddingRight='';
+    mb.style.paddingRight=''; document.body.classList.remove('hv-float');
     fb.style.top=''; fb.style.bottom=''; fb.style.right='';
   }
 }
