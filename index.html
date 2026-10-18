@@ -498,6 +498,55 @@
     .sgf-logo{width:32px;height:32px;}
     .score-btn{height:46px;font-size:0.88rem;}
   }
+
+  /* ===== HOLE ENTRY VIEW (Golf Genius-style): 4 players on top, fixed keypad, auto-advance ===== */
+  .mode-tabs{display:flex;background:#1a1a1a;border-radius:9px;padding:3px;flex:0 0 auto;}
+  .mode-tab{padding:7px 14px;border:none;background:transparent;border-radius:6px;cursor:pointer;font-size:0.78rem;font-family:'Nunito',sans-serif;color:rgba(255,255,255,0.45);font-weight:800;}
+  .mode-tab.active{background:var(--sgf-green);color:#fff;box-shadow:0 1px 5px rgba(0,0,0,0.35);}
+  #screen-scoring .scoring-meta-bar{display:flex;gap:8px;align-items:center;}
+  #screen-scoring .scoring-meta-bar .nine-tabs{flex:1;min-width:0;}
+  #hole-view{display:none;flex:1;min-height:0;flex-direction:column;background:#f2f2f2;}
+  #screen-scoring.hole-mode #hole-view{display:flex;}
+  #screen-scoring.hole-mode .legend-bar,#screen-scoring.hole-mode .score-table-wrap,#screen-scoring.hole-mode .sync-bar,#screen-scoring.hole-mode .nine-tabs{display:none;}
+  #screen-scoring.hole-mode .scoring-meta-bar .mode-tabs{flex:1;}
+  #screen-scoring.hole-mode .scoring-meta-bar .mode-tab{flex:1;}
+  .hv-nav{display:flex;align-items:stretch;background:#3d5a3b;color:#fff;flex-shrink:0;}
+  .hv-arrow{flex:0 0 27%;background:transparent;border:none;color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.82rem;padding:0 6px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;min-height:50px;}
+  .hv-arrow:active{background:rgba(255,255,255,0.15);}
+  .hv-arrow[disabled]{opacity:0.25;}
+  .hv-arrow.go{background:var(--sgf-green);animation:hvpulse 1.2s infinite;}
+  @keyframes hvpulse{0%,100%{box-shadow:inset 0 0 0 0 rgba(255,255,255,0);}50%{box-shadow:inset 0 0 0 3px rgba(255,255,255,0.55);}}
+  .hv-title{flex:1;text-align:center;padding:5px 0 4px;}
+  .hv-hole{font-family:'Bebas Neue',sans-serif;font-size:1.7rem;letter-spacing:1.5px;line-height:1;}
+  .hv-sub{font-size:0.74rem;font-weight:800;color:#bfe6bc;margin-top:2px;}
+  .hv-players{flex:0 0 auto;padding:6px 6px 0;display:flex;flex-direction:column;gap:5px;}
+  .hv-row{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid #dcdcdc;border-left:6px solid #dcdcdc;border-radius:8px;height:clamp(46px,7.6dvh,66px);padding:0 10px 0 12px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;}
+  .hv-row.active{border-color:var(--sgf-green);background:#f1fbf0;box-shadow:0 0 0 2px rgba(58,170,53,0.25);}
+  .hv-row.dim{opacity:0.9;}
+  .hv-name{font-size:1.02rem;font-weight:800;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .hv-hcp{font-weight:700;color:#5b6b5a;}
+  .hv-box{position:relative;flex:0 0 auto;width:64px;height:78%;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Nunito',sans-serif;font-weight:900;font-size:1.9rem;color:var(--text);border-bottom:3px solid #c9c9c9;}
+  .hv-row.active .hv-box{border-bottom-color:var(--sgf-green);}
+  .hv-box.typing{color:var(--sgf-green-dark);}
+  .hv-box.typing::after{content:'';position:absolute;right:9px;top:22%;bottom:22%;width:2px;background:var(--sgf-green);animation:hvblink 1s steps(1) infinite;}
+  @keyframes hvblink{50%{opacity:0;}}
+  .hv-box.eagle{background:var(--eagle-bg);color:var(--eagle-fg);border-bottom-color:var(--eagle-bg);}
+  .hv-box.birdie{background:var(--birdie-bg);color:var(--birdie-fg);border-bottom-color:var(--birdie-bg);}
+  .hv-box.par-s{background:var(--par-bg);color:var(--par-fg);border-bottom-color:var(--par-bg);}
+  .hv-box.bogey{background:var(--bogey-bg);color:var(--bogey-fg);border-bottom-color:var(--bogey-bg);}
+  .hv-box.double{background:var(--double-bg);color:var(--double-fg);border-bottom-color:var(--double-bg);}
+  .hv-box.triple{background:var(--triple-bg);color:var(--triple-fg);border-bottom-color:var(--triple-bg);}
+  .hv-dots{position:absolute;top:1px;right:5px;font-size:0.95rem;line-height:1;color:currentColor;letter-spacing:-1px;}
+  .hv-empty{color:#c4c4c4;font-weight:700;}
+  .hv-keys{flex:1 1 auto;min-height:168px;margin-top:8px;display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;gap:1px;background:#d6d6d6;border-top:1px solid #d6d6d6;padding-bottom:env(safe-area-inset-bottom,0px);}
+  .hv-key{border:none;background:#fff;font-family:'Nunito',sans-serif;font-size:2rem;font-weight:600;color:#111;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;}
+  .hv-key:active{background:#cfeccc;}
+  .hv-key.act{font-size:1.05rem;font-weight:800;color:#444;}
+  .hv-key.ok{font-size:1.5rem;font-weight:900;color:#fff;background:var(--sgf-green);}
+  .hv-key.ok:active{background:var(--sgf-green-dark);}
+  .hv-key.ok.next{font-size:1.05rem;}
+  .hv-key.ok.dis{background:#c9d8c8;color:#fff;}
+  @media(max-height:700px){.hv-box{font-size:1.6rem;width:58px;}.hv-key{font-size:1.7rem;}.hv-arrow{min-height:44px;}.hv-hole{font-size:1.45rem;}}
   /* Past results on welcome */
   .welcome-past-btn{display:block;width:100%;max-width:280px;margin:12px auto 0;padding:12px 20px;background:transparent;border:2px solid rgba(58,170,53,0.4);border-radius:12px;color:#b8e6b5;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;letter-spacing:0.3px;}
   .welcome-past-btn:active{background:rgba(58,170,53,0.12);}
@@ -779,6 +828,10 @@ try {
   </div>
   <div id="spectator-banner-scoring" class="spectator-banner" style="display:none;">👁️ Spectator Mode — Read Only</div>
   <div class="scoring-meta-bar">
+    <div class="mode-tabs" id="mode-tabs">
+      <button class="mode-tab active" id="mode-hole" onclick="setEntryMode('hole')">Hole</button>
+      <button class="mode-tab" id="mode-card" onclick="setEntryMode('card')">Card</button>
+    </div>
     <div class="nine-tabs">
       <button class="nine-tab active" id="tab-front" onclick="switchNine('front')">Out (1–9)</button>
       <button class="nine-tab" id="tab-back" onclick="switchNine('back')">In (10–18)</button>
@@ -793,6 +846,28 @@ try {
     <div class="legend-item"><div class="legend-dot" style="background:#bdc3c7;border:1px solid #aaa"></div>Double</div>
     <div class="legend-item"><div class="legend-dot" style="background:#1a1a1a"></div>Triple+</div>
     <div class="legend-item" style="margin-left:auto;gap:0;flex-direction:column;line-height:1.1;text-align:center;opacity:0.65;"><span>G</span><span style="font-size:0.55rem;">N</span></div>
+  </div>
+  <div id="hole-view">
+    <div class="hv-nav">
+      <button class="hv-arrow" id="hv-prev" onclick="hvGo(-1)">&lsaquo; Hole</button>
+      <div class="hv-title"><div class="hv-hole" id="hv-hole">Hole 1</div><div class="hv-sub" id="hv-sub"></div></div>
+      <button class="hv-arrow" id="hv-next" onclick="hvGo(1)">Hole &rsaquo;</button>
+    </div>
+    <div class="hv-players" id="hv-players"></div>
+    <div class="hv-keys" id="hv-keys">
+      <button class="hv-key" onclick="hvKey(1)">1</button>
+      <button class="hv-key" onclick="hvKey(2)">2</button>
+      <button class="hv-key" onclick="hvKey(3)">3</button>
+      <button class="hv-key" onclick="hvKey(4)">4</button>
+      <button class="hv-key" onclick="hvKey(5)">5</button>
+      <button class="hv-key" onclick="hvKey(6)">6</button>
+      <button class="hv-key" onclick="hvKey(7)">7</button>
+      <button class="hv-key" onclick="hvKey(8)">8</button>
+      <button class="hv-key" onclick="hvKey(9)">9</button>
+      <button class="hv-key act" onclick="hvClear()">Clear</button>
+      <button class="hv-key" onclick="hvKey(0)">0</button>
+      <button class="hv-key ok" id="hv-ok" onclick="hvOk()">&#10003;</button>
+    </div>
   </div>
   <div class="score-table-wrap">
     <table class="score-table">
@@ -3556,6 +3631,7 @@ function buildTable(){
     tbody.appendChild(tr);
   });
   updateGroupStatusBar();
+  buildHoleView();
 }
 
 function populateInfoScreen(data){
@@ -4530,6 +4606,214 @@ function saveScore(pid,hole,val){
   if(activeNine==='back'){const ge=document.getElementById(`gtot-${pid}`);if(ge)ge.innerHTML=noShows[pid]?'NS':subTotHTML(_sp,HOLES);}
 }
 
+
+// ===== HOLE ENTRY VIEW (Golf Genius-style) =====
+// Four players stacked at the top, one fixed keypad underneath, and the keypad AUTO-ADVANCES to
+// the next player who still has no score on this hole -- wrapping past the bottom of the list, so
+// it does not matter which player you started on.  The Card (grid) view and its pop-up pad are
+// untouched; this is a second way in, chosen by the Hole | Card switch, remembered per phone.
+// Every score still goes through saveScore() -> pushScoreToFirebase(), so offline hold, Sheets
+// push and the leaderboard behave exactly as before.
+let entryMode='hole';
+try{ const _m=localStorage.getItem('sgf_entryMode'); if(_m==='card'||_m==='hole') entryMode=_m; }catch(e){}
+let hv={hole:null,pid:null,entry:'',replace:false,timer:null,group:undefined};
+
+function hvOn(){ return entryMode==='hole' && !window.isSpectator && viewMode==='myFoursome'; }
+function hvPlayers(){ return getPadPlayers(); }
+function hvScore(pid,h){ const v=scores[pid]&&scores[pid][h]; return (v===null||v===undefined)?null:v; }
+// A withdrawn player's unplayed holes never ask for a score (same rule as the pop-up pad).
+function hvNeeds(pid,h){ if(hvScore(pid,h)!==null) return false; if(isWD(pid)) return false; return true; }
+function hvComplete(){ const tp=hvPlayers(); return tp.length>0 && !tp.some(p=>hvNeeds(p.id,hv.hole)); }
+function hvFirstOpenHole(){
+  const tp=hvPlayers();
+  for(const h of HOLES){ if(tp.some(p=>hvNeeds(p.id,h))) return h; }
+  return 18;
+}
+function hvAutoPick(){
+  const tp=hvPlayers(); const p=tp.find(x=>hvNeeds(x.id,hv.hole));
+  hv.pid=p?p.id:null; hv.entry=''; hv.replace=false;
+}
+function hvGuard(){
+  if(isLocked||window.isSpectator) return false;
+  if(connState==='dead'||!db){ showLockToast('Not connected - scores would not be saved'); return false; }
+  return true;
+}
+function hvNameOf(p){
+  const raw=(p.name||'').trim(); const c=raw.indexOf(',');
+  return c>-1 ? (raw.slice(c+1).trim()+' '+raw.slice(0,c).trim()).trim() : raw;
+}
+
+function setEntryMode(m){
+  hvCommitPending();
+  entryMode=m;
+  try{ localStorage.setItem('sgf_entryMode',m); }catch(e){}
+  hv.hole=null;               // re-find the current hole each time you come back to the Hole view
+  buildTable();
+}
+
+function hvPlaceFloating(){
+  const sc=document.getElementById('screen-scoring');
+  const fb=document.getElementById('floating-btns');
+  const mb=sc&&sc.querySelector('.scoring-meta-bar');
+  if(!fb||!mb) return;
+  const onScoring=sc.classList.contains('active');
+  if(onScoring && hvOn()){
+    // The lock / gear buttons normally float over the bottom-right corner -- right on top of the
+    // keypad's check key.  In Hole view they ride at the right end of the Hole|Card bar instead.
+    mb.style.paddingRight=(isAdmin?'132px':'66px');
+    const r=mb.getBoundingClientRect();
+    fb.style.bottom='auto'; fb.style.top=Math.max(0,Math.round(r.top+(r.height-42)/2))+'px'; fb.style.right='8px';
+  } else {
+    mb.style.paddingRight='';
+    fb.style.top=''; fb.style.bottom=''; fb.style.right='';
+  }
+}
+
+function buildHoleView(){
+  const sc=document.getElementById('screen-scoring'); if(!sc) return;
+  const on=hvOn();
+  sc.classList.toggle('hole-mode',on);
+  const canSwitch=!window.isSpectator && viewMode==='myFoursome';
+  document.getElementById('mode-tabs').style.display=canSwitch?'':'none';
+  document.getElementById('mode-hole').classList.toggle('active',entryMode==='hole');
+  document.getElementById('mode-card').classList.toggle('active',entryMode==='card');
+  if(!on){ hvPlaceFloating(); return; }
+  if(hv.group!==myGroup){ hv.group=myGroup; hv.hole=null; }
+  if(hv.hole===null){ hv.hole=hvFirstOpenHole(); hvAutoPick(); }
+  const tp=hvPlayers();
+  if(hv.pid!==null && !tp.some(p=>p.id===hv.pid)){ hvAutoPick(); }
+  hvRender();
+  hvPlaceFloating();
+}
+
+function hvRender(){
+  const h=hv.hole, par=pars[h-1], si=strokeIndex[h-1]||h;
+  const tp=hvPlayers();
+  document.getElementById('hv-hole').textContent='Hole '+h;
+  document.getElementById('hv-sub').textContent='Par '+par+'  ·  SI '+si;
+  const prev=document.getElementById('hv-prev'), next=document.getElementById('hv-next');
+  prev.textContent=h>1?'‹ Hole '+(h-1):''; prev.disabled=h<=1;
+  next.textContent=h<18?'Hole '+(h+1)+' ›':''; next.disabled=h>=18;
+  const done=hvComplete();
+  next.classList.toggle('go',done&&h<18&&hv.entry==='');
+  document.getElementById('hv-players').innerHTML=tp.map(p=>{
+    const active=p.id===hv.pid;
+    const val=hvScore(p.id,h);
+    const typing=active&&hv.entry!=='';
+    const hcp=p.hcp||0;
+    const dots=strokesOnHole(hcp,si);
+    const excl=(p.closieOnly||p.playType==='closie'||p.playType==='guest')?'<span class="excluded-badge">'+(p.playType==='guest'?'OPT':'C')+'</span>':'';
+    let inner, cls='hv-box';
+    if(typing){ inner=hv.entry; cls+=' typing'; }
+    else if(val!==null){ inner=String(val); cls+=' '+sCls(val,par); }
+    else if(isWD(p.id)){ inner='WD'; }
+    else { inner='<span class="hv-empty">&ndash;</span>'; }
+    return '<div class="hv-row'+(active?' active':'')+'" onclick="hvSelect('+p.id+')">'
+      +'<div class="hv-name">'+esc(hvNameOf(p))+(hcp>0?' <span class="hv-hcp">('+hcp+')</span>':'')+excl+'</div>'
+      +'<div class="'+cls+'">'+inner+(dots>0?'<span class="hv-dots">'+'•'.repeat(Math.min(dots,3))+'</span>':'')+'</div></div>';
+  }).join('');
+  const ok=document.getElementById('hv-ok');
+  if(done&&hv.entry===''){ ok.innerHTML=h<18?'Next hole &rsaquo;':'Board &rsaquo;'; ok.classList.add('next'); }
+  else { ok.innerHTML='&#10003;'; ok.classList.remove('next'); }
+}
+
+function hvShowHole(n){
+  hvCommitPending();
+  hv.hole=Math.max(1,Math.min(18,n));
+  hvAutoPick();
+  hvRender();
+}
+function hvGo(d){ if(isLocked) return; hvShowHole(hv.hole+d); }
+
+function hvSelect(pid){
+  if(!hvGuard()) return;
+  hvCommitPending();
+  hv.pid=pid; hv.entry=''; hv.replace=hvScore(pid,hv.hole)!==null;
+  hvRender();
+}
+
+// A lone "1" is held (it could be the start of 10-19).  Moving anywhere else saves it.
+function hvCommitPending(){
+  if(hv.timer){ clearTimeout(hv.timer); hv.timer=null; }
+  if(hv.entry!=='' && hv.pid!==null && hv.hole!==null){ hvCommit(false); }
+  else { hv.entry=''; }
+}
+
+function hvCommit(advance){
+  if(hv.timer){ clearTimeout(hv.timer); hv.timer=null; }
+  const val=parseInt(hv.entry);
+  const pid=hv.pid, hole=hv.hole;
+  hv.entry=''; hv.replace=false;
+  if(isNaN(val)||val<1||val>20||pid===null){ hvRender(); return false; }
+  saveScore(pid,hole,val);
+  if(advance) hvAdvance(pid,hole);
+  hvRender();
+  return true;
+}
+
+// Next player AFTER this one (wrapping to the top of the list) who has no score on this hole.
+function hvAdvance(fromPid,hole){
+  const tp=hvPlayers(); const i=tp.findIndex(p=>p.id===fromPid);
+  let nxt=null;
+  for(let k=1;k<=tp.length;k++){
+    const p=tp[(i+k+tp.length)%tp.length];
+    if(hvNeeds(p.id,hole)){ nxt=p.id; break; }
+  }
+  hv.pid=nxt; hv.entry=''; hv.replace=false;
+}
+
+function hvKey(n){
+  if(!hvGuard()) return;
+  const tp=hvPlayers();
+  if(hv.pid===null||!tp.some(p=>p.id===hv.pid)) return;   // hole complete: tap a player to change a score
+  if(hv.timer){ clearTimeout(hv.timer); hv.timer=null; }
+  const d=String(n);
+  if(hv.replace||hv.entry===''){
+    if(n===0) return;                 // a score can't start with 0
+    hv.entry=d; hv.replace=false;
+  } else if(hv.entry.length===1){
+    const two=parseInt(hv.entry+d);
+    if(two>=10&&two<=20) hv.entry=String(two);
+    else if(n===0) return;            // 3 then 0 = 30 is not a golf score
+    else hv.entry=d;                  // quick re-tap replaces the pending digit
+  } else {
+    if(n===0) return;
+    hv.entry=d;
+  }
+  const v=parseInt(hv.entry);
+  if(hv.entry.length===2||v>=3){ hvCommit(true); return; }   // nothing else can follow: save + advance
+  if(v===2){                                                  // could still be 20 -- give it a beat
+    hv.timer=setTimeout(()=>{ hv.timer=null; if(hv.entry==='2') hvCommit(true); },400);
+  }
+  hvRender();                                                 // a lone 1 waits for a 2nd digit or the check key
+}
+
+function hvClear(){
+  if(!hvGuard()) return;
+  if(hv.timer){ clearTimeout(hv.timer); hv.timer=null; }
+  if(hv.pid===null) return;
+  if(hv.entry!==''){ hv.entry=''; hv.replace=hvScore(hv.pid,hv.hole)!==null; }
+  else if(hvScore(hv.pid,hv.hole)!==null){ saveScore(hv.pid,hv.hole,null); }
+  hvRender();
+}
+
+function hvOk(){
+  if(!hvGuard()) return;
+  if(hv.entry!==''){ hvCommit(true); return; }
+  if(hvComplete()){
+    if(hv.hole<18) hvShowHole(hv.hole+1); else showScreen('screen-lb');
+    return;
+  }
+  hvAdvance(hv.pid===null?-1:hv.pid,hv.hole);   // skip to the next player still waiting
+  hvRender();
+}
+
+// showScreen() hook: keep the floating lock/gear buttons where they belong for the screen shown.
+function hvAfterShowScreen(id){
+  if(id==='screen-scoring'){ buildHoleView(); } else { hvPlaceFloating(); }
+}
+window.addEventListener('resize',()=>{ try{ hvPlaceFloating(); }catch(e){} });
+
 // ===== CUSTOM SCORE PAD =====
 let padPid=null,padHole=null,padEntry='',padTimer=null,padReplaceNext=false;
 
@@ -5041,6 +5325,7 @@ function showScreen(id){
     }
   }
   window.scrollTo(0,0);
+  if(typeof hvAfterShowScreen==='function') hvAfterShowScreen(id);
 }
 
 function buildClosiesView(){
