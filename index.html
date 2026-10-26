@@ -6135,7 +6135,7 @@ function toggleLock(){
 /* ===== IDLE KEYPAD LOCK =====
    After IDLE_MS with no touch on the scoring screen the keypad locks behind a
    slide-to-unlock bar, so a phone in a pocket can't enter scores. */
-const IDLE_MS=20000;
+const IDLE_MS=10000;
 let idleTimer=null, idleLocked=false;
 function noteActivity(){
   if(idleLocked) return;
