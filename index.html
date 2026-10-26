@@ -334,6 +334,11 @@
   #end-round-btn{position:fixed;bottom:122px;right:14px;z-index:10000;width:42px;height:42px;border-radius:50%;border:2px solid rgba(192,57,43,0.5);background:rgba(192,57,43,0.75);color:#fff;font-size:1.15rem;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,0.45);transition:background 0.2s,border-color 0.2s;}
   #end-round-btn:hover{background:rgba(192,57,43,0.95);}
   #lock-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:transparent;cursor:not-allowed;}
+  #idle-lock{display:none;position:fixed;inset:0;z-index:10002;background:rgba(10,20,10,0.88);flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#fff;font-family:'Nunito',sans-serif;touch-action:none;}
+  #idle-lock .il-title{font-weight:900;font-size:1.3rem;}
+  #idle-lock .il-sub{font-size:0.85rem;opacity:0.75;}
+  #idle-track{position:relative;width:min(80vw,320px);height:56px;border-radius:28px;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9rem;letter-spacing:0.3px;}
+  #idle-knob{position:absolute;left:4px;top:4px;width:48px;height:48px;border-radius:50%;background:#3aaa35;display:flex;align-items:center;justify-content:center;font-size:1.3rem;touch-action:none;cursor:grab;}
   #lock-toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.78);color:#fff;padding:10px 22px;border-radius:22px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.88rem;z-index:10001;pointer-events:none;opacity:0;transition:opacity 0.25s;white-space:nowrap;}
   #lock-toast.show{opacity:1;}
   /* ===== NET SKINS ===== */
@@ -4791,13 +4796,26 @@ function hvCommitPending(){
   else { hv.entry=''; }
 }
 
+// Overwrite check: changing or clearing a score that is already in asks first.
+function confirmScoreChange(pid,hole,newVal){
+  const old=(scores[pid]||{})[hole];
+  if(old===null||old===undefined||old===newVal) return true;
+  const p=players.find(x=>x.id===pid);
+  const nm=p?hvNameOf(p):'this player';
+  const q=(newVal===null)?`Clear ${nm}'s ${old} on hole ${hole}?`:`Change ${nm}'s ${old} to a ${newVal}?`;
+  const ok=window.confirm(q);
+  noteActivity();
+  return ok;
+}
+
 function hvCommit(advance){
   if(hv.timer){ clearTimeout(hv.timer); hv.timer=null; }
   const val=parseInt(hv.entry);
   const pid=hv.pid, hole=hv.hole;
   hv.entry=''; hv.replace=false;
   if(isNaN(val)||val<1||val>20||pid===null){ hvRender(); return false; }
-  saveScore(pid,hole,val);
+  if(!confirmScoreChange(pid,hole,val)){ hvRender(); return false; }
+  if((scores[pid]||{})[hole]!==val) saveScore(pid,hole,val);
   if(advance) hvAdvance(pid,hole);
   hvRender();
   return true;
@@ -4845,7 +4863,7 @@ function hvClear(){
   if(hv.timer){ clearTimeout(hv.timer); hv.timer=null; }
   if(hv.pid===null) return;
   if(hv.entry!==''){ hv.entry=''; hv.replace=hvScore(hv.pid,hv.hole)!==null; }
-  else if(hvScore(hv.pid,hv.hole)!==null){ saveScore(hv.pid,hv.hole,null); }
+  else if(hvScore(hv.pid,hv.hole)!==null){ if(confirmScoreChange(hv.pid,hv.hole,null)) saveScore(hv.pid,hv.hole,null); }
   hvRender();
 }
 
@@ -4969,13 +4987,14 @@ function scorePadBackspace(){
 
 function scorePadManualSave(){
   if(padTimer){clearTimeout(padTimer);padTimer=null;}
-  if(padEntry===''){saveScore(padPid,padHole,null);closeScorePad();return;}
+  if(padEntry===''){ if(confirmScoreChange(padPid,padHole,null)) saveScore(padPid,padHole,null); closeScorePad();return;}
   scorePadCommit();
 }
 
 function scorePadCommit(){
   const val=parseInt(padEntry);
   if(isNaN(val)||val<1||val>20)return;
+  if(!confirmScoreChange(padPid,padHole,val)){ closeScorePad(); return; }
   saveScore(padPid,padHole,val);
   // Find next player/hole within current nine
   const nine=activeNine==='front'?FRONT:BACK;
@@ -5435,6 +5454,7 @@ async function refreshMoneyForScreen(id){
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  try{noteActivity();}catch(e){}
   if(id==='screen-lb')buildLB();
   if(id==='screen-skins')buildSkinsView();
   if(id==='screen-closies')buildClosiesView();
@@ -6112,6 +6132,49 @@ function toggleLock(){
   }
 }
 
+/* ===== IDLE KEYPAD LOCK =====
+   After IDLE_MS with no touch on the scoring screen the keypad locks behind a
+   slide-to-unlock bar, so a phone in a pocket can't enter scores. */
+const IDLE_MS=20000;
+let idleTimer=null, idleLocked=false;
+function noteActivity(){
+  if(idleLocked) return;
+  clearTimeout(idleTimer);
+  const sc=document.getElementById('screen-scoring');
+  if(window.isSpectator||!sc||!sc.classList.contains('active')) return;
+  idleTimer=setTimeout(engageIdleLock,IDLE_MS);
+}
+function engageIdleLock(){
+  const sc=document.getElementById('screen-scoring');
+  if(idleLocked||window.isSpectator||!sc||!sc.classList.contains('active')) return;
+  if(typeof hv!=='undefined'&&hv.entry!==''){
+    if(hv.timer){ clearTimeout(hv.timer); hv.timer=null; }
+    if(hv.pid!==null&&hvScore(hv.pid,hv.hole)===null) hvCommit(false); else { hv.entry=''; hvRender(); }
+  }
+  if(typeof padEntry!=='undefined'&&document.getElementById('score-pad')&&document.getElementById('score-pad').classList.contains('open')){ try{closeScorePad();}catch(e){} }
+  idleLocked=true;
+  const o=document.getElementById('idle-lock'); o.style.display='flex';
+  setIdleKnob(0);
+}
+function releaseIdleLock(){
+  idleLocked=false;
+  document.getElementById('idle-lock').style.display='none';
+  noteActivity();
+}
+function setIdleKnob(x){ document.getElementById('idle-knob').style.transform='translateX('+x+'px)'; }
+(function(){
+  let dragging=false,startX=0,max=0;
+  document.addEventListener('DOMContentLoaded',()=>{
+    const knob=document.getElementById('idle-knob'), track=document.getElementById('idle-track');
+    if(!knob) return;
+    knob.addEventListener('pointerdown',e=>{ dragging=true; startX=e.clientX; max=track.clientWidth-knob.clientWidth-8; try{knob.setPointerCapture(e.pointerId);}catch(_){} e.preventDefault(); });
+    knob.addEventListener('pointermove',e=>{ if(!dragging) return; setIdleKnob(Math.max(0,Math.min(max,e.clientX-startX))); });
+    const end=e=>{ if(!dragging) return; dragging=false; const x=Math.max(0,Math.min(max,e.clientX-startX)); if(x>=max*0.9) releaseIdleLock(); else setIdleKnob(0); };
+    knob.addEventListener('pointerup',end); knob.addEventListener('pointercancel',end);
+  });
+  ['pointerdown','touchstart','keydown'].forEach(ev=>document.addEventListener(ev,()=>noteActivity(),true));
+})();
+
 function onLockedTap(){
   showLockToast('Tap 🔓 to unlock');
 }
@@ -6171,6 +6234,7 @@ function showLockToast(msg){
   <button id="admin-gear-float" onclick="endRound()" title="Admin / End Round">⚙️</button>
   <button id="lock-btn" onclick="toggleLock()" title="Lock screen">🔒</button>
 </div>
+<div id="idle-lock"><div class="il-title">🔒 Keypad locked</div><div class="il-sub">Locked to prevent pocket taps</div><div id="idle-track">Slide to unlock<div id="idle-knob">➜</div></div></div>
 <div id="lock-toast"></div>
 </body>
 </html>
