@@ -216,6 +216,9 @@
   .lb-mode button{flex:1;padding:7px 8px;border-radius:18px;border:1.5px solid rgba(255,255,255,0.35);background:rgba(255,255,255,0.08);color:#dfeedd;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.8rem;cursor:pointer;}
   .lb-mode button.on{background:#fff;color:var(--sgf-green-darker);border-color:#fff;}
   .lg-lb-head{padding:6px 12px;background:#fffbef;border-bottom:1px solid var(--gold-light);font-size:0.7rem;font-weight:800;color:#8a6d1f;}
+  .lg-entry{display:flex;align-items:center;gap:8px;margin:0 0 9px;color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.85rem;}
+  .lg-entry label{flex:1;}
+  .lg-entry input{width:90px;padding:8px;border-radius:9px;border:1.5px solid rgba(255,255,255,0.35);background:#fff;color:#1a4a1a;font-family:'Nunito',sans-serif;font-weight:800;font-size:1rem;text-align:center;}
   .lg-tools{display:flex;gap:7px;margin:0 0 9px;}
   .lg-tools button{flex:1;padding:8px;border-radius:9px;border:1.5px solid rgba(255,255,255,0.35);background:rgba(255,255,255,0.1);color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.8rem;cursor:pointer;}
   .lg-row{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:none;border-bottom:1px solid var(--border);background:#fff;font-family:'Nunito',sans-serif;text-align:left;cursor:pointer;color:var(--text);}
@@ -1167,7 +1170,8 @@ const WD_SHEET_SCORE=9;
 function isWD(pid){ return !!(wds&&wds[pid]); }
 function wdHolesPlayed(pid){ return HOLES.filter(h=>scores[pid]&&scores[pid][h]!=null).length; }
 let lowGross={}, lowGrossRef=null, lbMode='net'; // Low Gross side game: {pid:true} = paid the buy-in
-const LOW_GROSS_ENTRY=5;                          // $5.00, winner takes all
+const LOW_GROSS_DEFAULT=5;                        // $5.00 unless Chris changes it on the Low Gross screen
+let LOW_GROSS_ENTRY=LOW_GROSS_DEFAULT;            // buy-in per entrant, winner takes all (sgf/activeRound/lowGrossEntry)
 let payments={}, paymentsRef=null; // settle-up: {pid:{in:'venmo',out:'cash'}}
 let moneySetup=null; // loaded from SETUP.MONEY tab, stored in Firebase with round
 
@@ -2224,6 +2228,7 @@ async function openResultsLink(key){
     Object.keys(data.closies||{}).forEach(h=>{ closies[parseInt(h)]=data.closies[h]; });
     payments=data.payments||{};
     lowGross=data.lowGross||{};
+    LOW_GROSS_ENTRY=lgCleanEntry(data.lowGrossEntry);
     wds=data.wd||{};
     noShows={}; playerOrder={};
     pars=data.pars&&data.pars.length?data.pars:pars;
@@ -2413,7 +2418,7 @@ async function endRound(){
           await archRef.set({
             course:data.course||'', date:data.date||'', sheetId:data.sheetId||'', code:data.code||'', endedAt:Date.now(),
             players:data.players||[], scores:data.scores||{}, pars:data.pars||[], strokeIndex:data.strokeIndex||[],
-            closies:data.closies||{}, moneySetup:data.moneySetup||null, payments:data.payments||{}, lowGross:data.lowGross||{},
+            closies:data.closies||{}, moneySetup:data.moneySetup||null, payments:data.payments||{}, lowGross:data.lowGross||{}, lowGrossEntry:lgCleanEntry(data.lowGrossEntry),
             groups:data.groups||{}, wd:data.wd||{}
           });
           window.__lastResultsKey=archRef.key;
@@ -2422,7 +2427,7 @@ async function endRound(){
         }
       }catch(e){ console.log('Backup before end round failed:',e); }
       await firebase.database().ref('sgf/activeRound').remove();
-      players=[];scores={};payments={};lowGross={};playerOrder={};wds={};
+      players=[];scores={};payments={};lowGross={};LOW_GROSS_ENTRY=LOW_GROSS_DEFAULT;playerOrder={};wds={};
       renderPlayerList();
       showScreen('screen-setup');
       applyAdminUI();
@@ -3139,6 +3144,13 @@ function lgIdx(p){
 }
 function setLbMode(m){ lbMode=m; buildLB(); }
 
+// Buy-in per entrant: a number >= 0 with at most 2 decimals; anything else falls back to $5.
+function lgCleanEntry(v){
+  const n=parseFloat(v);
+  return (isFinite(n)&&n>=0)?Math.round(n*100)/100:LOW_GROSS_DEFAULT;
+}
+
+let lowGrossEntryRef=null;
 function listenForLowGrossUpdates(){
   if(!db) return;
   if(lowGrossRef) lowGrossRef.off('value');
@@ -3147,6 +3159,25 @@ function listenForLowGrossUpdates(){
     lowGross=snap.val()||{};
     repaintActiveScreen();
   });
+  if(lowGrossEntryRef) lowGrossEntryRef.off('value');
+  lowGrossEntryRef=firebase.database().ref('sgf/activeRound/lowGrossEntry');
+  lowGrossEntryRef.on('value', snap=>{
+    LOW_GROSS_ENTRY=lgCleanEntry(snap.val());   // null (never set / round ended) = $5
+    repaintActiveScreen();
+  });
+}
+
+// Admin changes the buy-in on the Low Gross screen; everyone's pot, the Payouts page and
+// Settle Up follow, because they all read LOW_GROSS_ENTRY through rankLowGross().
+function setLowGrossEntry(v){
+  if(!isAdmin||window.isSpectator) return;
+  const amt=lgCleanEntry(v);
+  LOW_GROSS_ENTRY=amt;
+  buildLowGrossView();
+  if(db){
+    try{ firebase.database().ref('sgf/activeRound/lowGrossEntry').set(amt===LOW_GROSS_DEFAULT?null:amt); }
+    catch(e){ console.log('Low Gross buy-in write failed:',e.message); }
+  }
 }
 
 function toggleLowGross(pid){
@@ -3204,6 +3235,8 @@ function buildLowGrossView(){
     +'<div class="settle-stat"><b>Pot</b><i>'+lgMoney(R.pot)+'</i></div>'
     +'<div class="settle-stat"><b>'+(R.final?'Winner':'Leader')+'</b><i>'+lead+'</i></div>'
     +'</div></div>';
+  html+='<div class="lg-entry"><label for="lg-entry-inp">Buy-in per player $</label>'
+    +'<input id="lg-entry-inp" type="number" inputmode="decimal" min="0" step="0.5" value="'+LOW_GROSS_ENTRY+'" onchange="setLowGrossEntry(this.value)"></div>';
   html+='<div class="lg-tools"><button onclick="setAllLowGross(true)">&#10003; Everyone in</button>'
     +'<button onclick="setAllLowGross(false)">Clear all</button></div>';
   html+='<div class="lb-card">'+sortPlayers(ap).map(p=>{
