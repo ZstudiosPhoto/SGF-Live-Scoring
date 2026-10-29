@@ -682,6 +682,14 @@ try {
       <div class="field"><label>Course Name</label><input type="text" id="inp-course" placeholder="e.g. Torrey Pines South" maxlength="50"></div>
       <div class="field"><label>Date of Play</label><input type="date" id="inp-date"></div>
       <div class="field">
+        <label>Round <span style="font-size:0.72rem;color:var(--muted);font-weight:600;">(for two-round events)</span></label>
+        <select id="inp-roundlabel" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #cce0ca;border-radius:8px;font-family:'Nunito',sans-serif;font-weight:700;font-size:0.9rem;background:#fff;color:var(--text);">
+          <option value="">Single round</option>
+          <option value="Round 1">Round 1</option>
+          <option value="Round 2">Round 2 (Final)</option>
+        </select>
+      </div>
+      <div class="field">
         <label>Event Code <span style="font-size:0.72rem;color:var(--muted);font-weight:600;">(players enter this to join — change each event)</span></label>
         <input type="text" id="inp-eventcode" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 7823" maxlength="6" style="letter-spacing:6px;font-size:1.3rem;font-weight:800;text-align:center;width:100%;box-sizing:border-box;">
       </div>
@@ -842,7 +850,7 @@ try {
     <div class="sgf-logo"><img id="logo2" alt="SGF"></div>
     <div class="header-text">
       <div class="header-brand" id="hdr-course">SGF Live Scoring</div>
-      <div class="header-sub" id="hdr-date">Live Round</div>
+      <div class="header-sub"><span id="hdr-date">Live Round</span><span id="hdr-round" style="font-weight:800;"></span></div>
     </div>
     <div class="header-actions">
       <div class="live-badge"><div class="live-dot"></div>LIVE</div>
@@ -1504,7 +1512,7 @@ function checkForActiveRound(){
         return;
       }
       document.getElementById('join-course').textContent=data.course||'SGF Round';
-      document.getElementById('join-date').textContent=data.date||'';
+      document.getElementById('join-date').textContent=(data.date||'')+roundTag(data.roundLabel);
       document.getElementById('join-players').textContent=`${(data.players||[]).length} players`;
       activeEventCode=data.code||null;
       activeRoundStart=String(data.startedAt||'');
@@ -1616,6 +1624,7 @@ function joinRound(){
     moneySetup=data.moneySetup||null;
     document.getElementById('hdr-course').textContent=data.course||'SGF Live Scoring';
     document.getElementById('hdr-date').textContent=data.date||'Live Round';
+    setHdrRound(data.roundLabel);
     document.getElementById('lb-sub').textContent=data.course||'SGF Live Scoring';
     document.getElementById('skins-sub').textContent=data.course||'SGF Live Scoring';
     document.getElementById('closies-sub').textContent=data.course||'SGF Live Scoring';
@@ -1863,10 +1872,12 @@ async function startRound(){
   players.forEach(p=>{scores[p.id]={};HOLES.forEach(h=>scores[p.id][h]=null);});
   const course=document.getElementById('inp-course').value.trim()||'SGF Live Scoring';
   const date=document.getElementById('inp-date').value;
+  const roundLabel=(document.getElementById('inp-roundlabel')||{}).value||'';
   const lcp=document.getElementById('inp-lcp')?document.getElementById('inp-lcp').value:'no';
   const adminNotes=document.getElementById('inp-notes')?document.getElementById('inp-notes').value.trim():'';
   document.getElementById('hdr-course').textContent=course;
   document.getElementById('hdr-date').textContent=date?fmtDate(date):'Live Round';
+  setHdrRound(roundLabel);
   document.getElementById('lb-sub').textContent=course;
   isAdmin=true;
   localStorage.setItem('sgf_isAdminDevice','true');
@@ -1881,7 +1892,7 @@ async function startRound(){
   players.forEach(p=>{groupsMap[p.id]=parseInt(p.group)||1;});
   if(db){
     const roundData={
-      active:true, course, date:date?fmtDate(date):'Live Round',
+      active:true, course, date:date?fmtDate(date):'Live Round', roundLabel,
       players, pars, strokeIndex, teeData, scores, closies,
       courseSymbol: roundCourseSymbol, teeSymbol: roundTeeSymbol,
       groups: groupsMap,
@@ -2239,6 +2250,7 @@ async function openResultsLink(key){
     const date=data.date||'';
     document.getElementById('hdr-course').textContent=course;
     document.getElementById('hdr-date').textContent=date;
+    setHdrRound(data.roundLabel);
     ['lb-sub','skins-sub','closies-sub','payouts-sub','settle-sub'].forEach(id=>{
       const el=document.getElementById(id); if(el) el.textContent=course;
     });
@@ -2306,7 +2318,7 @@ async function showPastRounds(){
       const delBtn=isAdmin?`<button onclick="event.stopPropagation();deletePastRound(${i})" style="background:none;border:none;font-size:1rem;cursor:pointer;padding:4px 6px;color:#c0392b;opacity:0.6;flex-shrink:0;" title="Delete this round">🗑️</button>`:'';
       return `<div class="hist-round-card" style="display:flex;align-items:center;gap:6px;" onclick="viewRoundHistory(${i})">
         <div style="flex:1;min-width:0;">
-          <div class="hist-round-course">${esc(r.course||'(no course)')}</div>
+          <div class="hist-round-course">${esc(r.course||'(no course)')}${r.roundLabel?' — '+esc(r.roundLabel):''}</div>
           <div class="hist-round-date">${esc(dt)}</div>
           <div class="hist-round-meta">${playerCount} player${playerCount!==1?'s':''}</div>
         </div>
@@ -2338,7 +2350,7 @@ function viewRoundHistory(idx){
   const r=_pastRounds[idx];
   if(!r) return;
   document.getElementById('hist-course-hdr').textContent=r.course||'(no course)';
-  document.getElementById('hist-date-hdr').textContent=(r.date?r.date+' · ':'')+'Final Scores';
+  document.getElementById('hist-date-hdr').textContent=(r.date?r.date+roundTag(r.roundLabel)+' · ':'')+'Final Scores';
   const rPlayers=(r.players||[]).filter(p=>p.name&&p.name.trim());
   const rScores=r.scores||{};
   const rPars=r.pars||[];
@@ -2416,7 +2428,7 @@ async function endRound(){
           // groups is archived too now: the Payouts scorecard splits the hole-by-hole card
           // by foursome, and without it every man in an old round reads as Group 1.
           await archRef.set({
-            course:data.course||'', date:data.date||'', sheetId:data.sheetId||'', code:data.code||'', endedAt:Date.now(),
+            course:data.course||'', date:data.date||'', roundLabel:data.roundLabel||'', sheetId:data.sheetId||'', code:data.code||'', endedAt:Date.now(),
             players:data.players||[], scores:data.scores||{}, pars:data.pars||[], strokeIndex:data.strokeIndex||[],
             closies:data.closies||{}, moneySetup:data.moneySetup||null, payments:data.payments||{}, lowGross:data.lowGross||{}, lowGrossEntry:lgCleanEntry(data.lowGrossEntry),
             groups:data.groups||{}, wd:data.wd||{}
@@ -3701,7 +3713,7 @@ function populateInfoScreen(data){
   const d=data||{};
   const el=id=>document.getElementById(id);
   if(el('info-course')) el('info-course').textContent=d.course||'—';
-  if(el('info-date'))   el('info-date').textContent=d.date||'—';
+  if(el('info-date'))   el('info-date').textContent=d.date?d.date+roundTag(d.roundLabel):'—';
   if(el('info-sub'))    el('info-sub').textContent=d.course||'Today\'s Round';
   if(el('info-code'))   el('info-code').textContent=d.code||'—';
   const lcp=d.lcp==='yes';
@@ -6141,6 +6153,8 @@ function skinStallNotice(part, order, style){
     + 'Mark them No Show to make it permanent.</div>';
 }
 
+function roundTag(l){return l?' · '+l:'';}
+function setHdrRound(l){const e=document.getElementById('hdr-round');if(e)e.textContent=roundTag(l);}
 function fmtDate(d){const dt=new Date(d+'T12:00:00');return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
