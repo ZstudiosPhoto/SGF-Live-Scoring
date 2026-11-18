@@ -6634,21 +6634,22 @@ function toggleLock(){
   }
 }
 
-/* ===== IDLE KEYPAD LOCK =====
-   After IDLE_MS with no touch on the scoring screen the keypad locks behind a
-   slide-to-unlock bar, so a phone in a pocket can't enter scores. */
+/* ===== IDLE SCREEN LOCK =====
+   After IDLE_MS with no touch on any screen where something can be ENTERED, the screen locks
+   behind a slide-to-unlock bar, so a phone in a pocket can't change anything.  Was the Scores
+   screen only; 11/18/2026 Chris asked for every entry screen (Closies, Dots, Settle, Low Gross). */
 const IDLE_MS=20000;
+const IDLE_LOCK_SCREENS=['screen-scoring','screen-closies','screen-dots','screen-settle','screen-lowgross'];
+function onIdleLockScreen(){ const a=document.querySelector('.screen.active'); return !!(a&&IDLE_LOCK_SCREENS.includes(a.id)); }
 let idleTimer=null, idleLocked=false;
 function noteActivity(){
   if(idleLocked) return;
   clearTimeout(idleTimer);
-  const sc=document.getElementById('screen-scoring');
-  if(window.isSpectator||!sc||!sc.classList.contains('active')) return;
+  if(window.isSpectator||!onIdleLockScreen()) return;
   idleTimer=setTimeout(engageIdleLock,IDLE_MS);
 }
 function engageIdleLock(){
-  const sc=document.getElementById('screen-scoring');
-  if(idleLocked||window.isSpectator||!sc||!sc.classList.contains('active')) return;
+  if(idleLocked||window.isSpectator||!onIdleLockScreen()) return;
   if(typeof hv!=='undefined'&&hv.entry!==''){
     if(hv.timer){ clearTimeout(hv.timer); hv.timer=null; }
     if(hv.pid!==null&&hvScore(hv.pid,hv.hole)===null) hvCommit(false); else { hv.entry=''; hvRender(); }
@@ -6736,7 +6737,7 @@ function showLockToast(msg){
   <button id="admin-gear-float" onclick="endRound()" title="Admin / End Round">⚙️</button>
   <button id="lock-btn" onclick="toggleLock()" title="Lock screen">🔒</button>
 </div>
-<div id="idle-lock"><div class="il-title">🔒 Keypad locked</div><div class="il-sub">Locked to prevent pocket taps</div><div id="idle-track">Slide to unlock<div id="idle-knob">➜</div></div></div>
+<div id="idle-lock"><div class="il-title">🔒 Screen locked</div><div class="il-sub">Locked to prevent pocket taps</div><div id="idle-track">Slide to unlock<div id="idle-knob">➜</div></div></div>
 <div id="lock-toast"></div>
 </body>
 </html>
