@@ -636,6 +636,52 @@
   .split-btns button.go{background:linear-gradient(135deg,#6b3fa0,#46256e);border-color:#46256e;color:#fff;}
   .split-btns button.go:disabled{opacity:0.45;cursor:default;}
   .split-btns button.rm{color:#a33;border-color:#e2b4b4;}
+  /* ===== DOTS (foursome side game) ===== */
+  .dt-card{background:#fff;border-radius:13px;box-shadow:0 6px 24px rgba(0,0,0,0.2);border:1px solid rgba(58,170,53,0.25);margin-bottom:12px;overflow:hidden;color:var(--text);}
+  .dt-h{font-size:0.62rem;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#5a6a5a;padding:9px 12px 6px;display:flex;align-items:center;gap:8px;}
+  .dt-h .dt-hx{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:800;color:var(--sgf-green-dark);}
+  .dt-grp{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px;}
+  .dt-grp button{flex:1;min-width:64px;padding:7px 8px;border-radius:18px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.74rem;cursor:pointer;}
+  .dt-grp button.on{background:var(--gold);border-color:var(--gold);color:#111;}
+  .dt-in{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 11px;}
+  .dt-chip{padding:7px 11px;border-radius:18px;border:1.5px solid var(--border);background:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.8rem;color:var(--text);cursor:pointer;}
+  .dt-chip.on{background:var(--sgf-green);border-color:var(--sgf-green);color:#fff;}
+  .dt-chip:disabled{opacity:0.55;cursor:default;}
+  .dt-mode{padding:0 12px 11px;font-size:0.76rem;font-weight:700;color:var(--muted);}
+  .dt-seg{display:flex;align-items:center;gap:8px;padding:7px 12px;border-top:1px solid #edf3ec;font-size:0.8rem;font-weight:800;}
+  .dt-seg .dt-sh{min-width:58px;font-size:0.66rem;color:#5a6a5a;font-weight:900;}
+  .dt-seg .dt-vs{color:#9aa89a;font-weight:700;font-size:0.7rem;}
+  .dt-seg.cur{background:#f3faf2;}
+  .dt-btnrow{display:flex;gap:8px;padding:8px 12px 11px;}
+  .dt-btn{flex:1;padding:8px 10px;border-radius:9px;border:1px solid var(--border);background:#f2f6f1;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.76rem;color:var(--sgf-green-darker);cursor:pointer;}
+  .dt-money{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:7px;padding:0 12px 10px;}
+  .dt-m{background:#f2f6f1;border-radius:9px;padding:7px 6px;text-align:center;}
+  .dt-m b{display:block;font-size:0.66rem;font-weight:900;color:#3a4a3a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .dt-m i{font-style:normal;font-family:'Bebas Neue',sans-serif;font-size:1.55rem;letter-spacing:1px;line-height:1.05;display:block;}
+  .dt-m i.pos{color:#1f7a1b;} .dt-m i.neg{color:#b0261c;} .dt-m i.zero{color:#7a8a7a;}
+  .dt-m small{display:block;font-size:0.6rem;font-weight:800;color:#6a7a6a;}
+  .dt-pay{padding:2px 12px 11px;}
+  .dt-pay div{font-size:0.84rem;font-weight:800;padding:5px 0;border-top:1px dashed #e2ebe1;}
+  .dt-pay div:first-child{border-top:none;}
+  .dt-note{font-size:0.72rem;font-weight:700;color:var(--muted);padding:0 12px 10px;line-height:1.45;}
+  .dt-nav{display:flex;align-items:center;justify-content:space-between;padding:4px 8px 8px;}
+  .dt-nav button{border:none;background:#f2f6f1;border-radius:9px;padding:8px 12px;font-family:'Nunito',sans-serif;font-weight:900;font-size:0.8rem;color:var(--sgf-green-darker);cursor:pointer;min-width:74px;}
+  .dt-nav button:disabled{opacity:0.35;}
+  .dt-nav .dt-hole{text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:1px;line-height:1;}
+  .dt-nav .dt-hole small{display:block;font-family:'Nunito',sans-serif;font-size:0.64rem;font-weight:800;color:#6a7a6a;letter-spacing:0;}
+  .dt-pr{display:flex;align-items:center;gap:7px;padding:8px 12px;border-top:1px solid #edf3ec;flex-wrap:wrap;}
+  .dt-pn{flex:1;min-width:90px;font-weight:900;font-size:0.86rem;}
+  .dt-pn small{display:block;font-size:0.66rem;font-weight:800;color:#6a7a6a;}
+  .dt-jk{padding:6px 9px;border-radius:15px;border:1.5px solid var(--border);background:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.72rem;color:var(--text);cursor:pointer;}
+  .dt-jk.on{background:var(--gold);border-color:#b8902c;color:#111;}
+  .dt-jk.off{opacity:0.45;text-decoration:line-through;}
+  .dt-jk.auto{background:var(--birdie-bg);border-color:var(--birdie-bg);color:#fff;cursor:default;}
+  .dt-res{padding:9px 12px;border-top:1px solid #edf3ec;font-size:0.8rem;font-weight:800;background:#fbfdfa;}
+  .dt-log div{display:flex;gap:8px;padding:6px 12px;border-top:1px solid #f0f4ef;font-size:0.76rem;font-weight:700;}
+  .dt-log div b{min-width:30px;color:#5a6a5a;}
+  .dt-log div.win span{color:#1f7a1b;}
+  .dt-log div.push span{color:#9a6a10;}
+  .dt-log div.pend span{color:#8a9a8a;}
 </style>
 </head>
 <body>
@@ -849,6 +895,7 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
       <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
       <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
+      <button class="hdr-btn" onclick="showScreen('screen-dots')">&#9679; Dots</button>
       <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰</button>
       <button class="hdr-btn settle-nav" onclick="showScreen('screen-settle')" style="background:rgba(120,190,255,0.22);border-color:rgba(120,190,255,0.5);color:#bfe2ff;">🧾 Settle</button>
       <button class="hdr-btn" onclick="showScreen('screen-info')">ℹ️</button>
@@ -927,6 +974,7 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-scoring')">Scores</button>
       <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
       <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
+      <button class="hdr-btn" onclick="showScreen('screen-dots')">&#9679; Dots</button>
       <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰</button>
     </div>
   </div>
@@ -979,6 +1027,7 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-scoring')">Scores</button>
       <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
       <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
+      <button class="hdr-btn" onclick="showScreen('screen-dots')">&#9679; Dots</button>
       <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰</button>
     </div>
   </div>
@@ -1025,6 +1074,7 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
       <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
       <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
+      <button class="hdr-btn" onclick="showScreen('screen-dots')">&#9679; Dots</button>
       <button class="hdr-btn settle-nav" onclick="showScreen('screen-settle')" style="background:rgba(120,190,255,0.22);border-color:rgba(120,190,255,0.5);color:#bfe2ff;">🧾 Settle</button>
       <button class="hdr-btn rs-pdf-btn" onclick="printResultsSheet()" title="Save these results as a sharp, zoomable PDF">&#128196; PDF</button>
     </div>
@@ -1077,6 +1127,26 @@ try {
   </div>
   <div class="lb-body" id="lowgross-content">
     <div class="skins-empty">Start a round to run Low Gross.</div>
+  </div>
+</div>
+
+<!-- ===== DOTS SCREEN (foursome side game) ===== -->
+<div id="screen-dots" class="screen">
+  <div class="app-header">
+    <div class="sgf-logo"><img id="logo-dots" alt="SGF"></div>
+    <div class="header-text">
+      <div class="header-brand">&#9679; Dots</div>
+      <div class="header-sub" id="dots-sub">Foursome game</div>
+    </div>
+    <div class="header-actions">
+      <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+      <button class="hdr-btn" onclick="showScreen('screen-scoring')">Scores</button>
+      <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
+      <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
+    </div>
+  </div>
+  <div class="lb-body" id="dots-content">
+    <div class="skins-empty">Start a round to play Dots.</div>
   </div>
 </div>
 
@@ -1249,7 +1319,7 @@ function applyAdminUI(){
 }
 
 window.addEventListener('DOMContentLoaded',()=>{
-  ['logo1','logo2','logo3','logo4','logo5','logo-skins','logo-closies','logo-payouts','logo-settle','logo-lowgross','logo-info','logo-grouppick','logo-history','logo-history2','logo-welcome','logo-welcome-big'].forEach(id=>{
+  ['logo1','logo2','logo3','logo4','logo5','logo-skins','logo-closies','logo-payouts','logo-settle','logo-lowgross','logo-dots','logo-info','logo-grouppick','logo-history','logo-history2','logo-welcome','logo-welcome-big'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.src=SGF_LOGO;
   });
   document.getElementById('inp-date').value=new Date().toLocaleDateString('en-CA',{timeZone:'America/Los_Angeles'});
@@ -1672,6 +1742,7 @@ function listenForScoreUpdates(){
     if(document.getElementById('screen-skins').classList.contains('active')) buildSkinsView();
     if(document.getElementById('screen-payouts').classList.contains('active')) buildPayoutsView();
     if(document.getElementById('screen-lowgross').classList.contains('active')) buildLowGrossView();
+    if(document.getElementById('screen-dots').classList.contains('active')) buildDotsView();
   });
 }
 
@@ -2456,7 +2527,7 @@ async function endRound(){
             course:data.course||'', date:data.date||'', sheetId:data.sheetId||'', code:data.code||'', endedAt:Date.now(),
             players:data.players||[], scores:data.scores||{}, pars:data.pars||[], strokeIndex:data.strokeIndex||[],
             closies:data.closies||{}, moneySetup:data.moneySetup||null, payments:data.payments||{}, lowGross:data.lowGross||{}, lowGrossEntry:lgCleanEntry(data.lowGrossEntry),
-            groups:data.groups||{}, wd:data.wd||{}
+            groups:data.groups||{}, wd:data.wd||{}, dots:data.dots||{}
           });
           window.__lastResultsKey=archRef.key;
           // Rounds are NOT trimmed any more (it used to keep 20).  One round is about 10KB,
@@ -3190,6 +3261,7 @@ function lgCleanEntry(v){
 let lowGrossEntryRef=null;
 function listenForLowGrossUpdates(){
   if(!db) return;
+  listenForDotsUpdates();
   if(lowGrossRef) lowGrossRef.off('value');
   lowGrossRef=firebase.database().ref('sgf/activeRound/lowGross');
   lowGrossRef.on('value', snap=>{
@@ -3888,6 +3960,7 @@ function repaintActiveScreen(){
   if(on('screen-closies')) buildClosiesView();
   if(on('screen-payouts')) buildPayoutsView();
   if(on('screen-lowgross')) buildLowGrossView();
+  if(on('screen-dots')) buildDotsView();
   if(on('screen-settle')){
     // Same rule as the payments listener: a repaint mid-typing blows away the amount box.
     const ae=document.activeElement;
@@ -5521,6 +5594,329 @@ async function refreshMoneyForScreen(id){
     if(id==='screen-payouts') buildPayoutsView(); else buildSettleView();
   }catch(e){ console.log('refreshMoneyForScreen skipped:',e.message); }
 }
+// ════════════════════════════════════════════════════════════════════════════════════
+// DOTS — the foursome side game (added 11/18/2026, asked for by Charlie).
+// Completely separate from the group's Net / Skins / Closies / Low Gross money.
+//
+//   Data:  sgf/activeRound/dots/{group} = { in:{pid:true}, order:[4 pids], junk:{hole:{pid:{closie,sandy,pwap}}} }
+//
+//   4 men in  → TEAMS, partners rotate 1–6 / 7–12 / 13–18 (each man partners each other once).
+//               Net, strokes off course handicap capped at 18 (max one pop a hole).
+//               A team wins the hole by winning Low (best ball) or Total (both balls) without
+//               losing the other.  Low to one team and Total to the other, or both tied = push,
+//               1 dot carries.  A won hole is worth 1 + carries; each winner collects that many
+//               dots from EACH loser ($1 a dot).
+//   2–3 in    → net SKINS, same cap.  Outright low net wins 1 + carries, $1 a dot from each
+//               other man.  Tie = 1 dot carries.
+//   Either    → personal dots, GROSS: birdie (automatic), closie on a par 3 made good with a
+//               par, sandy par, pwap par — each $1 from every other man in the game.  The
+//               tapped ones only count when the card shows par or better on that hole.
+//   After 18  → anything still carried is left on the table.
+// ════════════════════════════════════════════════════════════════════════════════════
+let dotsData={}, dotsRef=null;
+let dotsView={group:null, hole:null};
+const DOT_VALUE=1;
+const DOT_KINDS=[['closie','Closie'],['sandy','Sandy'],['pwap','Pwap']];
+
+function listenForDotsUpdates(){
+  if(!db) return;
+  if(dotsRef) dotsRef.off('value');
+  dotsRef=firebase.database().ref('sgf/activeRound/dots');
+  dotsRef.on('value', snap=>{
+    dotsData=snap.val()||{};
+    const e=document.getElementById('screen-dots');
+    if(e&&e.classList.contains('active')) buildDotsView();
+  });
+}
+function dotsWrite(path,val){
+  if(!db) return;
+  try{ firebase.database().ref('sgf/activeRound/dots/'+path).set(val); }
+  catch(e){ console.log('Dots write failed:',e.message); }
+}
+function dotsCfg(g){ return (dotsData&&dotsData[g])||{}; }
+function dotsGroups(){
+  return [...new Set(players.filter(p=>p.name&&p.name.trim()!==''&&!noShows[p.id]).map(p=>parseInt(p.group)||1))].sort((a,b)=>a-b);
+}
+function dotsGroupPlayers(g){
+  return sortPlayers(players.filter(p=>p.name&&p.name.trim()!==''&&p.name.trim().toLowerCase()!=='player name'
+    &&!noShows[p.id]&&(parseInt(p.group)||1)===g));
+}
+function dotsInPlayers(g){ const inn=dotsCfg(g).in||{}; return dotsGroupPlayers(g).filter(p=>inn[p.id]); }
+// Stored order if it still names exactly the 4 men in, otherwise card order.
+function dotsOrder(g,ids){
+  let o=dotsCfg(g).order;
+  o=Array.isArray(o)?o.map(Number):(o&&typeof o==='object'?Object.values(o).map(Number):[]);
+  if(o.length!==ids.length||new Set(o).size!==ids.length||!o.every(x=>ids.includes(x))) o=ids.slice();
+  return o;
+}
+function dotsPairings(o){
+  return [[[o[0],o[1]],[o[2],o[3]]], [[o[0],o[2]],[o[1],o[3]]], [[o[0],o[3]],[o[1],o[2]]]];
+}
+function dotsCanEdit(g){ return !window.isSpectator && (isAdmin || myGroup===null || myGroup===g); }
+
+// ── Pure scoring engine (no DOM, no Firebase) ───────────────────────────────────────
+// o = { ids:[pid], hcp:{pid:n}, gross:(pid,h)=>n|null, pars:[18], si:[18], junk:{h:{pid:{..}}}, order:[pid] }
+function dotsEngine(o){
+  const ids=o.ids.map(Number), n=ids.length, V=DOT_VALUE;
+  const R={mode:n===4?'teams':(n>=2?'skins':'off'), n, holes:[], bal:{}, teamDots:{}, persDots:{},
+           persKinds:{}, through:0, carry:0, final:false, payments:[]};
+  ids.forEach(id=>{ R.bal[id]=0; R.teamDots[id]=0; R.persDots[id]=0; R.persKinds[id]={birdie:0,closie:0,sandy:0,pwap:0}; });
+  if(R.mode==='off') return R;
+  const pairs=R.mode==='teams'?dotsPairings(o.order.map(Number)):null;
+  const junk=o.junk||{};
+  let carry=0, stalled=false;
+  for(let h=1;h<=18;h++){
+    const par=Number(o.pars[h-1])||4, si=Number(o.si[h-1])||h;
+    const gross={}, net={}; let complete=true;
+    ids.forEach(id=>{
+      const v=o.gross(id,h);
+      if(v===null||v===undefined||v===''||isNaN(Number(v))){ gross[id]=null; complete=false; return; }
+      gross[id]=Number(v);
+      net[id]=gross[id]-strokesOnHole(Math.min(Number(o.hcp[id])||0,18),si);
+    });
+    const row={h,par,si,gross,net,personal:[],carryIn:carry,result:null};
+    if(pairs) row.teams=pairs[Math.floor((h-1)/6)];
+    // Personal dots count on their own, whatever the team side of the hole is doing.
+    ids.forEach(id=>{
+      const v=gross[id]; if(v===null) return;
+      const j=(junk[h]&&junk[h][id])||{};
+      const kinds=[];
+      if(v<=par-1) kinds.push('birdie');
+      if(v<=par){
+        if(j.closie&&par===3) kinds.push('closie');
+        if(j.sandy) kinds.push('sandy');
+        if(j.pwap) kinds.push('pwap');
+      }
+      kinds.forEach(k=>{
+        row.personal.push({id,k});
+        R.persDots[id]++; R.persKinds[id][k]++;
+        R.bal[id]+=(n-1)*V;
+        ids.forEach(x=>{ if(x!==id) R.bal[x]-=V; });
+      });
+    });
+    // The team / skins side waits until every man in has a score — and so does every hole
+    // after it, because the carry is not known yet.
+    if(stalled||!complete){ stalled=true; row.result={type:'pending'}; R.holes.push(row); continue; }
+    R.through=h;
+    if(R.mode==='teams'){
+      const [A,B]=row.teams;
+      const lowA=Math.min(...A.map(i=>net[i])), lowB=Math.min(...B.map(i=>net[i]));
+      const totA=A.reduce((s,i)=>s+net[i],0), totB=B.reduce((s,i)=>s+net[i],0);
+      const lw=lowA<lowB?0:(lowB<lowA?1:-1), tw=totA<totB?0:(totB<totA?1:-1);
+      row.low=lw; row.total=tw; row.lowVals=[lowA,lowB]; row.totVals=[totA,totB];
+      let win=-1;
+      if(lw!==-1&&tw!==-1){ if(lw===tw) win=lw; }       // split = push
+      else if(lw!==-1) win=lw;                          // Total tied
+      else if(tw!==-1) win=tw;                          // Low tied
+      if(win!==-1){
+        const W=win===0?A:B, L=win===0?B:A, pot=carry+1;
+        W.forEach(w=>{ R.teamDots[w]+=pot; R.bal[w]+=pot*L.length*V; });
+        L.forEach(l=>{ R.bal[l]-=pot*W.length*V; });
+        row.result={type:'win',ids:W,pot}; carry=0;
+      } else { carry++; row.result={type:'push',carry}; }
+    } else {
+      const m=Math.min(...ids.map(i=>net[i])); const best=ids.filter(i=>net[i]===m);
+      if(best.length===1){
+        const w=best[0], pot=carry+1;
+        R.teamDots[w]+=pot; R.bal[w]+=pot*(n-1)*V;
+        ids.forEach(x=>{ if(x!==w) R.bal[x]-=pot*V; });
+        row.result={type:'win',ids:[w],pot}; carry=0;
+      } else { carry++; row.result={type:'push',carry,tied:best}; }
+    }
+    R.holes.push(row);
+  }
+  R.carry=carry; R.final=R.through===18;
+  ids.forEach(id=>{ R.bal[id]=Math.round(R.bal[id]*100)/100; });
+  R.payments=dotsSettle(R.bal);
+  return R;
+}
+// Fewest payments: exact matches first, then biggest debtor pays biggest creditor.
+function dotsSettle(bal){
+  const cr=[], dr=[];
+  Object.keys(bal).forEach(k=>{ const v=Math.round(bal[k]*100)/100;
+    if(v>0) cr.push({id:Number(k),v}); else if(v<0) dr.push({id:Number(k),v:-v}); });
+  const out=[];
+  dr.forEach(d=>{ const c=cr.find(c=>c.v>0&&Math.abs(c.v-d.v)<0.005);
+    if(c){ out.push({from:d.id,to:c.id,amt:d.v}); c.v=0; d.v=0; } });
+  const D=dr.filter(x=>x.v>0.005).sort((a,b)=>b.v-a.v), C=cr.filter(x=>x.v>0.005).sort((a,b)=>b.v-a.v);
+  let i=0,j=0;
+  while(i<D.length&&j<C.length){
+    const a=Math.round(Math.min(D[i].v,C[j].v)*100)/100;
+    out.push({from:D[i].id,to:C[j].id,amt:a});
+    D[i].v-=a; C[j].v-=a;
+    if(D[i].v<0.005) i++;
+    if(C[j].v<0.005) j++;
+  }
+  return out;
+}
+function dotsRun(g){
+  const inP=dotsInPlayers(g), ids=inP.map(p=>p.id);
+  const hcp={}; inP.forEach(p=>{ hcp[p.id]=parseInt(p.hcp)||0; });
+  return dotsEngine({ids, hcp, pars, si:strokeIndex, order:dotsOrder(g,ids), junk:dotsCfg(g).junk||{},
+    gross:(id,h)=>{ const v=scores[id]&&scores[id][h]; return (v===null||v===undefined)?null:v; }});
+}
+
+// ── Actions ─────────────────────────────────────────────────────────────────────────
+function dotsPickGroup(g){ dotsView.group=g; dotsView.hole=null; buildDotsView(); }
+function dotsToggleIn(g,pid){
+  if(!dotsCanEdit(g)) return;
+  if(!dotsData[g]) dotsData[g]={};
+  if(!dotsData[g].in) dotsData[g].in={};
+  const on=!dotsData[g].in[pid];
+  if(on) dotsData[g].in[pid]=true; else delete dotsData[g].in[pid];
+  dotsData[g].order=null;               // partners re-derive from card order
+  buildDotsView();
+  dotsWrite(g+'/in/'+pid,on?true:null);
+  dotsWrite(g+'/order',null);
+}
+function dotsAllIn(g){
+  if(!dotsCanEdit(g)) return;
+  const obj={}; dotsGroupPlayers(g).forEach(p=>{ obj[p.id]=true; });
+  if(!dotsData[g]) dotsData[g]={};
+  dotsData[g].in=obj; dotsData[g].order=null;
+  buildDotsView();
+  dotsWrite(g+'/in',obj); dotsWrite(g+'/order',null);
+}
+// Cycles who partners the first man on holes 1–6; the other two sixes follow from that.
+function dotsSwapPartners(g){
+  if(!dotsCanEdit(g)) return;
+  const ids=dotsInPlayers(g).map(p=>p.id); if(ids.length!==4) return;
+  if(dotsRun(g).through>0) return;                   // partners are locked once hole 1 is in
+  const o=dotsOrder(g,ids), first=o[0];
+  const others=ids.filter(x=>x!==first);              // card order
+  const mate=others[(others.indexOf(o[1])+1)%3];      // 1&2 -> 1&3 -> 1&4 -> 1&2 ...
+  const ord=[first,mate,...others.filter(x=>x!==mate)];
+  if(!dotsData[g]) dotsData[g]={};
+  dotsData[g].order=ord;
+  buildDotsView();
+  dotsWrite(g+'/order',ord);
+}
+function dotsToggleJunk(g,h,pid,k){
+  if(!dotsCanEdit(g)) return;
+  if(!dotsData[g]) dotsData[g]={};
+  const d=dotsData[g];
+  if(!d.junk) d.junk={};
+  if(!d.junk[h]) d.junk[h]={};
+  if(!d.junk[h][pid]) d.junk[h][pid]={};
+  const on=!d.junk[h][pid][k];
+  if(on) d.junk[h][pid][k]=true; else delete d.junk[h][pid][k];
+  buildDotsView();
+  dotsWrite(g+'/junk/'+h+'/'+pid+'/'+k,on?true:null);
+}
+function dotsGoHole(d){
+  const h=(dotsView.hole||1)+d;
+  if(h<1||h>18) return;
+  dotsView.hole=h; buildDotsView();
+}
+
+// ── Screen ──────────────────────────────────────────────────────────────────────────
+function dotsName(id){ const p=players.find(x=>x.id===id); return p?hvNameOf(p).split(' ')[0]:'?'; }
+function dotsTeam(ids){ return ids.map(i=>esc(dotsName(i))).join(' &amp; '); }
+function dotsMoney(v){ const a=Math.abs(v); const s='$'+(a%1?a.toFixed(2):a); return v>0?'+'+s:(v<0?'&minus;'+s:'$0'); }
+function dotsHoleText(R,row){
+  const r=row.result;
+  if(!r||r.type==='pending') return 'Waiting for scores';
+  const what=R.mode==='teams'
+    ?(row.low!==-1&&row.total!==-1?'Low + Total':(row.low!==-1?'Low (Total tied)':'Total (Low tied)'))
+    :'low net';
+  if(r.type==='win'){
+    const who=R.mode==='teams'?dotsTeam(r.ids):esc(dotsName(r.ids[0]));
+    return who+' win '+what+' &middot; '+r.pot+' dot'+(r.pot>1?'s':'');
+  }
+  if(R.mode==='teams'&&row.low!==-1&&row.total!==-1) return 'Push (Low and Total split) &middot; '+r.carry+(r.carry>1?' dots carry':' dot carries');
+  return 'Push (tied) &middot; '+r.carry+(r.carry>1?' dots carry':' dot carries');
+}
+function dotsKindLabel(k){ return {birdie:'Birdie',closie:'Closie',sandy:'Sandy',pwap:'Pwap'}[k]||k; }
+
+function buildDotsView(){
+  const box=document.getElementById('dots-content'); if(!box) return;
+  const sub=document.getElementById('dots-sub');
+  const groups=dotsGroups();
+  if(!groups.length){ box.innerHTML='<div class="skins-empty">No players loaded. Start a round first.</div>'; return; }
+  let g=dotsView.group;
+  if(g===null||!groups.includes(g)) g=(myGroup!==null&&groups.includes(myGroup))?myGroup:groups[0];
+  dotsView.group=g;
+  if(sub) sub.textContent='Group '+g;
+  const canEdit=dotsCanEdit(g);
+  const gp=dotsGroupPlayers(g), inn=dotsCfg(g).in||{};
+  const R=dotsRun(g);
+  let html='';
+  // Group picker — the organizer and spectators can look at any foursome.
+  if(groups.length>1&&(isAdmin||window.isSpectator||myGroup===null)){
+    html+='<div class="dt-grp">'+groups.map(x=>'<button class="'+(x===g?'on':'')+'" onclick="dotsPickGroup('+x+')">Group '+x+'</button>').join('')+'</div>';
+  }
+  // Who's in
+  html+='<div class="dt-card"><div class="dt-h">Who&rsquo;s in<span class="dt-hx">'+R.n+' of '+gp.length+'</span></div>'
+    +'<div class="dt-in">'+gp.map(p=>'<button class="dt-chip'+(inn[p.id]?' on':'')+'"'+(canEdit?'':' disabled')
+      +' onclick="dotsToggleIn('+g+','+p.id+')">'+(inn[p.id]?'&#10003; ':'')+esc(hvNameOf(p))+'</button>').join('')
+    +(canEdit&&R.n<gp.length?'<button class="dt-chip" onclick="dotsAllIn('+g+')">Everyone in</button>':'')+'</div>'
+    +'<div class="dt-mode">'+(R.mode==='teams'?'4 in: <b>teams</b>, partners change every 6 holes. Net, max 18 pops.'
+        :R.mode==='skins'?R.n+' in: <b>net skins</b>, no teams. Max 18 pops.'
+        :'Tap the players who are in. 4 = teams, 2&ndash;3 = skins.')+' $'+DOT_VALUE+' a dot.</div></div>';
+  if(R.mode==='off'){ box.innerHTML=html+(canEdit?'':'<div class="skins-empty">Only this foursome can set up its Dots game.</div>'); return; }
+  // Partners
+  if(R.mode==='teams'){
+    const ids=dotsInPlayers(g).map(p=>p.id), P=dotsPairings(dotsOrder(g,ids));
+    const curSeg=Math.floor(((dotsView.hole||Math.min(R.through+1,18))-1)/6);
+    html+='<div class="dt-card"><div class="dt-h">Partners</div>'
+      +['1&ndash;6','7&ndash;12','13&ndash;18'].map((lab,i)=>'<div class="dt-seg'+(i===curSeg?' cur':'')+'"><span class="dt-sh">Holes '+lab+'</span>'
+        +dotsTeam(P[i][0])+' <span class="dt-vs">vs</span> '+dotsTeam(P[i][1])+'</div>').join('')
+      +(canEdit&&R.through===0?'<div class="dt-btnrow"><button class="dt-btn" onclick="dotsSwapPartners('+g+')">&#128260; Change first-tee partners</button></div>':'')
+      +'</div>';
+  }
+  // Money
+  const ids=Object.keys(R.bal).map(Number);
+  html+='<div class="dt-card"><div class="dt-h">'+(R.final?'Final':'So far')+'<span class="dt-hx">'
+    +(R.final?'All 18':(R.through?'Thru '+R.through:'Not started'))+(R.carry?' &middot; '+R.carry+' carrying':'')+'</span></div>'
+    +'<div class="dt-money">'+ids.map(id=>{const v=R.bal[id];
+      return '<div class="dt-m"><b>'+esc(dotsName(id))+'</b><i class="'+(v>0?'pos':v<0?'neg':'zero')+'">'+dotsMoney(v)+'</i>'
+        +'<small>'+R.teamDots[id]+' '+(R.mode==='teams'?'team':'skin')+' &middot; '+R.persDots[id]+' pers</small></div>';}).join('')+'</div>'
+    +'<div class="dt-pay">'+(R.payments.length
+      ?R.payments.map(p=>'<div>'+esc(dotsName(p.from))+' pays '+esc(dotsName(p.to))+' <b>$'+(p.amt%1?p.amt.toFixed(2):p.amt)+'</b></div>').join('')
+      :'<div style="color:#8a9a8a;">Nobody owes anything yet.</div>')+'</div>'
+    +(R.final&&R.carry?'<div class="dt-note">'+R.carry+' dot'+(R.carry>1?'s':'')+' still tied after 18 &mdash; left on the table.</div>':'')
+    +'</div>';
+  // Hole card — personal dots are tapped in here.
+  if(dotsView.hole===null){
+    const firstOpen=R.holes.find(r=>Object.values(r.gross).some(v=>v===null));
+    dotsView.hole=firstOpen?firstOpen.h:18;
+  }
+  const h=dotsView.hole, row=R.holes[h-1], par=row.par;
+  html+='<div class="dt-card"><div class="dt-nav">'
+    +'<button onclick="dotsGoHole(-1)"'+(h<=1?' disabled':'')+'>&lsaquo; '+(h>1?h-1:'')+'</button>'
+    +'<div class="dt-hole">Hole '+h+'<small>Par '+par+' &middot; SI '+row.si+'</small></div>'
+    +'<button onclick="dotsGoHole(1)"'+(h>=18?' disabled':'')+'>'+(h<18?h+1:'')+' &rsaquo;</button></div>';
+  const inPl=dotsInPlayers(g);
+  html+=inPl.map(p=>{
+    const v=row.gross[p.id], nt=row.net[p.id];
+    const j=(dotsCfg(g).junk&&dotsCfg(g).junk[h]&&dotsCfg(g).junk[h][p.id])||{};
+    const ok=v!==null&&v<=par;
+    let chips='';
+    if(v!==null&&v<=par-1) chips+='<span class="dt-jk auto">Birdie</span>';
+    DOT_KINDS.forEach(([k,lab])=>{
+      if(k==='closie'&&par!==3) return;
+      const on=!!j[k];
+      const cls='dt-jk'+(on?' on':'')+(on&&v!==null&&!ok?' off':'');
+      chips+='<button class="'+cls+'"'+(canEdit?'':' disabled')+' onclick="dotsToggleJunk('+g+','+h+','+p.id+',\''+k+'\')">'+lab+'</button>';
+    });
+    return '<div class="dt-pr"><div class="dt-pn">'+esc(hvNameOf(p))+'<small>'
+      +(v===null?'No score yet':'Gross '+v+(nt!==v?' &middot; Net '+nt:''))+'</small></div>'+chips+'</div>';
+  }).join('');
+  html+='<div class="dt-res">'+(R.mode==='teams'&&row.teams?'<span style="color:#6a7a6a;">'+dotsTeam(row.teams[0])+' vs '+dotsTeam(row.teams[1])+'</span><br>':'')
+    +dotsHoleText(R,row)+(row.result.type==='pending'&&h===R.through+1&&R.carry?' &middot; '+R.carry+' dot'+(R.carry>1?'s':'')+' riding':'')+'</div>';
+  html+='<div class="dt-note" style="padding-top:8px;">Closie, Sandy and Pwap count only with a gross par or better (a struck-through button means the score doesn&rsquo;t qualify). Birdies are automatic.</div></div>';
+  // Hole-by-hole log
+  html+='<div class="dt-card"><div class="dt-h">Hole by hole</div><div class="dt-log">'
+    +R.holes.filter(r=>r.result.type!=='pending'||r.personal.length).map(r=>{
+      const t=r.result.type;
+      const pers=r.personal.map(x=>esc(dotsName(x.id))+' '+dotsKindLabel(x.k).toLowerCase()).join(', ');
+      return '<div class="'+(t==='win'?'win':t==='push'?'push':'pend')+'" onclick="dotsView.hole='+r.h+';buildDotsView();window.scrollTo(0,0);"><b>H'+r.h+'</b><span>'
+        +(t==='pending'?'':dotsHoleText(R,r))+(pers?(t==='pending'?'':' &middot; ')+'&#9679; '+pers:'')+'</span></div>';
+    }).join('')+'</div></div>';
+  box.innerHTML=html;
+}
+
+
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -5531,6 +5927,7 @@ function showScreen(id){
   if(id==='screen-payouts')buildPayoutsView();
   if(id==='screen-settle')buildSettleView();
   if(id==='screen-lowgross')buildLowGrossView();
+  if(id==='screen-dots')buildDotsView();
   if(id==='screen-payouts'||id==='screen-settle') refreshMoneyForScreen(id);
   // Show floating buttons on game screens; auto-unlock when leaving them
   const floatContainer=document.getElementById('floating-btns');
@@ -5541,7 +5938,7 @@ function showScreen(id){
       // Settle Up is wall-to-wall tap targets — the fixed ⚙️/🔒 sit right on top of the
       // rightmost chips, so a tap meant for "Apple" would hit the gear.  Hide them here;
       // the header already links to Scores, Payouts and the printable sheet.
-      if(id==='screen-settle'||id==='screen-lowgross') floatContainer.style.display='none';
+      if(id==='screen-settle'||id==='screen-lowgross'||id==='screen-dots') floatContainer.style.display='none';
     } else {
       floatContainer.style.display='none';
       if(isLocked) toggleLock();
@@ -6182,7 +6579,7 @@ function fmtDate(d){const dt=new Date(d+'T12:00:00');return dt.toLocaleDateStrin
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 /* ===== LOCK / UNLOCK ===== */
-const GAME_SCREENS=['screen-scoring','screen-lb','screen-skins','screen-closies','screen-payouts','screen-settle','screen-lowgross','screen-info'];
+const GAME_SCREENS=['screen-scoring','screen-lb','screen-skins','screen-closies','screen-payouts','screen-settle','screen-lowgross','screen-dots','screen-info'];
 let isLocked=false;
 
 function toggleLock(){
