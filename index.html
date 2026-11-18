@@ -682,6 +682,8 @@
   .dt-log div.win span{color:#1f7a1b;}
   .dt-log div.push span{color:#9a6a10;}
   .dt-log div.pend span{color:#8a9a8a;}
+  .dt-wait{margin:0 12px 8px;padding:8px 10px;border-radius:9px;background:#fff6e0;border:1px solid #f0d58a;color:#8a6200;font-weight:800;font-size:0.78rem;line-height:1.35;}
+  .dt-pn small.wait{color:#b07d1a;font-weight:900;}
   /* ===== PHONE HEADER + HOLE SCREEN SIZING (11/18/2026) =====
      Header buttons were ~23px tall in a ragged wrap. On phones they now sit in an even 5-column
      grid, every button the same size on every screen, ~40px tall. The Hole entry rows and keypad
@@ -703,6 +705,8 @@
     .hv-key.act,.hv-key.ok.next{font-size:0.95rem;}
     .hv-key.ok{font-size:1.3rem;}
   }
+  /* Manual lock button retired 11/18/2026 - the idle auto-lock with slide-to-unlock replaces it. */
+  #lock-btn{display:none !important;}
 </style>
 </head>
 <body>
@@ -4855,7 +4859,7 @@ function hvPlaceFloating(){
     // The lock / gear buttons normally float over the bottom-right corner -- right on top of the
     // keypad's check key.  In Hole view they ride at the right end of the Hole|Card bar instead.
     document.body.classList.add('hv-float');
-    mb.style.paddingRight=(isAdmin?'118px':'56px');
+    mb.style.paddingRight=(isAdmin?'56px':'');   // only the gear now; the manual lock was retired 11/18
     const r=mb.getBoundingClientRect();
     fb.style.bottom='auto'; fb.style.top=Math.max(0,Math.round(r.top+(r.height-34)/2))+'px'; fb.style.right='8px';
   } else {
@@ -5911,6 +5915,13 @@ function buildDotsView(){
     +'<div class="dt-hole">Hole '+h+'<small>Par '+par+' &middot; SI '+row.si+'</small></div>'
     +'<button onclick="dotsGoHole(1)"'+(h>=18?' disabled':'')+'>'+(h<18?h+1:'')+' &rsaquo;</button></div>';
   const inPl=dotsInPlayers(g);
+  const noScore=inPl.filter(p=>row.gross[p.id]===null);
+  if(noScore.length){
+    html+='<div class="dt-wait">&#9203; '+(noScore.length===inPl.length
+      ?'Scores have not been entered yet for hole '+h+'.'
+      :'Scores not entered yet for '+noScore.map(p=>esc(dotsName(p.id))).join(', ')+'.')
+      +' Enter them on the Scores screen; dots for this hole count once they are in.</div>';
+  }
   html+=inPl.map(p=>{
     const v=row.gross[p.id], nt=row.net[p.id];
     const j=(dotsCfg(g).junk&&dotsCfg(g).junk[h]&&dotsCfg(g).junk[h][p.id])||{};
@@ -5923,8 +5934,8 @@ function buildDotsView(){
       const cls='dt-jk'+(on?' on':'')+(on&&v!==null&&!ok?' off':'');
       chips+='<button class="'+cls+'"'+(canEdit?'':' disabled')+' onclick="dotsToggleJunk('+g+','+h+','+p.id+',\''+k+'\')">'+lab+'</button>';
     });
-    return '<div class="dt-pr"><div class="dt-pn">'+esc(hvNameOf(p))+'<small>'
-      +(v===null?'No score yet':'Gross '+v+(nt!==v?' &middot; Net '+nt:''))+'</small></div>'+chips+'</div>';
+    return '<div class="dt-pr"><div class="dt-pn">'+esc(hvNameOf(p))
+      +(v===null?'<small class="wait">Score not entered yet</small>':'<small>Gross '+v+(nt!==v?' &middot; Net '+nt:'')+'</small>')+'</div>'+chips+'</div>';
   }).join('');
   html+='<div class="dt-res">'+(R.mode==='teams'&&row.teams?'<span style="color:#6a7a6a;">'+dotsTeam(row.teams[0])+' vs '+dotsTeam(row.teams[1])+'</span><br>':'')
     +dotsHoleText(R,row)+(row.result.type==='pending'&&h===R.through+1&&R.carry?' &middot; '+R.carry+' dot'+(R.carry>1?'s':'')+' riding':'')+'</div>';
