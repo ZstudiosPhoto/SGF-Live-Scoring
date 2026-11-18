@@ -5604,7 +5604,8 @@ async function refreshMoneyForScreen(id){
 //               Net, strokes off course handicap capped at 18 (max one pop a hole).
 //               A team wins the hole by winning Low (best ball) or Total (both balls) without
 //               losing the other.  Low to one team and Total to the other, or both tied = push,
-//               1 dot carries.  A won hole is worth 1 + carries; each winner collects that many
+//               1 dot carries.  A won hole is worth 2 (Low + Total) or 1 (one won, other tied),
+//               plus carries; each winner collects that many
 //               dots from EACH loser ($1 a dot).
 //   2–3 in    → net SKINS, same cap.  Outright low net wins 1 + carries, $1 a dot from each
 //               other man.  Tie = 1 dot carries.
@@ -5709,7 +5710,8 @@ function dotsEngine(o){
       else if(lw!==-1) win=lw;                          // Total tied
       else if(tw!==-1) win=tw;                          // Low tied
       if(win!==-1){
-        const W=win===0?A:B, L=win===0?B:A, pot=carry+1;
+        // Winning BOTH Low and Total is 2 dots; winning one with the other tied is 1.  Plus carries.
+        const W=win===0?A:B, L=win===0?B:A, pot=carry+(lw===win?1:0)+(tw===win?1:0);
         W.forEach(w=>{ R.teamDots[w]+=pot; R.bal[w]+=pot*L.length*V; });
         L.forEach(l=>{ R.bal[l]-=pot*W.length*V; });
         row.result={type:'win',ids:W,pot}; carry=0;
