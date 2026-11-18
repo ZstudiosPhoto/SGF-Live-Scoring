@@ -1136,6 +1136,7 @@ let teeData={}; // {TEE: {rating, slope, par}} — built during loadPlayersFromS
 // SCynVM-GLD-F row for the one player on the Gold-Forward tees.
 // Changing the nines rewrites EVERY player's course-tee key at once, so this can hit anybody.
 let teeIssues=[];
+let courseIssue=''; // non-empty = SETUP.COURSE could not be read cleanly on the last Load Players
 function findTeeIssues(rows){
   const bad=[];
   const isErr=v=>String(v===null||v===undefined?'':v).trim().charAt(0)==='#';
@@ -1834,6 +1835,25 @@ async function startRound(){
       +(teeIssues.length>1?'Those players':'That player')
       +' will play off 0 strokes, and Net Skins, Low Net and the payouts will all be wrong.')) return;
   }
+  // ── Pre-flight: course sanity (pars + stroke index) ──────────────
+  // Catches the 11/17/26 Sandpiper failure: Load Players read blank course cells, the app
+  // fell back to par 4 on every hole, and Closies said "no par 3s" mid-round.
+  {
+    const inPars=[...document.querySelectorAll('#par-front input'),...document.querySelectorAll('#par-back input')].map(i=>parseInt(i.value));
+    const probs=[];
+    if(courseIssue) probs.push(courseIssue);
+    if(inPars.length!==18||inPars.some(n=>!(n>=3&&n<=6))) probs.push('One or more hole pars are blank or invalid.');
+    else if(inPars.every(n=>n===4)) probs.push('Every hole is par 4 - that is the app placeholder, not a real course.');
+    else if(!inPars.includes(3)) probs.push('This course has no par 3s, so the Closies screen will be empty.');
+    const siSorted=[...strokeIndex].map(Number).sort((a,b)=>a-b);
+    const siValid=strokeIndex.length===18&&siSorted.every((v,i)=>v===i+1);
+    if(!siValid) probs.push('The stroke index is missing or invalid.');
+    else if(strokeIndex.every((v,i)=>Number(v)===i+1)) probs.push('The stroke index is still the 1-18 placeholder, so handicap strokes will land on the wrong holes.');
+    if(probs.length){
+      if(!confirm('⛔ COURSE DATA LOOKS WRONG - do not start yet\n\n- '+probs.join('\n- ')
+        +'\n\nPress Cancel, check the SETUP.COURSE tab in the Google Sheet, then press Load Players from Sheet again.\n\nStart anyway? Closies, Net Skins and the payouts can be wrong.')) return;
+    }
+  }
   // ── Admin PIN gate ──
   if(db){
     const pinSnap=await firebase.database().ref('sgf/adminPin').once('value');
@@ -2026,32 +2046,49 @@ async function loadPlayersFromSheet(){
 
     // Parse pars from SETUP.COURSE — find the row where any of the first 3 cells says "Par"
     const courseData=json.course||[];
+    courseIssue='';
     const parRow=courseData.find(r=>r.some((cell,i)=>i<3&&cell&&String(cell).trim().toLowerCase()==='par'));
+    const okInt=(v,lo,hi)=>{const t=String(v==null?'':v).trim();const n=Number(t);return t!==''&&Number.isInteger(n)&&n>=lo&&n<=hi;};
     if(parRow){
       // Find the first column with a par-range number (3–6) to handle any label offsets
       let startIdx=1;
       for(let i=0;i<parRow.length;i++){const v=parseInt(parRow[i]);if(!isNaN(v)&&v>=3&&v<=6){startIdx=i;break;}}
-      const newPars=parRow.slice(startIdx,startIdx+18).map(v=>parseInt(v)||4);
-      if(newPars.length===18){
-        pars=newPars;
+      const rawPars=parRow.slice(startIdx,startIdx+18);
+      // STRICT: all 18 cells must be real pars (3-6). Never guess a par of 4 for a bad cell.
+      if(rawPars.length===18&&rawPars.every(v=>okInt(v,3,6))){
+        pars=rawPars.map(v=>parseInt(v));
         buildParInputs();
         // Also look for Stroke Index row (labels: Handicap, HCP, Stroke Index, SI, HDCP)
         const siRow=courseData.find(r=>r.some((cell,ci)=>ci<3&&cell&&/^(handicap(\s+hole)?|hcp|stroke\s*index|si|hdcp)$/i.test(String(cell).trim())));
         if(siRow){
           let siStart=0;
           for(let i=0;i<siRow.length;i++){const v=parseInt(siRow[i]);if(!isNaN(v)&&v>=1&&v<=18){siStart=i;break;}}
-          const newSI=siRow.slice(siStart,siStart+18).map(v=>parseInt(v)||0);
-          if(newSI.length===18&&newSI.every(v=>v>=1&&v<=18)){const distinctGrps=[...new Set(players.map(p=>p.group))].sort();strokeIndex=newSI;showStatus(st,`✅ Loaded ${players.length} players + pars + stroke index! Groups: [${distinctGrps.join(',')}]`,'ok');}
-          else showStatus(st,`✅ Loaded ${players.length} players + course pars!`,'ok');
-        } else { showStatus(st,`✅ Loaded ${players.length} players + course pars! (No stroke index row found — add a "Handicap" row to SETUP.COURSE for net skins)`, 'ok'); }
-      } else { showStatus(st,`✅ Loaded ${players.length} players with handicaps!`,'ok'); }
-    } else { showStatus(st,`✅ Loaded ${players.length} players with handicaps!`,'ok'); }
+          const rawSI=siRow.slice(siStart,siStart+18);
+          const newSI=rawSI.map(v=>okInt(v,1,18)?parseInt(v):0);
+          if(newSI.length===18&&newSI.every(v=>v>=1&&v<=18)&&new Set(newSI).size===18){
+            const distinctGrps=[...new Set(players.map(p=>p.group))].sort();strokeIndex=newSI;
+            showStatus(st,`✅ Loaded ${players.length} players + pars + stroke index! Groups: [${distinctGrps.join(',')}]`,'ok');
+          } else {
+            courseIssue='The STROKE INDEX row in SETUP.COURSE is blank or invalid (found: '+rawSI.map(v=>String(v==null?'':v)).join(',')+'). Net skins would use the wrong holes.';
+          }
+        } else {
+          courseIssue='No Stroke Index / Handicap row was found in SETUP.COURSE. Net skins would use the wrong holes.';
+        }
+      } else {
+        courseIssue='The PAR row in SETUP.COURSE is blank or not numbers yet (found: '+rawPars.map(v=>String(v==null?'':v)).join(',')+'). The sheet may still be recalculating, or the course tab has not been switched to this course.';
+      }
+    } else {
+      courseIssue='No Par row was found in SETUP.COURSE, so no course pars or stroke index were loaded.';
+    }
     // ⚠️ Pre-flight: every player's course-tee key must resolve in COURSE.TEES.
     teeIssues=findTeeIssues(rawPlayers);
     if(teeIssues.length){
       showStatus(st,`⚠️ TEE NOT FOUND for ${teeIssues.length} player${teeIssues.length>1?'s':''} — ${teeIssues.map(t=>t.name+' ('+t.key+')').join(', ')}. Add the tee to the COURSE.TEES tab in the Google Sheet, then press Load Players again. Until you do they play off 0 strokes and Net Skins, Low Net and the money will all be wrong.`,'err');
     }
 
+    if(courseIssue){
+      showStatus(st,'⛔ COURSE DATA NOT LOADED — '+courseIssue+' Wait a few seconds, check the SETUP.COURSE tab in the Google Sheet, then press Load Players from Sheet again. Do NOT start the round until this goes green.'+(teeIssues.length?'  (Also: tee problem for '+teeIssues.map(t=>t.name).join(', ')+'.)':''),'err');
+    }
     // Load money setup from SETUP.MONEY (non-fatal if tab missing)
     moneySetup=null;
     try{
