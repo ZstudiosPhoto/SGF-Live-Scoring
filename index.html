@@ -682,6 +682,27 @@
   .dt-log div.win span{color:#1f7a1b;}
   .dt-log div.push span{color:#9a6a10;}
   .dt-log div.pend span{color:#8a9a8a;}
+  /* ===== PHONE HEADER + HOLE SCREEN SIZING (11/18/2026) =====
+     Header buttons were ~23px tall in a ragged wrap. On phones they now sit in an even 5-column
+     grid, every button the same size on every screen, ~40px tall. The Hole entry rows and keypad
+     give back the room. Kept last in the stylesheet so it wins over the max-height rules above. */
+  @media(max-width:520px){
+    .header-actions{display:grid !important;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding-top:7px;}
+    .header-actions>*{min-width:0;}
+    .hdr-btn{display:flex;align-items:center;justify-content:center;min-height:40px;padding:4px 2px !important;
+      font-size:0.8rem !important;border-radius:10px;text-align:center;overflow:hidden;white-space:normal;overflow-wrap:anywhere;line-height:1.05;}
+    .header-actions .live-badge{min-height:40px;justify-content:center;border-radius:10px;padding:2px 3px;font-size:0.58rem;letter-spacing:0.3px;white-space:nowrap;overflow:hidden;}
+    #screen-scoring.hole-mode #btn-hdr-push{display:flex;}
+    .hv-row{height:clamp(34px,5.4dvh,48px);padding:0 8px 0 10px;}
+    .hv-name{font-size:0.86rem;}
+    .hv-box{width:50px;font-size:min(1.5rem,3.8dvh);}
+    .hv-dots{font-size:0.8rem;}
+    .hv-players{gap:4px;padding:5px 6px;}
+    .hv-keys{flex:1 0 clamp(132px,24dvh,230px);}
+    .hv-key{font-size:min(1.55rem,3.6dvh);}
+    .hv-key.act,.hv-key.ok.next{font-size:0.95rem;}
+    .hv-key.ok{font-size:1.3rem;}
+  }
 </style>
 </head>
 <body>
@@ -896,11 +917,11 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
       <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
       <button class="hdr-btn" onclick="showScreen('screen-dots')">&#9679; Dots</button>
-      <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰</button>
+      <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰 Pay</button>
       <button class="hdr-btn settle-nav" onclick="showScreen('screen-settle')" style="background:rgba(120,190,255,0.22);border-color:rgba(120,190,255,0.5);color:#bfe2ff;">🧾 Settle</button>
-      <button class="hdr-btn" onclick="showScreen('screen-info')">ℹ️</button>
+      <button class="hdr-btn" onclick="showScreen('screen-info')">ℹ️ Info</button>
       <button class="hdr-btn" id="btn-manage-groups" onclick="openManageGroups()">👥 Groups</button>
-      <button class="hdr-btn" id="btn-hdr-push" onclick="pushAllToSheets()" title="Push scores, closies and settle-up to the Google Sheet">📊</button>
+      <button class="hdr-btn" id="btn-hdr-push" onclick="pushAllToSheets()" title="Push scores, closies and settle-up to the Google Sheet">📊 Sheet</button>
     </div>
   </div>
   <div id="spectator-banner-scoring" class="spectator-banner" style="display:none;">👁️ Spectator Mode — Read Only</div>
@@ -975,7 +996,7 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
       <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
       <button class="hdr-btn" onclick="showScreen('screen-dots')">&#9679; Dots</button>
-      <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰</button>
+      <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰 Pay</button>
     </div>
   </div>
   <div class="lb-body">
@@ -1028,7 +1049,7 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
       <button class="hdr-btn" onclick="showScreen('screen-closies')">Closies</button>
       <button class="hdr-btn" onclick="showScreen('screen-dots')">&#9679; Dots</button>
-      <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰</button>
+      <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰 Pay</button>
     </div>
   </div>
   <div class="lb-body" id="skins-content">
@@ -1048,7 +1069,8 @@ try {
       <button class="hdr-btn" onclick="showScreen('screen-scoring')">Scores</button>
       <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
       <button class="hdr-btn" onclick="showScreen('screen-skins')">Skins</button>
-      <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰</button>
+      <button class="hdr-btn" onclick="showScreen('screen-dots')">&#9679; Dots</button>
+      <button class="hdr-btn" onclick="showScreen('screen-payouts')" style="background:rgba(212,168,67,0.25);border-color:rgba(212,168,67,0.5);color:#f0cc70;">💰 Pay</button>
     </div>
   </div>
   <div class="lb-body" id="closies-content">
@@ -1095,9 +1117,9 @@ try {
     <div class="header-actions">
       <div class="live-badge"><div class="live-dot"></div>LIVE</div>
       <button class="hdr-btn" onclick="showScreen('screen-scoring')">Scores</button>
-      <button class="hdr-btn" onclick="showScreen('screen-payouts')">💰</button>
+      <button class="hdr-btn" onclick="showScreen('screen-payouts')">💰 Pay</button>
       <button class="hdr-btn" onclick="showScreen('screen-lowgross')" title="Low Gross entries and standings">&#9971; Low Gross</button>
-      <button class="hdr-btn" onclick="printPaymentSheet()">🖨️</button>
+      <button class="hdr-btn" onclick="printPaymentSheet()">🖨️ Print</button>
     </div>
   </div>
   <div class="lb-body" id="settle-content">
@@ -1122,7 +1144,7 @@ try {
       <div class="live-badge"><div class="live-dot"></div>LIVE</div>
       <button class="hdr-btn" onclick="showScreen('screen-lb')">Board</button>
       <button class="hdr-btn" onclick="showScreen('screen-settle')">&#129534; Settle</button>
-      <button class="hdr-btn" onclick="printLowGrossSheet()" title="Print the paper sign-up sheet">&#128424;&#65039;</button>
+      <button class="hdr-btn" onclick="printLowGrossSheet()" title="Print the paper sign-up sheet">&#128424;&#65039; Print</button>
     </div>
   </div>
   <div class="lb-body" id="lowgross-content">
