@@ -684,6 +684,12 @@
   .dt-log div.pend span{color:#8a9a8a;}
   .dt-wait{margin:0 12px 8px;padding:8px 10px;border-radius:9px;background:#fff6e0;border:1px solid #f0d58a;color:#8a6200;font-weight:800;font-size:0.78rem;line-height:1.35;}
   .dt-pn small.wait{color:#b07d1a;font-weight:900;}
+  .dt-math{display:block;margin-top:3px;font-size:0.7rem;font-weight:700;color:#5f6f5f;line-height:1.35;}
+  .dt-math i{font-style:normal;color:#9aa89a;}
+  .dt-math b{font-weight:800;white-space:nowrap;}
+  .dt-log div span{flex:1;min-width:0;}
+  .dt-mtog{margin-left:auto;text-transform:none;letter-spacing:0;padding:5px 10px;border-radius:14px;border:1.5px solid var(--border);background:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.7rem;color:var(--sgf-green-darker);cursor:pointer;}
+  .dt-mtog.on{background:var(--sgf-green);border-color:var(--sgf-green);color:#fff;}
   /* ===== PHONE HEADER + HOLE SCREEN SIZING (11/18/2026) =====
      Header buttons were ~23px tall in a ragged wrap. On phones they now sit in an even 5-column
      grid, every button the same size on every screen, ~40px tall. The Hole entry rows and keypad
@@ -5641,7 +5647,7 @@ async function refreshMoneyForScreen(id){
 //   After 18  → anything still carried is left on the table.
 // ════════════════════════════════════════════════════════════════════════════════════
 let dotsData={}, dotsRef=null;
-let dotsView={group:null, hole:null};
+let dotsView={group:null, hole:null, math:true};
 const DOT_VALUE=1;
 const DOT_KINDS=[['closie','Closie'],['sandy','Sandy'],['pwap','Pwap']];
 
@@ -5740,7 +5746,7 @@ function dotsEngine(o){
         const W=win===0?A:B, L=win===0?B:A, pot=carry+(lw===win?1:0)+(tw===win?1:0);
         W.forEach(w=>{ R.teamDots[w]+=pot; R.bal[w]+=pot*L.length*V; });
         L.forEach(l=>{ R.bal[l]-=pot*W.length*V; });
-        row.result={type:'win',ids:W,pot}; carry=0;
+        row.result={type:'win',ids:W,pot,pts:pot-carry}; carry=0;
       } else { carry++; row.result={type:'push',carry}; }
     } else {
       const m=Math.min(...ids.map(i=>net[i])); const best=ids.filter(i=>net[i]===m);
@@ -5748,7 +5754,7 @@ function dotsEngine(o){
         const w=best[0], pot=carry+1;
         R.teamDots[w]+=pot; R.bal[w]+=pot*(n-1)*V;
         ids.forEach(x=>{ if(x!==w) R.bal[x]-=pot*V; });
-        row.result={type:'win',ids:[w],pot}; carry=0;
+        row.result={type:'win',ids:[w],pot,pts:1}; carry=0;
       } else { carry++; row.result={type:'push',carry,tied:best}; }
     }
     R.holes.push(row);
@@ -5854,6 +5860,21 @@ function dotsHoleText(R,row){
   if(R.mode==='teams'&&row.low!==-1&&row.total!==-1) return 'Push (Low and Total split) &middot; '+r.carry+(r.carry>1?' dots carry':' dot carries');
   return 'Push (tied) &middot; '+r.carry+(r.carry>1?' dots carry':' dot carries');
 }
+// "Show the math": the nets behind a hole's result, so it can be checked against a paper card.
+function dotsMath(R,row){
+  const r=row.result; if(!r||r.type==='pending') return '';
+  let t;
+  if(R.mode==='teams'&&row.teams){
+    const side=T=>T.map(i=>esc(dotsName(i))+' '+row.net[i]).join(', ');
+    t=side(row.teams[0])+' <i>vs</i> '+side(row.teams[1])
+      +' &rarr; <b>Low '+row.lowVals[0]+'&ndash;'+row.lowVals[1]+'</b>, <b>Total '+row.totVals[0]+'&ndash;'+row.totVals[1]+'</b>';
+  } else {
+    t='Net: '+Object.keys(row.net).map(Number).map(i=>esc(dotsName(i))+' '+row.net[i]).join(' &middot; ');
+  }
+  if(r.type==='win'&&row.carryIn) t+=' &middot; '+r.pts+' + '+row.carryIn+' carried = '+r.pot+' dots';
+  return '<small class="dt-math">'+t+'</small>';
+}
+function dotsToggleMath(){ dotsView.math=!dotsView.math; buildDotsView(); }
 function dotsKindLabel(k){ return {birdie:'Birdie',closie:'Closie',sandy:'Sandy',pwap:'Pwap'}[k]||k; }
 
 function buildDotsView(){
@@ -5938,15 +5959,15 @@ function buildDotsView(){
       +(v===null?'<small class="wait">Score not entered yet</small>':'<small>Gross '+v+(nt!==v?' &middot; Net '+nt:'')+'</small>')+'</div>'+chips+'</div>';
   }).join('');
   html+='<div class="dt-res">'+(R.mode==='teams'&&row.teams?'<span style="color:#6a7a6a;">'+dotsTeam(row.teams[0])+' vs '+dotsTeam(row.teams[1])+'</span><br>':'')
-    +dotsHoleText(R,row)+(row.result.type==='pending'&&h===R.through+1&&R.carry?' &middot; '+R.carry+' dot'+(R.carry>1?'s':'')+' riding':'')+'</div>';
+    +dotsHoleText(R,row)+(row.result.type==='pending'&&h===R.through+1&&R.carry?' &middot; '+R.carry+' dot'+(R.carry>1?'s':'')+' riding':'')+dotsMath(R,row)+'</div>';
   html+='<div class="dt-note" style="padding-top:8px;">Closie, Sandy and Pwap count only with a gross par or better (a struck-through button means the score doesn&rsquo;t qualify). Birdies are automatic.</div></div>';
   // Hole-by-hole log
-  html+='<div class="dt-card"><div class="dt-h">Hole by hole</div><div class="dt-log">'
+  html+='<div class="dt-card"><div class="dt-h">Hole by hole<button class="dt-mtog'+(dotsView.math?' on':'')+'" onclick="dotsToggleMath()">'+(dotsView.math?'&#10003; Show the math':'Show the math')+'</button></div><div class="dt-log">'
     +R.holes.filter(r=>r.result.type!=='pending'||r.personal.length).map(r=>{
       const t=r.result.type;
       const pers=r.personal.map(x=>esc(dotsName(x.id))+' '+dotsKindLabel(x.k).toLowerCase()).join(', ');
       return '<div class="'+(t==='win'?'win':t==='push'?'push':'pend')+'" onclick="dotsView.hole='+r.h+';buildDotsView();window.scrollTo(0,0);"><b>H'+r.h+'</b><span>'
-        +(t==='pending'?'':dotsHoleText(R,r))+(pers?(t==='pending'?'':' &middot; ')+'&#9679; '+pers:'')+'</span></div>';
+        +(t==='pending'?'':dotsHoleText(R,r))+(pers?(t==='pending'?'':' &middot; ')+'&#9679; '+pers:'')+(dotsView.math?dotsMath(R,r):'')+'</span></div>';
     }).join('')+'</div></div>';
   box.innerHTML=html;
 }
