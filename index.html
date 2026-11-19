@@ -690,6 +690,14 @@
   .dt-log div span{flex:1;min-width:0;}
   .dt-mtog{margin-left:auto;text-transform:none;letter-spacing:0;padding:5px 10px;border-radius:14px;border:1.5px solid var(--border);background:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.7rem;color:var(--sgf-green-darker);cursor:pointer;}
   .dt-mtog.on{background:var(--sgf-green);border-color:var(--sgf-green);color:#fff;}
+  .dt-fmt{display:flex;gap:6px;padding:0 12px 10px;}
+  .dt-fmt button{flex:1;padding:9px 6px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-family:'Nunito',sans-serif;font-weight:900;font-size:0.8rem;color:var(--text);cursor:pointer;}
+  .dt-fmt button.on{background:var(--sgf-green);border-color:var(--sgf-green);color:#fff;}
+  .dt-val{display:flex;align-items:center;gap:8px;padding:0 12px 12px;font-size:0.78rem;font-weight:900;color:var(--text);}
+  .dt-val input{width:64px;padding:7px 8px;border-radius:9px;border:1.5px solid var(--border);font-family:'Nunito',sans-serif;font-weight:900;font-size:0.9rem;text-align:center;}
+  .dt-val span{font-size:0.68rem;font-weight:700;color:var(--muted);}
+  .dt-cap{margin:0 12px 10px;padding:9px 10px;border-radius:10px;background:#eef7ed;border:1px solid #cfe5cc;}
+  .dt-capt{font-size:0.82rem;font-weight:800;margin-bottom:7px;}
   /* ===== PHONE HEADER + HOLE SCREEN SIZING (11/18/2026) =====
      Header buttons were ~23px tall in a ragged wrap. On phones they now sit in an even 5-column
      grid, every button the same size on every screen, ~40px tall. The Hole entry rows and keypad
@@ -5645,6 +5653,12 @@ async function refreshMoneyForScreen(id){
 //               par, sandy par, pwap par — each $1 from every other man in the game.  The
 //               tapped ones only count when the card shows par or better on that hole.
 //   After 18  → anything still carried is left on the table.
+//   CAPTAIN   → (11/18/2026) same scoring, but partners change EVERY hole: the tee-flip winner is
+//               captain on hole 1, the captaincy moves down the card one man a hole, and the
+//               captain taps his partner after the drives.  A hole waits until he has picked.
+//               "Pigging it" (captain alone vs three) is NOT built yet - rules pending from Tom.
+//   $ a dot   → every dot (team, skin, personal) pays the group's chosen amount; default $1.
+//   More data: fmt:'rotate'|'captain', value:<$ a dot>, cap1:<pid>, picks:{hole:partnerPid}
 // ════════════════════════════════════════════════════════════════════════════════════
 let dotsData={}, dotsRef=null;
 let dotsView={group:null, hole:null, math:true};
@@ -5690,12 +5704,18 @@ function dotsCanEdit(g){ return !window.isSpectator && (isAdmin || myGroup===nul
 // ── Pure scoring engine (no DOM, no Firebase) ───────────────────────────────────────
 // o = { ids:[pid], hcp:{pid:n}, gross:(pid,h)=>n|null, pars:[18], si:[18], junk:{h:{pid:{..}}}, order:[pid] }
 function dotsEngine(o){
-  const ids=o.ids.map(Number), n=ids.length, V=DOT_VALUE;
+  const ids=o.ids.map(Number), n=ids.length, V=(Number(o.value)>0?Number(o.value):DOT_VALUE);
   const R={mode:n===4?'teams':(n>=2?'skins':'off'), n, holes:[], bal:{}, teamDots:{}, persDots:{},
            persKinds:{}, through:0, carry:0, final:false, payments:[]};
   ids.forEach(id=>{ R.bal[id]=0; R.teamDots[id]=0; R.persDots[id]=0; R.persKinds[id]={birdie:0,closie:0,sandy:0,pwap:0}; });
   if(R.mode==='off') return R;
-  const pairs=R.mode==='teams'?dotsPairings(o.order.map(Number)):null;
+  const captain=R.mode==='teams'&&o.format==='captain';
+  R.format=captain?'captain':'rotate'; R.value=V;
+  const pairs=R.mode==='teams'&&!captain?dotsPairings(o.order.map(Number)):null;
+  // Captain order = card order, starting with the tee-flip winner.
+  const c0=ids.includes(Number(o.cap1))?ids.indexOf(Number(o.cap1)):0;
+  const capOf=h=>ids.at((c0+h-1)%ids.length);
+  const picks=o.picks||{};
   const junk=o.junk||{};
   let carry=0, stalled=false;
   for(let h=1;h<=18;h++){
@@ -5709,6 +5729,13 @@ function dotsEngine(o){
     });
     const row={h,par,si,gross,net,personal:[],carryIn:carry,result:null};
     if(pairs) row.teams=pairs[Math.floor((h-1)/6)];
+    let needPick=false;
+    if(captain){
+      const cap=capOf(h), mate=Number(picks[h]);
+      row.captain=cap;
+      if(ids.includes(mate)&&mate!==cap){ row.partner=mate; row.teams=[[cap,mate],ids.filter(x=>x!==cap&&x!==mate)]; }
+      else needPick=true;
+    }
     // Personal dots count on their own, whatever the team side of the hole is doing.
     ids.forEach(id=>{
       const v=gross[id]; if(v===null) return;
@@ -5729,7 +5756,7 @@ function dotsEngine(o){
     });
     // The team / skins side waits until every man in has a score — and so does every hole
     // after it, because the carry is not known yet.
-    if(stalled||!complete){ stalled=true; row.result={type:'pending'}; R.holes.push(row); continue; }
+    if(stalled||!complete||needPick){ stalled=true; row.result={type:'pending',needPick:needPick&&!R.holes.some(r=>r.result&&r.result.type==='pending')}; R.holes.push(row); continue; }
     R.through=h;
     if(R.mode==='teams'){
       const [A,B]=row.teams;
@@ -5786,7 +5813,9 @@ function dotsSettle(bal){
 function dotsRun(g){
   const inP=dotsInPlayers(g), ids=inP.map(p=>p.id);
   const hcp={}; inP.forEach(p=>{ hcp[p.id]=parseInt(p.hcp)||0; });
-  return dotsEngine({ids, hcp, pars, si:strokeIndex, order:dotsOrder(g,ids), junk:dotsCfg(g).junk||{},
+  const c=dotsCfg(g);
+  return dotsEngine({ids, hcp, pars, si:strokeIndex, order:dotsOrder(g,ids), junk:c.junk||{},
+    format:c.fmt, value:c.value, cap1:c.cap1, picks:c.picks||{},
     gross:(id,h)=>{ const v=scores[id]&&scores[id][h]; return (v===null||v===undefined)?null:v; }});
 }
 
@@ -5837,6 +5866,30 @@ function dotsToggleJunk(g,h,pid,k){
   buildDotsView();
   dotsWrite(g+'/junk/'+h+'/'+pid+'/'+k,on?true:null);
 }
+function dotsSet(g,key,val){
+  if(!dotsCanEdit(g)) return;
+  if(!dotsData[g]) dotsData[g]={};
+  if(val===null) delete dotsData[g][key]; else dotsData[g][key]=val;
+  buildDotsView();
+  dotsWrite(g+'/'+key,val);
+}
+function dotsSetFormat(g,f){ if(dotsRun(g).through>0&&!confirm('Holes are already scored. Switch the Dots game format anyway? Every hole is recalculated.')) return; dotsSet(g,'fmt',f==='captain'?'captain':null); }
+function dotsSetValue(g,el){
+  const v=Math.round(parseFloat(String(el.value).replace(/[^0-9.]/g,''))*100)/100;
+  if(!(v>0)){ el.value=dotsRun(g).value; return; }
+  dotsSet(g,'value',v===DOT_VALUE?null:v);
+}
+function dotsSetCap1(g,pid){ if(dotsRun(g).through>0) return; dotsSet(g,'cap1',pid); }
+function dotsPick(g,h,pid){
+  if(!dotsCanEdit(g)) return;
+  if(!dotsData[g]) dotsData[g]={};
+  if(!dotsData[g].picks) dotsData[g].picks={};
+  const cur=Number(dotsData[g].picks[h]);
+  const val=cur===pid?null:pid;               // tapping the chosen partner again clears it
+  if(val===null) delete dotsData[g].picks[h]; else dotsData[g].picks[h]=val;
+  buildDotsView();
+  dotsWrite(g+'/picks/'+h,val);
+}
 function dotsGoHole(d){
   const h=(dotsView.hole||1)+d;
   if(h<1||h>18) return;
@@ -5849,7 +5902,7 @@ function dotsTeam(ids){ return ids.map(i=>esc(dotsName(i))).join(' &amp; '); }
 function dotsMoney(v){ const a=Math.abs(v); const s='$'+(a%1?a.toFixed(2):a); return v>0?'+'+s:(v<0?'&minus;'+s:'$0'); }
 function dotsHoleText(R,row){
   const r=row.result;
-  if(!r||r.type==='pending') return 'Waiting for scores';
+  if(!r||r.type==='pending') return (row.captain&&!row.partner)?'Waiting for '+esc(dotsName(row.captain))+' to pick a partner':'Waiting for scores';
   const what=R.mode==='teams'
     ?(row.low!==-1&&row.total!==-1?'Low + Total':(row.low!==-1?'Low (Total tied)':'Total (Low tied)'))
     :'low net';
@@ -5899,12 +5952,23 @@ function buildDotsView(){
     +'<div class="dt-in">'+gp.map(p=>'<button class="dt-chip'+(inn[p.id]?' on':'')+'"'+(canEdit?'':' disabled')
       +' onclick="dotsToggleIn('+g+','+p.id+')">'+(inn[p.id]?'&#10003; ':'')+esc(hvNameOf(p))+'</button>').join('')
     +(canEdit&&R.n<gp.length?'<button class="dt-chip" onclick="dotsAllIn('+g+')">Everyone in</button>':'')+'</div>'
-    +'<div class="dt-mode">'+(R.mode==='teams'?'4 in: <b>teams</b>, partners change every 6 holes. Net, max 18 pops.'
+    +'<div class="dt-mode">'+(R.mode==='teams'?(R.format==='captain'?'4 in: <b>Captain</b>, the captain picks a new partner every hole.':'4 in: <b>teams</b>, partners change every 6 holes.')+' Net, max 18 pops.'
         :R.mode==='skins'?R.n+' in: <b>net skins</b>, no teams. Max 18 pops.'
-        :'Tap the players who are in. 4 = teams, 2&ndash;3 = skins.')+' $'+DOT_VALUE+' a dot.</div></div>';
+        :'Tap the players who are in. 4 = teams, 2&ndash;3 = skins.')+'</div>'
+    +(R.mode==='teams'?'<div class="dt-fmt"><button class="'+(R.format==='rotate'?'on':'')+'"'+(canEdit?'':' disabled')+' onclick="dotsSetFormat('+g+',\'rotate\')">Rotate every 6</button><button class="'+(R.format==='captain'?'on':'')+'"'+(canEdit?'':' disabled')+' onclick="dotsSetFormat('+g+',\'captain\')">Captain</button></div>':'')
+    +'<div class="dt-val">$ a dot <input type="text" inputmode="decimal" value="'+R.value+'"'+(canEdit?'':' disabled')+' onchange="dotsSetValue('+g+',this)"> <span>every dot, team and personal</span></div></div>';
   if(R.mode==='off'){ box.innerHTML=html+(canEdit?'':'<div class="skins-empty">Only this foursome can set up its Dots game.</div>'); return; }
   // Partners
-  if(R.mode==='teams'){
+  if(R.mode==='teams'&&R.format==='captain'){
+    const inP=dotsInPlayers(g), cap1=R.holes[0].captain;
+    const cards=inP.map((p,i)=>inP.at((inP.findIndex(x=>x.id===cap1)+i)%inP.length));
+    html+='<div class="dt-card"><div class="dt-h">Captain</div>'
+      +'<div class="dt-mode" style="padding-top:0;">'+(R.through===0?'Who won the tee flip? That player is captain on hole 1; it then moves down the card one player a hole.':'Captain on hole 1: <b>'+esc(dotsName(cap1))+'</b>. It moves down the card one player a hole.')+'</div>'
+      +(R.through===0?'<div class="dt-in">'+inP.map(p=>'<button class="dt-chip'+(p.id===cap1?' on':'')+'"'+(canEdit?'':' disabled')+' onclick="dotsSetCap1('+g+','+p.id+')">'+(p.id===cap1?'&#10003; ':'')+esc(hvNameOf(p))+'</button>').join('')+'</div>':'')
+      +'<div class="dt-seg"><span class="dt-sh">Order</span>'+cards.map(p=>esc(dotsName(p.id))).join(' &rarr; ')+' &rarr; &hellip;</div>'
+      +'</div>';
+  }
+  if(R.mode==='teams'&&R.format!=='captain'){
     const ids=dotsInPlayers(g).map(p=>p.id), P=dotsPairings(dotsOrder(g,ids));
     const curSeg=Math.floor(((dotsView.hole||Math.min(R.through+1,18))-1)/6);
     html+='<div class="dt-card"><div class="dt-h">Partners</div>'
@@ -5936,6 +6000,11 @@ function buildDotsView(){
     +'<div class="dt-hole">Hole '+h+'<small>Par '+par+' &middot; SI '+row.si+'</small></div>'
     +'<button onclick="dotsGoHole(1)"'+(h>=18?' disabled':'')+'>'+(h<18?h+1:'')+' &rsaquo;</button></div>';
   const inPl=dotsInPlayers(g);
+  if(row.captain){
+    html+='<div class="dt-cap"><div class="dt-capt"><b>'+esc(dotsName(row.captain))+'</b> is captain'+(row.partner?' &mdash; partner:':' &mdash; pick a partner:')+'</div><div class="dt-in" style="padding:0;">'
+      +inPl.filter(p=>p.id!==row.captain).map(p=>'<button class="dt-chip'+(p.id===row.partner?' on':'')+'"'+(canEdit?'':' disabled')+' onclick="dotsPick('+g+','+h+','+p.id+')">'+(p.id===row.partner?'&#10003; ':'')+esc(dotsName(p.id))+'</button>').join('')
+      +'</div></div>';
+  }
   const noScore=inPl.filter(p=>row.gross[p.id]===null);
   if(noScore.length){
     html+='<div class="dt-wait">&#9203; '+(noScore.length===inPl.length
