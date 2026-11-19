@@ -723,6 +723,8 @@
   }
   /* Manual lock button retired 11/18/2026 - the idle auto-lock with slide-to-unlock replaces it. */
   #lock-btn{display:none !important;}
+  /* On a computer the lock bar is a plain button: one click unlocks. */
+  @media (hover:hover) and (pointer:fine){ #idle-track, #idle-knob{cursor:pointer;} }
 </style>
 </head>
 <body>
@@ -6758,8 +6760,9 @@ function toggleLock(){
 /* ===== IDLE SCREEN LOCK =====
    After IDLE_MS with no touch on any screen where something can be ENTERED, the screen locks
    behind a slide-to-unlock bar, so a phone in a pocket can't change anything.  Was the Scores
-   screen only; 11/18/2026 Chris asked for every entry screen (Closies, Dots, Settle, Low Gross). */
-const IDLE_MS=20000;
+   screen only; 11/18/2026 Chris asked for every entry screen (Closies, Dots, Settle, Low Gross),
+   and later that day for 30 seconds instead of 20, and an easy click-to-unlock on a computer. */
+const IDLE_MS=30000;
 const IDLE_LOCK_SCREENS=['screen-scoring','screen-closies','screen-dots','screen-settle','screen-lowgross'];
 function onIdleLockScreen(){ const a=document.querySelector('.screen.active'); return !!(a&&IDLE_LOCK_SCREENS.includes(a.id)); }
 let idleTimer=null, idleLocked=false;
@@ -6791,7 +6794,11 @@ function setIdleKnob(x){ document.getElementById('idle-knob').style.transform='t
   document.addEventListener('DOMContentLoaded',()=>{
     const knob=document.getElementById('idle-knob'), track=document.getElementById('idle-track');
     if(!knob) return;
-    knob.addEventListener('pointerdown',e=>{ dragging=true; startX=e.clientX; max=track.clientWidth-knob.clientWidth-8; try{knob.setPointerCapture(e.pointerId);}catch(_){} e.preventDefault(); });
+    // A mouse can't pocket-tap: on a computer one click on the bar (or Enter / space) unlocks.
+    if(window.matchMedia&&matchMedia('(hover: hover) and (pointer: fine)').matches){ const lb=document.getElementById('idle-label'); if(lb) lb.textContent='Slide or click to unlock'; }
+    track.addEventListener('pointerdown',e=>{ if(e.pointerType==='mouse'){ e.preventDefault(); releaseIdleLock(); setIdleKnob(0); } });
+    document.addEventListener('keydown',e=>{ if(idleLocked&&(e.key==='Enter'||e.key===' ')){ e.preventDefault(); releaseIdleLock(); setIdleKnob(0); } });
+    knob.addEventListener('pointerdown',e=>{ if(e.pointerType==='mouse') return; dragging=true; startX=e.clientX; max=track.clientWidth-knob.clientWidth-8; try{knob.setPointerCapture(e.pointerId);}catch(_){} e.preventDefault(); });
     knob.addEventListener('pointermove',e=>{ if(!dragging) return; setIdleKnob(Math.max(0,Math.min(max,e.clientX-startX))); });
     const end=e=>{ if(!dragging) return; dragging=false; const x=Math.max(0,Math.min(max,e.clientX-startX)); if(x>=max*0.9) releaseIdleLock(); else setIdleKnob(0); };
     knob.addEventListener('pointerup',end); knob.addEventListener('pointercancel',end);
@@ -6858,7 +6865,7 @@ function showLockToast(msg){
   <button id="admin-gear-float" onclick="endRound()" title="Admin / End Round">⚙️</button>
   <button id="lock-btn" onclick="toggleLock()" title="Lock screen">🔒</button>
 </div>
-<div id="idle-lock"><div class="il-title">🔒 Screen locked</div><div class="il-sub">Locked to prevent pocket taps</div><div id="idle-track">Slide to unlock<div id="idle-knob">➜</div></div></div>
+<div id="idle-lock"><div class="il-title">🔒 Screen locked</div><div class="il-sub">Locked to prevent pocket taps</div><div id="idle-track"><span id="idle-label">Slide to unlock</span><div id="idle-knob">➜</div></div></div>
 <div id="lock-toast"></div>
 </body>
 </html>
