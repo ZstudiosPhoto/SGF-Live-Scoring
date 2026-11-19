@@ -698,6 +698,8 @@
   .dt-val span{font-size:0.68rem;font-weight:700;color:var(--muted);}
   .dt-cap{margin:0 12px 10px;padding:9px 10px;border-radius:10px;background:#eef7ed;border:1px solid #cfe5cc;}
   .dt-capt{font-size:0.82rem;font-weight:800;margin-bottom:7px;}
+  .dt-chip.dt-pig{border-color:#e7a3b6;}
+  .dt-chip.dt-pig.on{background:#d9577f;border-color:#d9577f;color:#fff;}
   /* ===== PHONE HEADER + HOLE SCREEN SIZING (11/18/2026) =====
      Header buttons were ~23px tall in a ragged wrap. On phones they now sit in an even 5-column
      grid, every button the same size on every screen, ~40px tall. The Hole entry rows and keypad
@@ -5656,7 +5658,10 @@ async function refreshMoneyForScreen(id){
 //   CAPTAIN   → (11/18/2026) same scoring, but partners change EVERY hole: the tee-flip winner is
 //               captain on hole 1, the captaincy moves down the card one man a hole, and the
 //               captain taps his partner after the drives.  A hole waits until he has picked.
-//               "Pigging it" (captain alone vs three) is NOT built yet - rules pending from Tom.
+//   PIG IT    → the captain may go alone (picks:{hole:'pig'}).  Rules from Tom, 11/18/2026: LOW ONLY,
+//               captain's net vs the best net of the other three.  Captain wins: each of the three
+//               pays him 2 dots + all carries (6 dots with no carry).  Captain loses: he pays each
+//               of the three 2 dots + all carries.  A tied Low pushes and carries 1, like any hole.
 //   $ a dot   → every dot (team, skin, personal) pays the group's chosen amount; default $1.
 //   More data: fmt:'rotate'|'captain', value:<$ a dot>, cap1:<pid>, picks:{hole:partnerPid}
 // ════════════════════════════════════════════════════════════════════════════════════
@@ -5731,9 +5736,10 @@ function dotsEngine(o){
     if(pairs) row.teams=pairs[Math.floor((h-1)/6)];
     let needPick=false;
     if(captain){
-      const cap=capOf(h), mate=Number(picks[h]);
+      const cap=capOf(h), pk=picks[h], mate=Number(pk);
       row.captain=cap;
-      if(ids.includes(mate)&&mate!==cap){ row.partner=mate; row.teams=[[cap,mate],ids.filter(x=>x!==cap&&x!==mate)]; }
+      if(pk==='pig'){ row.pig=true; row.teams=[[cap],ids.filter(x=>x!==cap)]; }
+      else if(ids.includes(mate)&&mate!==cap){ row.partner=mate; row.teams=[[cap,mate],ids.filter(x=>x!==cap&&x!==mate)]; }
       else needPick=true;
     }
     // Personal dots count on their own, whatever the team side of the hole is doing.
@@ -5758,7 +5764,19 @@ function dotsEngine(o){
     // after it, because the carry is not known yet.
     if(stalled||!complete||needPick){ stalled=true; row.result={type:'pending',needPick:needPick&&!R.holes.some(r=>r.result&&r.result.type==='pending')}; R.holes.push(row); continue; }
     R.through=h;
-    if(R.mode==='teams'){
+    if(R.mode==='teams'&&row.pig){
+      const [A,B]=row.teams, me=A[0];
+      const lowA=net[me], lowB=Math.min(...B.map(i=>net[i]));
+      const lw=lowA<lowB?0:(lowB<lowA?1:-1);
+      row.low=lw; row.total=-1; row.lowVals=[lowA,lowB];
+      if(lw===-1){ carry++; row.result={type:'push',carry}; }
+      else {
+        const W=lw===0?A:B, L=lw===0?B:A, pot=carry+2;   // every payer owes the pot to every winner
+        W.forEach(w=>{ R.teamDots[w]+=pot*L.length; R.bal[w]+=pot*L.length*V; });
+        L.forEach(l=>{ R.bal[l]-=pot*W.length*V; });
+        row.result={type:'win',ids:W,pot,pts:2,pigWon:lw===0}; carry=0;
+      }
+    } else if(R.mode==='teams'){
       const [A,B]=row.teams;
       const lowA=Math.min(...A.map(i=>net[i])), lowB=Math.min(...B.map(i=>net[i]));
       const totA=A.reduce((s,i)=>s+net[i],0), totB=B.reduce((s,i)=>s+net[i],0);
@@ -5884,8 +5902,8 @@ function dotsPick(g,h,pid){
   if(!dotsCanEdit(g)) return;
   if(!dotsData[g]) dotsData[g]={};
   if(!dotsData[g].picks) dotsData[g].picks={};
-  const cur=Number(dotsData[g].picks[h]);
-  const val=cur===pid?null:pid;               // tapping the chosen partner again clears it
+  const cur=dotsData[g].picks[h];
+  const val=String(cur)===String(pid)?null:pid;   // tapping the current choice again clears it
   if(val===null) delete dotsData[g].picks[h]; else dotsData[g].picks[h]=val;
   buildDotsView();
   dotsWrite(g+'/picks/'+h,val);
@@ -5898,11 +5916,16 @@ function dotsGoHole(d){
 
 // ── Screen ──────────────────────────────────────────────────────────────────────────
 function dotsName(id){ const p=players.find(x=>x.id===id); return p?hvNameOf(p).split(' ')[0]:'?'; }
-function dotsTeam(ids){ return ids.map(i=>esc(dotsName(i))).join(' &amp; '); }
+function dotsTeam(ids){ const n=ids.map(i=>esc(dotsName(i))); return n.length>2?n.slice(0,-1).join(', ')+' &amp; '+n.at(-1):n.join(' &amp; '); }
 function dotsMoney(v){ const a=Math.abs(v); const s='$'+(a%1?a.toFixed(2):a); return v>0?'+'+s:(v<0?'&minus;'+s:'$0'); }
 function dotsHoleText(R,row){
   const r=row.result;
-  if(!r||r.type==='pending') return (row.captain&&!row.partner)?'Waiting for '+esc(dotsName(row.captain))+' to pick a partner':'Waiting for scores';
+  if(!r||r.type==='pending') return (row.captain&&!row.partner&&!row.pig)?'Waiting for '+esc(dotsName(row.captain))+' to pick a partner':'Waiting for scores';
+  if(row.pig){
+    const cn=esc(dotsName(row.captain));
+    if(r.type==='push') return cn+' pigs it &middot; Low tied, push &middot; '+r.carry+(r.carry>1?' dots carry':' dot carries');
+    return r.pigWon?cn+' pigs it and WINS &middot; '+r.pot+' dots from each':cn+' pigs it and loses &middot; pays '+r.pot+' dots to each';
+  }
   const what=R.mode==='teams'
     ?(row.low!==-1&&row.total!==-1?'Low + Total':(row.low!==-1?'Low (Total tied)':'Total (Low tied)'))
     :'low net';
@@ -5917,6 +5940,13 @@ function dotsHoleText(R,row){
 function dotsMath(R,row){
   const r=row.result; if(!r||r.type==='pending') return '';
   let t;
+  if(row.pig){
+    const me=row.captain, oth=row.teams[1];
+    t=esc(dotsName(me))+' '+row.net[me]+' <i>vs best of</i> '+oth.map(i=>esc(dotsName(i))+' '+row.net[i]).join(', ')
+      +' &rarr; <b>Low '+row.lowVals[0]+'&ndash;'+row.lowVals[1]+'</b>';
+    if(r.type==='win'&&row.carryIn) t+=' &middot; 2 + '+row.carryIn+' carried = '+r.pot+' dots '+(r.pigWon?'from':'to')+' each';
+    return '<small class="dt-math">'+t+'</small>';
+  }
   if(R.mode==='teams'&&row.teams){
     const side=T=>T.map(i=>esc(dotsName(i))+' '+row.net[i]).join(', ');
     t=side(row.teams[0])+' <i>vs</i> '+side(row.teams[1])
@@ -6001,8 +6031,9 @@ function buildDotsView(){
     +'<button onclick="dotsGoHole(1)"'+(h>=18?' disabled':'')+'>'+(h<18?h+1:'')+' &rsaquo;</button></div>';
   const inPl=dotsInPlayers(g);
   if(row.captain){
-    html+='<div class="dt-cap"><div class="dt-capt"><b>'+esc(dotsName(row.captain))+'</b> is captain'+(row.partner?' &mdash; partner:':' &mdash; pick a partner:')+'</div><div class="dt-in" style="padding:0;">'
+    html+='<div class="dt-cap"><div class="dt-capt"><b>'+esc(dotsName(row.captain))+'</b> is captain'+(row.pig?' &mdash; pigging it alone (Low only, 2 dots each way)':row.partner?' &mdash; partner:':' &mdash; pick a partner, or pig it:')+'</div><div class="dt-in" style="padding:0;">'
       +inPl.filter(p=>p.id!==row.captain).map(p=>'<button class="dt-chip'+(p.id===row.partner?' on':'')+'"'+(canEdit?'':' disabled')+' onclick="dotsPick('+g+','+h+','+p.id+')">'+(p.id===row.partner?'&#10003; ':'')+esc(dotsName(p.id))+'</button>').join('')
+      +'<button class="dt-chip dt-pig'+(row.pig?' on':'')+'"'+(canEdit?'':' disabled')+' onclick="dotsPick('+g+','+h+',\'pig\')">'+(row.pig?'&#10003; ':'')+'&#128055; Pig it</button>'
       +'</div></div>';
   }
   const noScore=inPl.filter(p=>row.gross[p.id]===null);
@@ -6027,7 +6058,7 @@ function buildDotsView(){
     return '<div class="dt-pr"><div class="dt-pn">'+esc(hvNameOf(p))
       +(v===null?'<small class="wait">Score not entered yet</small>':'<small>Gross '+v+(nt!==v?' &middot; Net '+nt:'')+'</small>')+'</div>'+chips+'</div>';
   }).join('');
-  html+='<div class="dt-res">'+(R.mode==='teams'&&row.teams?'<span style="color:#6a7a6a;">'+dotsTeam(row.teams[0])+' vs '+dotsTeam(row.teams[1])+'</span><br>':'')
+  html+='<div class="dt-res">'+(R.mode==='teams'&&row.teams?'<span style="color:#6a7a6a;">'+dotsTeam(row.teams[0])+(row.pig?' (pig)':'')+' vs '+dotsTeam(row.teams[1])+'</span><br>':'')
     +dotsHoleText(R,row)+(row.result.type==='pending'&&h===R.through+1&&R.carry?' &middot; '+R.carry+' dot'+(R.carry>1?'s':'')+' riding':'')+dotsMath(R,row)+'</div>';
   html+='<div class="dt-note" style="padding-top:8px;">Closie, Sandy and Pwap count only with a gross par or better (a struck-through button means the score doesn&rsquo;t qualify). Birdies are automatic.</div></div>';
   // Hole-by-hole log
