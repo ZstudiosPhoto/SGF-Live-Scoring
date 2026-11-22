@@ -5874,6 +5874,17 @@ function dotsSwapPartners(g){
   buildDotsView();
   dotsWrite(g+'/order',ord);
 }
+function dotsShuffleTeams(g){
+  if(!dotsCanEdit(g)) return;
+  const ids=dotsInPlayers(g).map(p=>p.id); if(ids.length!==4) return;
+  if(dotsRun(g).through>0) return;                   // partners are locked once hole 1 is in
+  const ord=ids.slice();
+  for(let i=ord.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [ord[i],ord[j]]=[ord[j],ord[i]]; }
+  if(!dotsData[g]) dotsData[g]={};
+  dotsData[g].order=ord;
+  buildDotsView();
+  dotsWrite(g+'/order',ord);
+}
 function dotsToggleJunk(g,h,pid,k){
   if(!dotsCanEdit(g)) return;
   if(!dotsData[g]) dotsData[g]={};
@@ -6006,7 +6017,7 @@ function buildDotsView(){
     html+='<div class="dt-card"><div class="dt-h">Partners</div>'
       +['1&ndash;6','7&ndash;12','13&ndash;18'].map((lab,i)=>'<div class="dt-seg'+(i===curSeg?' cur':'')+'"><span class="dt-sh">Holes '+lab+'</span>'
         +dotsTeam(P[i][0])+' <span class="dt-vs">vs</span> '+dotsTeam(P[i][1])+'</div>').join('')
-      +(canEdit&&R.through===0?'<div class="dt-btnrow"><button class="dt-btn" onclick="dotsSwapPartners('+g+')">&#128260; Change first-tee partners</button></div>':'')
+      +(canEdit&&R.through===0?'<div class="dt-btnrow"><button class="dt-btn" onclick="dotsShuffleTeams('+g+')">&#127922; Random teams</button><button class="dt-btn" onclick="dotsSwapPartners('+g+')">&#128260; Change first-tee partners</button></div>':'')
       +'</div>';
   }
   // Money
@@ -6021,6 +6032,14 @@ function buildDotsView(){
       :'<div style="color:#8a9a8a;">Nobody owes anything yet.</div>')+'</div>'
     +(R.final&&R.carry?'<div class="dt-note">'+R.carry+' dot'+(R.carry>1?'s':'')+' still tied after 18 &mdash; left on the table.</div>':'')
     +'</div>';
+  // Total dots won per person
+  {
+    const tot=ids.map(id=>R.teamDots[id]+R.persDots[id]), sum=tot.reduce((a,b)=>a+b,0);
+    html+='<div class="dt-card"><div class="dt-h">Total dots won<span class="dt-hx">'+(R.through?'Thru '+R.through:'Not started')+'</span></div>'
+      +'<div class="dt-money">'+ids.map((id,i)=>'<div class="dt-m"><b>'+esc(dotsName(id))+'</b><i class="'+(tot[i]>0?'pos':'zero')+'">'+tot[i]+'</i>'
+        +'<small>'+R.teamDots[id]+' '+(R.mode==='teams'?'team':'skin')+' + '+R.persDots[id]+' pers</small></div>').join('')+'</div>'
+      +'<div class="dt-note" style="padding-top:0;">'+sum+' dots won in all (team + personal).</div></div>';
+  }
   // Hole card — personal dots are tapped in here.
   if(dotsView.hole===null){
     const firstOpen=R.holes.find(r=>Object.values(r.gross).some(v=>v===null));
