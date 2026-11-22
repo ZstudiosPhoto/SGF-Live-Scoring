@@ -5885,6 +5885,12 @@ function dotsShuffleTeams(g){
   buildDotsView();
   dotsWrite(g+'/order',ord);
 }
+function dotsRandomCaptain(g){
+  if(!dotsCanEdit(g)) return;
+  const ids=dotsInPlayers(g).map(p=>p.id); if(ids.length!==4) return;
+  if(dotsRun(g).through>0) return;                   // captain order is locked once hole 1 is in
+  dotsSetCap1(g, ids[Math.floor(Math.random()*ids.length)]);
+}
 function dotsToggleJunk(g,h,pid,k){
   if(!dotsCanEdit(g)) return;
   if(!dotsData[g]) dotsData[g]={};
@@ -6008,6 +6014,7 @@ function buildDotsView(){
     html+='<div class="dt-card"><div class="dt-h">Captain</div>'
       +'<div class="dt-mode" style="padding-top:0;">'+(R.through===0?'Who won the tee flip? That player is captain on hole 1; it then moves down the card one player a hole.':'Captain on hole 1: <b>'+esc(dotsName(cap1))+'</b>. It moves down the card one player a hole.')+'</div>'
       +(R.through===0?'<div class="dt-in">'+inP.map(p=>'<button class="dt-chip'+(p.id===cap1?' on':'')+'"'+(canEdit?'':' disabled')+' onclick="dotsSetCap1('+g+','+p.id+')">'+(p.id===cap1?'&#10003; ':'')+esc(hvNameOf(p))+'</button>').join('')+'</div>':'')
+      +(canEdit&&R.through===0?'<div class="dt-btnrow"><button class="dt-btn" onclick="dotsRandomCaptain('+g+')">&#127922; Random first captain</button></div>':'')
       +'<div class="dt-seg"><span class="dt-sh">Order</span>'+cards.map(p=>esc(dotsName(p.id))).join(' &rarr; ')+' &rarr; &hellip;</div>'
       +'</div>';
   }
