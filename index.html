@@ -653,6 +653,22 @@
   .dt-seg .dt-vs{color:#9aa89a;font-weight:700;font-size:0.7rem;}
   .dt-seg.cur{background:#f3faf2;}
   .dt-btnrow{display:flex;gap:8px;padding:8px 12px 11px;}
+  #tee-ov{position:fixed;inset:0;background:rgba(10,20,10,.72);z-index:100000;display:flex;align-items:center;justify-content:center;padding:14px;}
+  #tee-ov .tee-card{background:#fff;border-radius:16px;width:100%;max-width:360px;padding:14px 14px 16px;text-align:center;font-family:'Nunito',sans-serif;box-shadow:0 10px 40px rgba(0,0,0,.4);}
+  #tee-ov .tee-h{font-weight:900;font-size:1rem;color:var(--sgf-green-darker);}
+  #tee-ov .tee-sub{font-size:.78rem;font-weight:700;color:#5a6a5a;min-height:2.4em;margin-top:2px;}
+  #tee-ov .tee-ring{position:relative;width:260px;height:260px;margin:6px auto 4px;border-radius:50%;background:radial-gradient(circle,#e9f3e6 0,#d3e6cf 100%);border:2px solid #b9d3b4;}
+  #tee-ov .tee-seat{position:absolute;transform:translate(-50%,-50%);padding:7px 12px;border-radius:20px;background:#fff;border:2px solid #9bbd95;font-weight:900;font-size:.85rem;color:#2b3f2b;white-space:nowrap;}
+  #tee-ov .tee-seat.win{background:#2f8f2a;border-color:#1f6a1b;color:#fff;transform:translate(-50%,-50%) scale(1.15);}
+  #tee-ov .tee-lift{position:absolute;left:50%;top:50%;width:34px;height:84px;margin:-42px 0 0 -17px;}
+  #tee-ov .tee-lift.go{animation:teeToss 2.6s ease-in-out;}
+  #tee-ov .tee-spin{width:100%;height:100%;}
+  @keyframes teeToss{0%{transform:scale(1);}35%{transform:scale(2.1);}70%{transform:scale(1.5);}100%{transform:scale(1);}}
+  #tee-ov .tee-btns{display:flex;gap:8px;margin-top:8px;}
+  #tee-ov .tee-btns button{flex:1;padding:11px 8px;border-radius:10px;border:1px solid var(--border);background:#f2f6f1;font-family:'Nunito',sans-serif;font-weight:900;font-size:.85rem;color:var(--sgf-green-darker);cursor:pointer;}
+  #tee-ov .tee-btns button.go{background:#2f8f2a;color:#fff;border-color:#1f6a1b;}
+  #tee-ov .tee-sum div{font-size:.84rem;font-weight:800;padding:4px 0;color:#2b3f2b;}
+  #tee-ov .tee-sum span{color:#6a7a6a;font-weight:900;margin-right:6px;}
   .dt-btn{flex:1;padding:8px 10px;border-radius:9px;border:1px solid var(--border);background:#f2f6f1;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.76rem;color:var(--sgf-green-darker);cursor:pointer;}
   .dt-money{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:7px;padding:0 12px 10px;}
   .dt-m{background:#f2f6f1;border-radius:9px;padding:7px 6px;text-align:center;}
@@ -5891,6 +5907,74 @@ function dotsRandomCaptain(g){
   if(dotsRun(g).through>0) return;                   // captain order is locked once hole 1 is in
   dotsSetCap1(g, ids[Math.floor(Math.random()*ids.length)]);
 }
+// ── Tee toss: pick partners the old way — the first player tosses a tee twice ───────────────
+let teeState=null;
+const TEE_SVG='<svg class="tee-spin" viewBox="0 0 34 84" xmlns="http://www.w3.org/2000/svg"><path d="M3 2 Q17 16 31 2 Q27 20 21 22 L19 80 Q17 84 15 80 L13 22 Q7 20 3 2Z" fill="#e8c27a" stroke="#8a5a1a" stroke-width="1.6"/><path d="M3 2 Q17 16 31 2 Q27 9 17 11 Q7 9 3 2Z" fill="#c8301f" stroke="#7a1a10" stroke-width="1.2"/></svg>';
+function dotsTeeOpen(g){
+  if(!dotsCanEdit(g)) return;
+  const ids=dotsInPlayers(g).map(p=>p.id); if(ids.length!==4) return;
+  if(dotsRun(g).through>0) return;                   // partners are locked once hole 1 is in
+  teeState={g, thrower:ids[0], pool:ids.slice(1), picks:[], angle:0, busy:false};
+  teeRender();
+}
+function teeClose(){ const o=document.getElementById('tee-ov'); if(o) o.remove(); teeState=null; }
+function teeSeatAngles(n){ return n===3?[0,120,240]:(n===2?[90,270]:[0]); }
+function teeRender(){
+  const S=teeState; if(!S) return;
+  let ov=document.getElementById('tee-ov');
+  if(!ov){ ov=document.createElement('div'); ov.id='tee-ov'; document.body.appendChild(ov); }
+  const done=S.picks.length>=2;
+  const cand=S.pool.filter(x=>!S.picks.includes(x));
+  const th=esc(dotsName(S.thrower));
+  let h='<div class="tee-card"><div class="tee-h">&#127948; '+th+' tosses the tee</div>';
+  if(!done){
+    const ang=teeSeatAngles(cand.length);
+    h+='<div class="tee-sub">'+(S.picks.length===0
+        ?'Toss 1 &mdash; who is '+th+'&rsquo;s partner for holes 1&ndash;6?'
+        :esc(dotsName(S.picks[0]))+' has holes 1&ndash;6. Toss 2 &mdash; partner for holes 7&ndash;12?')+'</div>'
+      +'<div class="tee-ring">'+cand.map((id,i)=>{const a=ang[i]*Math.PI/180;
+        return '<div class="tee-seat" id="tee-seat-'+id+'" style="left:'+(50+36*Math.sin(a)).toFixed(1)+'%;top:'+(50-36*Math.cos(a)).toFixed(1)+'%">'+esc(dotsName(id))+'</div>';}).join('')
+      +'<div class="tee-lift" id="tee-lift"><div class="tee-spin" id="tee-spin" style="transform:rotate('+S.angle+'deg)">'+TEE_SVG+'</div></div></div>'
+      +'<div class="tee-btns"><button onclick="teeClose()">Cancel</button><button class="go" id="tee-go" onclick="teeToss()">&#127948; Toss the tee</button></div>';
+  } else {
+    const last=cand[0], ord=[S.thrower,S.picks[0],S.picks[1],last], P=dotsPairings(ord);
+    h+='<div class="tee-sub">Teams are set.</div><div class="tee-sum">'
+      +['1&ndash;6','7&ndash;12','13&ndash;18'].map((lab,i)=>'<div><span>Holes '+lab+'</span>'+dotsTeam(P[i][0])+' vs '+dotsTeam(P[i][1])+'</div>').join('')
+      +'</div><div class="tee-btns"><button onclick="dotsTeeOpen('+S.g+')">&#128260; Start over</button><button class="go" onclick="teeApply()">Use these teams</button></div>';
+  }
+  ov.innerHTML=h+'</div>';
+}
+function teeToss(){
+  const S=teeState; if(!S||S.busy) return;
+  const cand=S.pool.filter(x=>!S.picks.includes(x)); if(cand.length<2) return;
+  S.busy=true;
+  const w=Math.floor(Math.random()*cand.length), win=cand[w];
+  const ang=teeSeatAngles(cand.length)[w]+(Math.random()*30-15);
+  const cur=((S.angle%360)+360)%360;
+  const delta=(((ang-cur)%360)+360)%360+360*(5+Math.floor(Math.random()*3));
+  S.angle+=delta;
+  const sp=document.getElementById('tee-spin'), lf=document.getElementById('tee-lift'), go=document.getElementById('tee-go');
+  if(go) go.disabled=true;
+  if(lf) lf.classList.add('go');
+  if(sp){ sp.style.transition='transform 2.6s cubic-bezier(.15,.7,.2,1)'; sp.style.transform='rotate('+S.angle+'deg)'; }
+  setTimeout(()=>{
+    if(teeState!==S) return;
+    const seat=document.getElementById('tee-seat-'+win); if(seat) seat.classList.add('win');
+    setTimeout(()=>{ if(teeState!==S) return; S.picks.push(win); S.busy=false; teeRender(); },900);
+  },2700);
+}
+function teeApply(){
+  const S=teeState; if(!S) return;
+  const g=S.g;
+  if(!dotsCanEdit(g)||dotsRun(g).through>0){ teeClose(); return; }
+  const cand=S.pool.filter(x=>!S.picks.includes(x));
+  const ord=[S.thrower,S.picks[0],S.picks[1],cand[0]];
+  if(!dotsData[g]) dotsData[g]={};
+  dotsData[g].order=ord;
+  teeClose();
+  buildDotsView();
+  dotsWrite(g+'/order',ord);
+}
 function dotsToggleJunk(g,h,pid,k){
   if(!dotsCanEdit(g)) return;
   if(!dotsData[g]) dotsData[g]={};
@@ -6025,6 +6109,7 @@ function buildDotsView(){
       +['1&ndash;6','7&ndash;12','13&ndash;18'].map((lab,i)=>'<div class="dt-seg'+(i===curSeg?' cur':'')+'"><span class="dt-sh">Holes '+lab+'</span>'
         +dotsTeam(P[i][0])+' <span class="dt-vs">vs</span> '+dotsTeam(P[i][1])+'</div>').join('')
       +(canEdit&&R.through===0?'<div class="dt-btnrow"><button class="dt-btn" onclick="dotsShuffleTeams('+g+')">&#127922; Random teams</button><button class="dt-btn" onclick="dotsSwapPartners('+g+')">&#128260; Change first-tee partners</button></div>':'')
+      +(canEdit&&R.through===0?'<div class="dt-btnrow" style="padding-top:0;"><button class="dt-btn" onclick="dotsTeeOpen('+g+')">&#127948; Toss a tee to pick partners</button></div>':'')
       +'</div>';
   }
   // Money
