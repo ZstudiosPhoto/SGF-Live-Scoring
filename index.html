@@ -784,6 +784,8 @@ try {
   <div class="setup-body">
     <div class="setup-card">
       <div class="section-title">Round Details</div>
+      <div class="field" id="saved-course-field"><label>Course Library <span style="font-size:0.72rem;color:var(--muted);font-weight:600;">(no sheet needed — fills course name, pars &amp; stroke index)</span></label>
+        <select id="sel-savedcourse" onchange="loadCourseLocal(this.value)" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #cce0ca;border-radius:8px;font-family:'Nunito',sans-serif;font-weight:700;font-size:0.9rem;background:#fff;color:var(--text);"></select></div>
       <div class="field"><label>Course Name</label><input type="text" id="inp-course" placeholder="e.g. Torrey Pines South" maxlength="50"></div>
       <div class="field"><label>Date of Play</label><input type="date" id="inp-date"></div>
       <div class="field">
@@ -832,6 +834,12 @@ try {
       <div class="par-grid" id="par-front"></div>
       <div style="font-size:0.68rem;color:var(--muted);font-weight:800;margin:10px 0 4px;text-transform:uppercase;letter-spacing:1px;">Back 9 — Holes 10–18</div>
       <div class="par-grid" id="par-back"></div>
+      <div style="font-size:0.68rem;color:var(--muted);font-weight:800;margin:14px 0 4px;text-transform:uppercase;letter-spacing:1px;">Stroke Index (1 = hardest hole) — Front 9</div>
+      <div class="par-grid" id="si-front"></div>
+      <div style="font-size:0.68rem;color:var(--muted);font-weight:800;margin:10px 0 4px;text-transform:uppercase;letter-spacing:1px;">Stroke Index — Back 9</div>
+      <div class="par-grid" id="si-back"></div>
+      <div style="font-size:0.7rem;color:var(--muted);font-weight:700;margin-top:6px;">Loaded automatically from the sheet. For a no-sheet round, type each hole's handicap number from the scorecard (use 1–18 once each).</div>
+      <button type="button" class="add-player-row" style="margin-top:8px;" onclick="saveCourseLocal()">💾 Save this course on this device (custom course)</button>
     </div>
     <button class="start-btn" onclick="startRound()">⛳ Start Live Round</button>
     <div style="height:12px;"></div>
@@ -1385,6 +1393,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('inp-date').value=new Date().toLocaleDateString('en-CA',{timeZone:'America/Los_Angeles'});
   document.getElementById('inp-sheetid').value=localStorage.getItem('sgf_sheetId')||'';
   buildParInputs();
+  loadCourseLibrary();
   renderPlayerList();
   applyAdminUI();
   try{
@@ -2061,7 +2070,92 @@ async function startRound(){
   afterRoundLoaded();
 }
 
+function buildSIInputs(){
+  const f=document.getElementById('si-front'),b=document.getElementById('si-back');
+  if(!f||!b) return;
+  f.innerHTML='';b.innerHTML='';
+  for(let i=0;i<9;i++) f.innerHTML+=`<div class="par-hole-label">${i+1}</div>`;
+  for(let i=9;i<18;i++) b.innerHTML+=`<div class="par-hole-label">${i+1}</div>`;
+  for(let i=0;i<9;i++) f.innerHTML+=`<input class="par-input" type="number" min="1" max="18" value="${strokeIndex[i]}" onchange="strokeIndex[${i}]=parseInt(this.value)||${i+1}">`;
+  for(let i=9;i<18;i++) b.innerHTML+=`<input class="par-input" type="number" min="1" max="18" value="${strokeIndex[i]}" onchange="strokeIndex[${i}]=parseInt(this.value)||${i+1}">`;
+}
+// ── Saved courses (this device only) so a no-sheet foursome only types a course once ──
+function getSavedCourses(){ try{ return JSON.parse(localStorage.getItem('sgf_savedCourses')||'{}')||{}; }catch(e){ return {}; } }
+// ── Course library: the Master sheet's COURSES tab (one row per course, pars C-T, stroke index U-AL) ──
+const COURSE_LIB_SHEET='1k-vNtAdTdJki1tQ72iZ95P1FHt7PwJ7xyxbxM60PbpA';
+let courseLib={};
+function parseCSVrows_(t){
+  const rows=[];let r=[],c='',q=false;
+  for(let i=0;i<t.length;i++){
+    const ch=t[i];
+    if(q){ if(ch==='"'){ if(t[i+1]==='"'){c+='"';i++;} else q=false; } else c+=ch; }
+    else if(ch==='"') q=true;
+    else if(ch===','){ r.push(c);c=''; }
+    else if(ch==='\n'){ r.push(c);rows.push(r);r=[];c=''; }
+    else if(ch!=='\r') c+=ch;
+  }
+  if(c!==''||r.length){ r.push(c);rows.push(r); }
+  return rows;
+}
+function courseLibFromCSV_(txt){
+  const lib={};
+  parseCSVrows_(txt).forEach(r=>{
+    const name=String(r[1]||'').trim();
+    const pars=r.slice(2,20).map(v=>parseInt(v));
+    const si=r.slice(20,38).map(v=>parseInt(v));
+    if(!name||pars.length!==18||si.length!==18) return;
+    if(pars.some(n=>!(n>=3&&n<=6))) return;
+    if([...si].sort((x,y)=>x-y).some((v,i)=>v!==i+1)) return;
+    lib[name]={pars,si};
+  });
+  return lib;
+}
+async function loadCourseLibrary(){
+  try{ courseLib=JSON.parse(localStorage.getItem('sgf_courseLib')||'{}')||{}; }catch(e){ courseLib={}; }
+  refreshSavedCourseList();
+  try{
+    const url='https://docs.google.com/spreadsheets/d/'+COURSE_LIB_SHEET+'/gviz/tq?tqx=out:csv&sheet=COURSES&t='+Date.now();
+    const res=await fetch(url);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const lib=courseLibFromCSV_(await res.text());
+    if(Object.keys(lib).length){ courseLib=lib; try{ localStorage.setItem('sgf_courseLib',JSON.stringify(lib)); }catch(e){} }
+  }catch(e){ console.log('Course library not loaded (using cached copy if any):',e.message); }
+  refreshSavedCourseList();
+}
+function refreshSavedCourseList(){
+  const sel=document.getElementById('sel-savedcourse');
+  if(!sel) return;
+  const keep=sel.value;
+  const mine=Object.keys(getSavedCourses()).sort();
+  const lib=Object.keys(courseLib).sort((a,b)=>a.localeCompare(b));
+  let h='<option value="">— pick a course —</option>';
+  if(mine.length) h+='<optgroup label="Saved on this device">'+mine.map(n=>`<option value="L:${esc(n)}">${esc(n)}</option>`).join('')+'</optgroup>';
+  if(lib.length) h+='<optgroup label="Course library ('+lib.length+')">'+lib.map(n=>`<option value="C:${esc(n)}">${esc(n)}</option>`).join('')+'</optgroup>';
+  else h+='<option value="" disabled>(course library not loaded yet)</option>';
+  sel.innerHTML=h;
+  if(keep) sel.value=keep;
+}
+function saveCourseLocal(){
+  const name=(document.getElementById('inp-course').value||'').trim();
+  if(!name){ alert('Type the Course Name first, then save.'); return; }
+  const p=[...document.querySelectorAll('#par-front input'),...document.querySelectorAll('#par-back input')].map(i=>parseInt(i.value)||4);
+  const si=[...document.querySelectorAll('#si-front input'),...document.querySelectorAll('#si-back input')].map((i,n)=>parseInt(i.value)||n+1);
+  if([...si].sort((a,b)=>a-b).some((v,i)=>v!==i+1)){ alert('Stroke index must use each number 1–18 exactly once. Fix it, then save.'); return; }
+  const all=getSavedCourses(); all[name]={pars:p,si:si};
+  try{ localStorage.setItem('sgf_savedCourses',JSON.stringify(all)); }catch(e){ alert('Could not save on this device.'); return; }
+  refreshSavedCourseList();
+  alert('✅ Saved "'+name+'" — pick it from Saved Courses next time.');
+}
+function loadCourseLocal(key){
+  if(!key) return;
+  const name=key.slice(2);
+  const c=(key[0]==='L'?getSavedCourses():courseLib)[name]; if(!c) return;
+  document.getElementById('inp-course').value=name;
+  for(let i=0;i<18;i++){ pars[i]=c.pars[i]; strokeIndex[i]=c.si[i]; }
+  buildParInputs();
+}
 function buildParInputs(){
+  buildSIInputs();
   const f=document.getElementById('par-front'),b=document.getElementById('par-back');
   f.innerHTML='';b.innerHTML='';
   for(let i=0;i<9;i++) f.innerHTML+=`<div class="par-hole-label">${i+1}</div>`;
@@ -2084,6 +2178,8 @@ function renderPlayerList(){
       <input type="text" value="${esc(p.name||'')}" placeholder="Player ${i+1}" maxlength="20" oninput="players[${i}].name=this.value">
       <span style="font-size:0.63rem;font-weight:800;color:#4a7044;white-space:nowrap;flex-shrink:0;">Grp</span>
       <select title="Foursome group #" onchange="players[${i}].group=parseInt(this.value)||1" style="width:54px;border:1.5px solid rgba(58,170,53,0.35);border-radius:5px;font-family:'Nunito',sans-serif;font-size:0.85rem;font-weight:800;color:#1a5518;text-align:center;padding:3px 2px;background:#fff;flex-shrink:0;">${grpOpts}</select>
+      <span style="font-size:0.63rem;font-weight:800;color:#4a7044;white-space:nowrap;flex-shrink:0;" title="Course handicap for the tee you play (from GHIN)">CH</span>
+      <input type="number" inputmode="numeric" min="0" max="54" value="${(p.hcp||p.hcp===0)&&p.hcp!==''?parseInt(p.hcp)||0:''}" placeholder="0" title="Course handicap for the tee you play (from GHIN)" oninput="players[${i}].hcp=parseInt(this.value)||0" style="width:46px;flex:0 0 46px;border:1.5px solid rgba(58,170,53,0.35);border-radius:5px;font-family:'Nunito',sans-serif;font-size:0.85rem;font-weight:800;color:#1a5518;text-align:center;padding:3px 2px;background:#fff;">
       <button class="play-type-btn ${ptCls}" onclick="cyclePlayType(${p.id})">${ptLabel}</button>
       ${players.length>1?`<button class="rm-btn" onclick="removePlayer(${p.id})">×</button>`:''}
     </div>`;
@@ -5457,6 +5553,8 @@ async function postToScript(payload){
 
 async function pushToSheets(silent=false){
   if (spectatorBlocked_('View only - scores were not sent to the sheet.')) return;
+  // No-sheet round (e.g. a foursome playing Dots only): nothing to push to.
+  if(!window.activeSheetId){ if(!silent) showSync('No Google Sheet linked to this round - nothing to push (scores are still saved live).',false); return; }
   if(!silent) showSync('Pushing scores to Google Sheets…',null);
   if(!players||players.length===0){
     if(!silent) showSync('⚠️ No players loaded. Start a round first.',false);
