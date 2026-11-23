@@ -5949,7 +5949,8 @@ function teeToss(){
   const cand=S.pool.filter(x=>!S.picks.includes(x)); if(cand.length<2) return;
   S.busy=true;
   const w=Math.floor(Math.random()*cand.length), win=cand[w];
-  const ang=teeSeatAngles(cand.length)[w]+(Math.random()*30-15);
+  // the SVG's red head sits at the top, so add 180deg: the pointed peg end lands on the player
+  const ang=teeSeatAngles(cand.length)[w]+180+(Math.random()*30-15);
   const cur=((S.angle%360)+360)%360;
   const delta=(((ang-cur)%360)+360)%360+360*(5+Math.floor(Math.random()*3));
   S.angle+=delta;
