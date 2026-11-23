@@ -6015,6 +6015,46 @@ function dotsTeeOpen(g){
   teeState={g, thrower:ids[0], pool:ids.slice(1), picks:[], angle:0, busy:false};
   teeRender();
 }
+// ── Tee toss sound effects (synthesized with Web Audio — no files to load) ──────────────────
+let teeSnd=(function(){ try{ return localStorage.getItem('sgf_teeSound')!=='off'; }catch(e){ return true; } })();
+let teeCtx=null;
+function teeAudio(){
+  try{
+    if(!teeCtx){ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null; teeCtx=new AC(); }
+    if(teeCtx.state==='suspended') teeCtx.resume();
+    return teeCtx;
+  }catch(e){ return null; }
+}
+function teeTone(ctx,t,freq,dur,type,vol){
+  const o=ctx.createOscillator(), gn=ctx.createGain();
+  o.type=type; o.frequency.setValueAtTime(freq,t);
+  gn.gain.setValueAtTime(0.0001,t); gn.gain.exponentialRampToValueAtTime(vol,t+0.006); gn.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(gn); gn.connect(ctx.destination); o.start(t); o.stop(t+dur+0.03);
+}
+// same curve as the CSS spin: cubic-bezier(.15,.7,.2,1) -> [time fraction, progress]
+function teeBez(t){ const u=1-t; return [3*u*u*t*.15+3*u*t*t*.2+t*t*t, 3*u*u*t*.7+3*u*t*t+t*t*t]; }
+function teeSoundSpin(delta,secs){
+  if(!teeSnd) return; const ctx=teeAudio(); if(!ctx) return;
+  const t0=ctx.currentTime+0.03, n=Math.floor(delta/60); let k=1;
+  teeTone(ctx,t0,180,0.18,'sawtooth',0.05);                       // little "whoosh" as the tee leaves the fingers
+  for(let i=0;i<=800&&k<=n;i++){
+    const xy=teeBez(i/800);
+    if(xy[1]*delta>=k*60){ teeTone(ctx,t0+xy[0]*secs,650+650*(1-xy[0]),0.04,'square',0.06); k++; }  // wheel-of-fortune ticks that slow down
+  }
+}
+function teeSoundWin(){
+  if(!teeSnd) return; const ctx=teeAudio(); if(!ctx) return; const t=ctx.currentTime+0.02;
+  teeTone(ctx,t,1318.5,0.35,'sine',0.22); teeTone(ctx,t+0.11,1568,0.35,'sine',0.22); teeTone(ctx,t+0.22,2093,0.6,'sine',0.2);   // "ta-da-DING"
+}
+function teeSoundDone(){
+  if(!teeSnd) return; const ctx=teeAudio(); if(!ctx) return; const t=ctx.currentTime+0.05;
+  [523.25,659.25,783.99,1046.5].forEach((f,i)=>teeTone(ctx,t+i*0.12,f,i===3?0.8:0.3,'triangle',0.2));   // little fanfare: teams are set
+}
+function teeSndToggle(){
+  teeSnd=!teeSnd; try{ localStorage.setItem('sgf_teeSound',teeSnd?'on':'off'); }catch(e){}
+  const b=document.getElementById('tee-snd'); if(b) b.innerHTML=teeSnd?'&#128266;':'&#128263;';
+  if(teeSnd){ const ctx=teeAudio(); if(ctx) teeTone(ctx,ctx.currentTime+0.02,1046.5,0.2,'sine',0.15); }
+}
 function teeClose(){ const o=document.getElementById('tee-ov'); if(o) o.remove(); teeState=null; }
 function teeSeatAngles(n){ return n===3?[0,120,240]:(n===2?[90,270]:[0]); }
 function teeRender(){
@@ -6024,7 +6064,7 @@ function teeRender(){
   const done=S.picks.length>=2;
   const cand=S.pool.filter(x=>!S.picks.includes(x));
   const th=esc(dotsName(S.thrower));
-  let h='<div class="tee-card"><div class="tee-h">&#127948; '+th+' tosses the tee</div>';
+  let h='<div class="tee-card"><div class="tee-h">&#127948; '+th+' tosses the tee<span id="tee-snd" onclick="teeSndToggle()" title="Sound on/off" style="float:right;cursor:pointer;font-size:1.1rem;">'+(teeSnd?'&#128266;':'&#128263;')+'</span></div>';
   if(!done){
     const ang=teeSeatAngles(cand.length);
     h+='<div class="tee-sub">'+(S.picks.length===0
@@ -6035,6 +6075,7 @@ function teeRender(){
       +'<div class="tee-lift" id="tee-lift"><div class="tee-spin" id="tee-spin" style="transform:rotate('+S.angle+'deg)">'+TEE_SVG+'</div></div></div>'
       +'<div class="tee-btns"><button onclick="teeClose()">Cancel</button><button class="go" id="tee-go" onclick="teeToss()">&#127948; Toss the tee</button></div>';
   } else {
+    if(!S.fanfared){ S.fanfared=true; teeSoundDone(); }
     const last=cand[0], ord=[S.thrower,S.picks[0],S.picks[1],last], P=dotsPairings(ord);
     h+='<div class="tee-sub">Teams are set.</div><div class="tee-sum">'
       +['1&ndash;6','7&ndash;12','13&ndash;18'].map((lab,i)=>'<div><span>Holes '+lab+'</span>'+dotsTeam(P[i][0])+' vs '+dotsTeam(P[i][1])+'</div>').join('')
@@ -6055,10 +6096,12 @@ function teeToss(){
   const sp=document.getElementById('tee-spin'), lf=document.getElementById('tee-lift'), go=document.getElementById('tee-go');
   if(go) go.disabled=true;
   if(lf) lf.classList.add('go');
+  teeSoundSpin(delta,2.6);
   if(sp){ sp.style.transition='transform 2.6s cubic-bezier(.15,.7,.2,1)'; sp.style.transform='rotate('+S.angle+'deg)'; }
   setTimeout(()=>{
     if(teeState!==S) return;
     const seat=document.getElementById('tee-seat-'+win); if(seat) seat.classList.add('win');
+    teeSoundWin();
     setTimeout(()=>{ if(teeState!==S) return; S.picks.push(win); S.busy=false; teeRender(); },900);
   },2700);
 }
